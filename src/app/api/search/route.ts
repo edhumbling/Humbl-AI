@@ -28,7 +28,7 @@ const FALLBACK_MODEL = {
 
 async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController) {
   try {
-    const completion = await client.chat.completions.create({
+    const stream = client.chat.completions.create({
       ...modelConfig,
       messages: [
         {
@@ -42,7 +42,10 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
       ]
     });
 
-    for await (const chunk of completion) {
+    // Handle streaming response according to Groq documentation
+    // Await the stream first, then iterate through completion deltas
+    const streamResult = await stream;
+    for await (const chunk of streamResult as any) {
       const content = chunk.choices[0]?.delta?.content || "";
       if (content) {
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
