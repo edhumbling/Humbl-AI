@@ -5,6 +5,68 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
+// Primary model configuration
+const PRIMARY_MODEL = {
+  model: "moonshotai/kimi-k2-instruct-0905",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+// Fallback model configuration
+const FALLBACK_MODEL = {
+  model: "qwen/qwen3-32b",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  top_p: 0.95,
+  reasoning_effort: "default",
+  stream: true,
+  stop: null
+};
+
+async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController) {
+  try {
+    const completion = await client.chat.completions.create({
+      ...modelConfig,
+      messages: [
+        {
+          role: "system",
+          content: "You are Humbl AI, a powerful search engine assistant. Help users find relevant information and provide comprehensive, accurate answers to their queries. Be concise but thorough in your responses."
+        },
+        {
+          role: "user",
+          content: query
+        }
+      ]
+    });
+
+    for await (const chunk of completion) {
+      const content = chunk.choices[0]?.delta?.content || "";
+      if (content) {
+        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
+      }
+    }
+
+    // Send completion signal
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+    controller.close();
+    return true;
+  } catch (error: any) {
+    console.error('Model error:', error);
+    
+    // Check for specific error codes that should trigger fallback
+    if (error.status === 400 || error.status === 429 || error.status === 403) {
+      console.log(`Primary model failed with status ${error.status}, trying fallback...`);
+      return false; // Indicate fallback should be tried
+    }
+    
+    // For other errors, throw to be handled by outer catch
+    throw error;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { query } = await request.json();
@@ -27,39 +89,17 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          const completion = await client.chat.completions.create({
-            model: "qwen/qwen3-32b",
-            messages: [
-              {
-                role: "system",
-                content: "You are Humbl AI, a powerful search engine assistant. Help users find relevant information and provide comprehensive, accurate answers to their queries. Be concise but thorough in your responses."
-              },
-              {
-                role: "user",
-                content: query
-              }
-            ],
-            temperature: 0.6,
-            max_completion_tokens: 4096,
-            top_p: 0.95,
-            reasoning_effort: "default",
-            stream: true,
-            stop: null
-          });
-
-          for await (const chunk of completion) {
-            const content = chunk.choices[0]?.delta?.content || "";
-            if (content) {
-              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
-            }
+          // Try primary model first
+          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller);
+          
+          if (!primarySuccess) {
+            // If primary failed with 400/429/403, try fallback model
+            console.log('Attempting fallback model...');
+            await tryModel(FALLBACK_MODEL, query, controller);
           }
-
-          // Send completion signal
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-          controller.close();
         } catch (error) {
-          console.error('Streaming error:', error);
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Failed to process search query' })}\n\n`));
+          console.error('All models failed:', error);
+          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Service temporarily unavailable. Please try again later.' })}\n\n`));
           controller.close();
         }
       }
