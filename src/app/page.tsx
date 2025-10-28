@@ -92,7 +92,8 @@ export default function Home() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
       handleSearch();
     }
   };
@@ -109,10 +110,10 @@ export default function Home() {
       {/* Search Bar */}
       <div className="w-full max-w-2xl mb-8">
         <div className="relative">
-          <div className="flex items-center rounded-2xl px-6 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+          <div className="flex items-start rounded-2xl px-6 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
             {/* Search Icon */}
             <svg 
-              className="w-6 h-6 text-white mr-4" 
+              className="w-6 h-6 text-white mr-4 mt-1 flex-shrink-0" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -126,20 +127,30 @@ export default function Home() {
             </svg>
             
             {/* Input Field */}
-            <input
-              type="text"
+            <textarea
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder=""
-              className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-lg"
+              className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+              rows={1}
+              style={{
+                height: 'auto',
+                minHeight: '1.5rem',
+                maxHeight: '8rem'
+              }}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+              }}
             />
             
             {/* Search Button */}
             <button
               onClick={handleSearch}
               disabled={isLoading || !searchQuery.trim()}
-              className="ml-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80"
+              className="ml-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 flex-shrink-0"
               style={{ backgroundColor: '#1a1a19' }}
               onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
               onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
