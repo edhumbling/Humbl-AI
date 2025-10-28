@@ -109,7 +109,7 @@ export default function Home() {
       {/* Search Bar */}
       <div className="w-full max-w-2xl mb-8">
         <div className="relative">
-          <div className="flex items-center rounded-2xl px-6 py-4 shadow-lg" style={{ backgroundColor: '#151514' }}>
+          <div className="flex items-center rounded-2xl px-6 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
             {/* Search Icon */}
             <svg 
               className="w-6 h-6 text-white mr-4" 
