@@ -2,12 +2,93 @@
 
 import { useState } from 'react';
 
+interface SearchResult {
+  query: string;
+  response: string;
+  timestamp: string;
+}
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+  const [streamingResponse, setStreamingResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = () => {
-    // TODO: Implement search functionality
-    console.log('Searching for:', searchQuery);
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setIsLoading(true);
+    setError(null);
+    setSearchResult(null);
+    setStreamingResponse('');
+
+    try {
+      const response = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: searchQuery }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Search failed');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      let fullResponse = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.error) {
+                setError(data.error);
+                setIsLoading(false);
+                return;
+              }
+              
+              if (data.done) {
+                setSearchResult({
+                  query: searchQuery,
+                  response: fullResponse,
+                  timestamp: new Date().toISOString(),
+                });
+                setIsLoading(false);
+                return;
+              }
+              
+              if (data.content) {
+                fullResponse += data.content;
+                setStreamingResponse(fullResponse);
+              }
+            } catch (e) {
+              // Skip invalid JSON lines
+            }
+          }
+        }
+      }
+    } catch (err) {
+      setError('Failed to search. Please try again.');
+      console.error('Search error:', err);
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -57,30 +138,91 @@ export default function Home() {
             {/* Search Button */}
             <button
               onClick={handleSearch}
-              className="ml-4 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors"
+              disabled={isLoading || !searchQuery.trim()}
+              className="ml-4 w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg 
-                className="w-5 h-5 text-white" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M5 12h14M12 5l7 7-7 7" 
-                />
-              </svg>
+              {isLoading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <svg 
+                  className="w-5 h-5 text-white" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M5 12h14M12 5l7 7-7 7" 
+                  />
+                </svg>
+              )}
             </button>
           </div>
         </div>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="w-full max-w-2xl mb-6">
+          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
+            <p className="text-red-400 text-center">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Streaming Response */}
+      {(streamingResponse || isLoading) && (
+        <div className="w-full max-w-4xl mb-8">
+          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-white mb-2">
+                Search Results for: "{searchQuery}"
+              </h2>
+              <p className="text-gray-400 text-sm">
+                {isLoading ? 'Generating response...' : new Date().toLocaleString()}
+              </p>
+            </div>
+            <div className="prose prose-invert max-w-none">
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {streamingResponse}
+                {isLoading && (
+                  <span className="inline-block w-2 h-5 bg-white ml-1 animate-pulse"></span>
+                )}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Final Search Results */}
+      {searchResult && !isLoading && (
+        <div className="w-full max-w-4xl mb-8">
+          <div className="bg-gray-800 rounded-lg p-6 shadow-lg">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold text-white mb-2">
+                Search Results for: "{searchResult.query}"
+              </h2>
+              <p className="text-gray-400 text-sm">
+                {new Date(searchResult.timestamp).toLocaleString()}
+              </p>
+            </div>
+            <div className="prose prose-invert max-w-none">
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                {searchResult.response}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Articles Available Text */}
       <div className="text-center">
         <p className="text-white text-lg mb-2">Articles Available</p>
-        <p className="text-white text-3xl font-bold">Search to discover</p>
+        <p className="text-white text-3xl font-bold">
+          {isLoading ? 'Generating response...' : searchResult ? 'Search completed' : 'Search to discover'}
+        </p>
       </div>
     </div>
   );
