@@ -167,14 +167,14 @@ export default function Home() {
               onClick={() => window.location.reload()}
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
-              <Image
+        <Image
                 src="/applogo.png"
                 alt="Humbl AI"
                 width={300}
                 height={120}
                 className="mx-auto w-48 h-auto sm:w-[300px]"
-                priority
-              />
+          priority
+        />
             </button>
           </div>
 
@@ -262,16 +262,39 @@ export default function Home() {
                     <p className="text-gray-300 text-sm sm:text-base whitespace-pre-wrap inline-block text-right">
                       {message.content}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </p>
                   </div>
                 ) : (
                   <div className="w-full px-4">
                     <ResponseRenderer content={message.content} />
-                    <p className="text-xs text-gray-500 mt-2">
-                      {new Date(message.timestamp).toLocaleTimeString()}
-                    </p>
+                    {/* Action buttons for AI responses */}
+                    <div className="flex items-center space-x-2 mt-3">
+                      <button
+                        onClick={() => navigator.clipboard.writeText(message.content)}
+                        className="p-2 rounded hover:bg-gray-700 transition-colors"
+                        title="Copy response"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                        </svg>
+                      </button>
+                      <button
+                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                        title="Upvote"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      <button
+                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                        title="Downvote"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -295,6 +318,37 @@ export default function Home() {
                   <div className="flex items-center space-x-2 mt-2 text-gray-300">
                     <PendulumDots />
                     <span className="text-sm animate-pulse">Generating...</span>
+                  </div>
+                )}
+                {/* Action buttons for streaming response */}
+                {!isLoading && (
+                  <div className="flex items-center space-x-2 mt-3">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(streamingResponse)}
+                      className="p-2 rounded hover:bg-gray-700 transition-colors"
+                      title="Copy response"
+                    >
+                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                      </svg>
+                    </button>
+                    <button
+                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                      title="Upvote"
+                    >
+                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                    <button
+                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                      title="Downvote"
+                    >
+                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
                   </div>
                 )}
               </div>
