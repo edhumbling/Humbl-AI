@@ -103,14 +103,19 @@ export default function Home() {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 sm:py-12" style={{ backgroundColor: '#151514' }}>
       {/* Main Logo */}
       <div className="text-center mb-6 sm:mb-12">
-        <Image
-          src="/applogo.png"
-          alt="Humbl AI"
-          width={300}
-          height={120}
-          className="mx-auto w-48 h-auto sm:w-[300px]"
-          priority
-        />
+        <button
+          onClick={() => window.location.reload()}
+          className="cursor-pointer hover:opacity-80 transition-opacity"
+        >
+          <Image
+            src="/applogo.png"
+            alt="Humbl AI"
+            width={300}
+            height={120}
+            className="mx-auto w-48 h-auto sm:w-[300px]"
+            priority
+          />
+        </button>
       </div>
 
       {/* Search Bar */}
