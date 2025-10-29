@@ -100,9 +100,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 sm:py-12" style={{ backgroundColor: '#151514' }}>
+    <div className="h-screen flex flex-col items-center justify-center px-4 py-4 sm:py-8 sm:min-h-screen overflow-hidden sm:overflow-visible" style={{ backgroundColor: '#151514' }}>
       {/* Main Logo */}
-      <div className="text-center mb-6 sm:mb-12">
+      <div className="text-center mb-3 sm:mb-12">
         <button
           onClick={() => window.location.reload()}
           className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -112,14 +112,14 @@ export default function Home() {
             alt="Humbl AI"
             width={300}
             height={120}
-            className="mx-auto w-48 h-auto sm:w-[300px]"
+            className="mx-auto w-32 h-auto sm:w-[300px]"
             priority
           />
         </button>
       </div>
 
       {/* Search Bar */}
-      <div className="w-full max-w-2xl mb-6 sm:mb-8">
+      <div className="w-full max-w-2xl mb-3 sm:mb-8">
         <div className="relative">
           <div className="flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
             {/* Search Icon */}
@@ -190,19 +190,19 @@ export default function Home() {
 
       {/* Error Message */}
       {error && (
-        <div className="w-full max-w-2xl mb-4 sm:mb-6 px-4">
-          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-3 sm:p-4">
-            <p className="text-red-400 text-center text-sm sm:text-base">{error}</p>
+        <div className="w-full max-w-2xl mb-2 sm:mb-6 px-4">
+          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-2 sm:p-4">
+            <p className="text-red-400 text-center text-xs sm:text-base">{error}</p>
           </div>
         </div>
       )}
 
       {/* Streaming Response */}
       {(streamingResponse || isLoading) && (
-        <div className="w-full max-w-4xl mb-6 sm:mb-8 px-4">
-          <div className="rounded-lg p-4 sm:p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
-            <div className="mb-3 sm:mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
+        <div className="w-full max-w-4xl mb-2 sm:mb-8 px-4 flex-1 overflow-y-auto">
+          <div className="rounded-lg p-3 sm:p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
+            <div className="mb-2 sm:mb-4">
+              <h2 className="text-sm sm:text-xl font-semibold text-white mb-1 sm:mb-2">
                 Search Results for: "{searchQuery}"
               </h2>
               <p className="text-gray-400 text-xs sm:text-sm">
@@ -210,7 +210,7 @@ export default function Home() {
               </p>
             </div>
             <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-xs sm:text-base">
                 {streamingResponse}
                 {isLoading && (
                   <span className="inline-block w-2 h-5 bg-white ml-1 animate-pulse"></span>
@@ -223,10 +223,10 @@ export default function Home() {
 
       {/* Final Search Results */}
       {searchResult && !isLoading && (
-        <div className="w-full max-w-4xl mb-6 sm:mb-8 px-4">
-          <div className="rounded-lg p-4 sm:p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
-            <div className="mb-3 sm:mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
+        <div className="w-full max-w-4xl mb-2 sm:mb-8 px-4 flex-1 overflow-y-auto">
+          <div className="rounded-lg p-3 sm:p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
+            <div className="mb-2 sm:mb-4">
+              <h2 className="text-sm sm:text-xl font-semibold text-white mb-1 sm:mb-2">
                 Search Results for: "{searchResult.query}"
               </h2>
               <p className="text-gray-400 text-xs sm:text-sm">
@@ -234,7 +234,7 @@ export default function Home() {
               </p>
             </div>
             <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-xs sm:text-base">
                 {searchResult.response}
               </p>
             </div>
