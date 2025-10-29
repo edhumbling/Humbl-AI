@@ -104,12 +104,6 @@ export default function Home() {
               }
               
                     if (data.done) {
-                      setSearchResult({
-                        query: searchQuery,
-                        response: fullResponse,
-                        timestamp: new Date().toISOString(),
-                      });
-                      
                       // Add AI response to conversation history
                       const aiMessage = {
                         type: 'ai' as const,
@@ -118,7 +112,8 @@ export default function Home() {
                       };
                       setConversationHistory(prev => [...prev, aiMessage]);
                       
-                      // Clear search query for next message
+                      // Clear streaming response and search query
+                      setStreamingResponse('');
                       setSearchQuery('');
                       setIsLoading(false);
                       setThinkingText('');
@@ -257,63 +252,58 @@ export default function Home() {
 
       {/* Conversation Area - Only show when conversation has started */}
       {conversationStarted && (
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1 overflow-y-auto py-4">
+          <div className="w-full space-y-6">
             {/* Conversation History */}
             {conversationHistory.map((message, index) => (
-              <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] rounded-lg p-4 ${
-                  message.type === 'user' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'text-gray-300'
-                }`} style={message.type === 'ai' ? { backgroundColor: '#1a1a19' } : {}}>
-                  {message.type === 'user' ? (
-                    <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
-                  ) : (
+              <div key={index} className="w-full">
+                {message.type === 'user' ? (
+                  <div className="text-right pr-4">
+                    <p className="text-gray-300 text-sm sm:text-base whitespace-pre-wrap inline-block text-right">
+                      {message.content}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="w-full px-4">
                     <ResponseRenderer content={message.content} />
-                  )}
-                  <p className={`text-xs mt-2 ${
-                    message.type === 'user' ? 'text-blue-200' : 'text-gray-400'
-                  }`}>
-                    {new Date(message.timestamp).toLocaleTimeString()}
-                  </p>
-                </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {new Date(message.timestamp).toLocaleTimeString()}
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
 
             {/* Thinking Animation - Show when loading but no streaming response yet */}
             {isLoading && !streamingResponse && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-4 text-gray-300" style={{ backgroundColor: '#1a1a19' }}>
-                  <div className="flex items-center space-x-3">
-                    <PendulumDots />
-                    <span className="text-sm sm:text-base animate-pulse">{thinkingText}</span>
-                  </div>
+              <div className="w-full px-4">
+                <div className="flex items-center space-x-3 text-gray-300">
+                  <PendulumDots />
+                  <span className="text-sm sm:text-base animate-pulse">{thinkingText}</span>
                 </div>
               </div>
             )}
 
             {/* Streaming Response */}
             {streamingResponse && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-4 text-gray-300" style={{ backgroundColor: '#1a1a19' }}>
-                  <ResponseRenderer content={streamingResponse} />
-                  {isLoading && (
-                    <div className="flex items-center space-x-2 mt-2">
-                      <PendulumDots />
-                      <span className="text-sm animate-pulse">Generating...</span>
-                    </div>
-                  )}
-                </div>
+              <div className="w-full px-4">
+                <ResponseRenderer content={streamingResponse} />
+                {isLoading && (
+                  <div className="flex items-center space-x-2 mt-2 text-gray-300">
+                    <PendulumDots />
+                    <span className="text-sm animate-pulse">Generating...</span>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Error Message */}
             {error && (
-              <div className="flex justify-start">
-                <div className="max-w-[80%] rounded-lg p-4 bg-red-900/20 border border-red-500/50">
-                  <p className="text-red-400 text-sm sm:text-base">{error}</p>
-                </div>
+              <div className="w-full px-4">
+                <p className="text-red-400 text-sm sm:text-base">{error}</p>
               </div>
             )}
           </div>

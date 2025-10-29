@@ -97,16 +97,16 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
   const renderText = (text: string) => {
     // Convert markdown-like formatting to HTML
     const formattedText = text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-gray-800 px-1 py-0.5 rounded text-sm">$1</code>')
-      .replace(/\n\n/g, '</p><p>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="text-gray-200 italic">$1</em>')
+      .replace(/`(.*?)`/g, '<code class="bg-gray-800 px-1 py-0.5 rounded text-sm text-gray-200">$1</code>')
+      .replace(/\n\n/g, '</p><p class="text-gray-300 leading-relaxed">')
       .replace(/\n/g, '<br>');
 
     return (
       <div 
-        className="prose prose-invert max-w-none"
-        dangerouslySetInnerHTML={{ __html: `<p>${formattedText}</p>` }}
+        className="text-gray-300 leading-relaxed text-sm sm:text-base"
+        dangerouslySetInnerHTML={{ __html: `<p class="text-gray-300 leading-relaxed">${formattedText}</p>` }}
       />
     );
   };
