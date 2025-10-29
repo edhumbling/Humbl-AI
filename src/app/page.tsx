@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 interface SearchResult {
   query: string;
@@ -100,11 +101,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#151514' }}>
-      {/* Main Title */}
+      {/* Main Logo */}
       <div className="text-center mb-12">
-        <h1 className="text-6xl font-serif text-white mb-4">
-          Humbl AI
-        </h1>
+        <Image
+          src="/applogo.png"
+          alt="Humbl AI"
+          width={300}
+          height={120}
+          className="mx-auto"
+          priority
+        />
       </div>
 
       {/* Search Bar */}
