@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Humbl AI - World's Most Powerful Search Engine",
   description: "Humbl AI is a powerful search engine designed to help you discover and explore knowledge from across the web.",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
