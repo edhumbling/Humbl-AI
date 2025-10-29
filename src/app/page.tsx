@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import ResponseRenderer from '../components/ResponseRenderer';
 
 interface SearchResult {
   query: string;
@@ -17,6 +18,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string}>>([]);
+  const [thinkingText, setThinkingText] = useState('');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -34,6 +36,31 @@ export default function Home() {
     setError(null);
     setSearchResult(null);
     setStreamingResponse('');
+    
+    // Start thinking text rotation
+    const thinkingTexts = [
+      "Analyzing your query...",
+      "Processing information...",
+      "Searching knowledge base...",
+      "Generating response...",
+      "Crafting answer...",
+      "Thinking deeply...",
+      "Connecting ideas...",
+      "Formulating response...",
+      "Almost ready...",
+      "Finalizing answer..."
+    ];
+    
+    let textIndex = 0;
+    setThinkingText(thinkingTexts[0]);
+    
+    const textInterval = setInterval(() => {
+      textIndex = (textIndex + 1) % thinkingTexts.length;
+      setThinkingText(thinkingTexts[textIndex]);
+    }, 1500);
+    
+    // Store interval to clear later
+    (window as any).thinkingInterval = textInterval;
 
     try {
       const response = await fetch('/api/search', {
@@ -94,6 +121,8 @@ export default function Home() {
                       // Clear search query for next message
                       setSearchQuery('');
                       setIsLoading(false);
+                      setThinkingText('');
+                      clearInterval((window as any).thinkingInterval);
                       return;
                     }
               
@@ -107,11 +136,13 @@ export default function Home() {
           }
         }
       }
-    } catch (err) {
-      setError('Failed to search. Please try again.');
-      console.error('Search error:', err);
-      setIsLoading(false);
-    }
+          } catch (err) {
+            setError('Failed to search. Please try again.');
+            console.error('Search error:', err);
+            setIsLoading(false);
+            setThinkingText('');
+            clearInterval((window as any).thinkingInterval);
+          }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -120,6 +151,15 @@ export default function Home() {
       handleSearch();
     }
   };
+
+  // Pendulum-style three dots animation component
+  const PendulumDots = () => (
+    <div className="flex items-center space-x-1">
+      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1.4s' }}></div>
+      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1.4s' }}></div>
+      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1.4s' }}></div>
+    </div>
+  );
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#151514' }}>
@@ -192,7 +232,7 @@ export default function Home() {
                   onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
                 >
                   {isLoading ? (
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <PendulumDots />
                   ) : (
                     <svg
                       className="w-4 h-4 sm:w-5 sm:h-5 text-white"
@@ -227,7 +267,11 @@ export default function Home() {
                     ? 'bg-blue-600 text-white' 
                     : 'text-gray-300'
                 }`} style={message.type === 'ai' ? { backgroundColor: '#1a1a19' } : {}}>
-                  <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
+                  {message.type === 'user' ? (
+                    <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
+                  ) : (
+                    <ResponseRenderer content={message.content} />
+                  )}
                   <p className={`text-xs mt-2 ${
                     message.type === 'user' ? 'text-blue-200' : 'text-gray-400'
                   }`}>
@@ -237,16 +281,29 @@ export default function Home() {
               </div>
             ))}
 
+            {/* Thinking Animation - Show when loading but no streaming response yet */}
+            {isLoading && !streamingResponse && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg p-4 text-gray-300" style={{ backgroundColor: '#1a1a19' }}>
+                  <div className="flex items-center space-x-3">
+                    <PendulumDots />
+                    <span className="text-sm sm:text-base animate-pulse">{thinkingText}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Streaming Response */}
             {streamingResponse && (
               <div className="flex justify-start">
                 <div className="max-w-[80%] rounded-lg p-4 text-gray-300" style={{ backgroundColor: '#1a1a19' }}>
-                  <p className="whitespace-pre-wrap text-sm sm:text-base">
-                    {streamingResponse}
-                    {isLoading && (
-                      <span className="inline-block w-2 h-5 bg-white ml-1 animate-pulse"></span>
-                    )}
-                  </p>
+                  <ResponseRenderer content={streamingResponse} />
+                  {isLoading && (
+                    <div className="flex items-center space-x-2 mt-2">
+                      <PendulumDots />
+                      <span className="text-sm animate-pulse">Generating...</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -314,7 +371,7 @@ export default function Home() {
                   onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
                 >
                   {isLoading ? (
-                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <PendulumDots />
                   ) : (
                     <svg
                       className="w-4 h-4 sm:w-5 sm:h-5 text-white"
