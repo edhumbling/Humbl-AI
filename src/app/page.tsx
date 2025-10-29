@@ -364,9 +364,9 @@ export default function Home() {
         </div>
       )}
 
-      {/* Fixed Search Bar at Bottom - Only show when conversation has started */}
+      {/* Search Bar - Only show when conversation has started */}
       {conversationStarted && (
-        <div className="w-full px-4 py-4 border-t" style={{ backgroundColor: '#151514', borderColor: '#2a2a29' }}>
+        <div className="w-full px-4 py-4">
           <div className="max-w-4xl mx-auto">
             <div className="relative">
               <div className="flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
