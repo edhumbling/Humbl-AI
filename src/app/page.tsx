@@ -100,26 +100,26 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: '#151514' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 sm:py-12" style={{ backgroundColor: '#151514' }}>
       {/* Main Logo */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-6 sm:mb-12">
         <Image
           src="/applogo.png"
           alt="Humbl AI"
           width={300}
           height={120}
-          className="mx-auto"
+          className="mx-auto w-48 h-auto sm:w-[300px]"
           priority
         />
       </div>
 
       {/* Search Bar */}
-      <div className="w-full max-w-2xl mb-8">
+      <div className="w-full max-w-2xl mb-6 sm:mb-8">
         <div className="relative">
-          <div className="flex items-start rounded-2xl px-6 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+          <div className="flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
             {/* Search Icon */}
             <svg 
-              className="w-6 h-6 text-white mr-4 mt-1 flex-shrink-0" 
+              className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-4 mt-1 flex-shrink-0" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -138,7 +138,7 @@ export default function Home() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder=""
-              className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+              className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
               rows={1}
               style={{
                 height: 'auto',
@@ -156,16 +156,16 @@ export default function Home() {
             <button
               onClick={handleSearch}
               disabled={isLoading || !searchQuery.trim()}
-              className="ml-4 w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 flex-shrink-0"
+              className="ml-2 sm:ml-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 flex-shrink-0"
               style={{ backgroundColor: '#1a1a19' }}
               onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
               onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <svg 
-                  className="w-5 h-5 text-white" 
+                  className="w-4 h-4 sm:w-5 sm:h-5 text-white" 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -185,27 +185,27 @@ export default function Home() {
 
       {/* Error Message */}
       {error && (
-        <div className="w-full max-w-2xl mb-6">
-          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
-            <p className="text-red-400 text-center">{error}</p>
+        <div className="w-full max-w-2xl mb-4 sm:mb-6 px-4">
+          <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-3 sm:p-4">
+            <p className="text-red-400 text-center text-sm sm:text-base">{error}</p>
           </div>
         </div>
       )}
 
       {/* Streaming Response */}
       {(streamingResponse || isLoading) && (
-        <div className="w-full max-w-4xl mb-8">
-          <div className="rounded-lg p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white mb-2">
+        <div className="w-full max-w-4xl mb-6 sm:mb-8 px-4">
+          <div className="rounded-lg p-4 sm:p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
                 Search Results for: "{searchQuery}"
               </h2>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-400 text-xs sm:text-sm">
                 {isLoading ? 'Generating response...' : new Date().toLocaleString()}
               </p>
             </div>
             <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
                 {streamingResponse}
                 {isLoading && (
                   <span className="inline-block w-2 h-5 bg-white ml-1 animate-pulse"></span>
@@ -218,18 +218,18 @@ export default function Home() {
 
       {/* Final Search Results */}
       {searchResult && !isLoading && (
-        <div className="w-full max-w-4xl mb-8">
-          <div className="rounded-lg p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white mb-2">
+        <div className="w-full max-w-4xl mb-6 sm:mb-8 px-4">
+          <div className="rounded-lg p-4 sm:p-6 shadow-lg" style={{ backgroundColor: '#1a1a19' }}>
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">
                 Search Results for: "{searchResult.query}"
               </h2>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-400 text-xs sm:text-sm">
                 {new Date(searchResult.timestamp).toLocaleString()}
               </p>
             </div>
             <div className="prose prose-invert max-w-none">
-              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+              <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm sm:text-base">
                 {searchResult.response}
               </p>
             </div>
