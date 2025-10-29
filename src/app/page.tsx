@@ -253,23 +253,81 @@ export default function Home() {
       {/* Conversation Area - Only show when conversation has started */}
       {conversationStarted && (
         <div className="flex-1 overflow-y-auto py-4">
-          <div className="w-full space-y-6">
-            {/* Conversation History */}
-            {conversationHistory.map((message, index) => (
-              <div key={index} className="w-full">
-                {message.type === 'user' ? (
-                  <div className="text-right pr-4">
-                    <p className="text-gray-300 text-sm sm:text-base whitespace-pre-wrap inline-block text-right">
-                      {message.content}
-                    </p>
+          <div className="w-full px-4">
+            <div className="max-w-6xl mx-auto space-y-6">
+              {/* Conversation History */}
+              {conversationHistory.map((message, index) => (
+                <div key={index} className="w-full">
+                  {message.type === 'user' ? (
+                    <div className="flex justify-end">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3" style={{ backgroundColor: '#1f1f1f' }}>
+                        <p className="text-gray-300 text-sm sm:text-base whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full">
+                      <ResponseRenderer content={message.content} />
+                      {/* Action buttons for AI responses */}
+                      <div className="flex items-center space-x-2 mt-3">
+                        <button
+                          onClick={() => navigator.clipboard.writeText(message.content)}
+                          className="p-2 rounded hover:bg-gray-700 transition-colors"
+                          title="Copy response"
+                        >
+                          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
+                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                          </svg>
+                        </button>
+                        <button
+                          className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                          title="Upvote"
+                        >
+                          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        <button
+                          className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                          title="Downvote"
+                        >
+                          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Thinking Animation - Show when loading but no streaming response yet */}
+              {isLoading && !streamingResponse && (
+                <div className="w-full">
+                  <div className="flex items-center space-x-3 text-gray-300">
+                    <PendulumDots />
+                    <span className="text-sm sm:text-base animate-pulse">{thinkingText}</span>
                   </div>
-                ) : (
-                  <div className="w-full px-4">
-                    <ResponseRenderer content={message.content} />
-                    {/* Action buttons for AI responses */}
+                </div>
+              )}
+
+              {/* Streaming Response */}
+              {streamingResponse && (
+                <div className="w-full">
+                  <ResponseRenderer content={streamingResponse} />
+                  {isLoading && (
+                    <div className="flex items-center space-x-2 mt-2 text-gray-300">
+                      <PendulumDots />
+                      <span className="text-sm animate-pulse">Generating...</span>
+                    </div>
+                  )}
+                  {/* Action buttons for streaming response */}
+                  {!isLoading && (
                     <div className="flex items-center space-x-2 mt-3">
                       <button
-                        onClick={() => navigator.clipboard.writeText(message.content)}
+                        onClick={() => navigator.clipboard.writeText(streamingResponse)}
                         className="p-2 rounded hover:bg-gray-700 transition-colors"
                         title="Copy response"
                       >
@@ -295,71 +353,17 @@ export default function Home() {
                         </svg>
                       </button>
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {/* Thinking Animation - Show when loading but no streaming response yet */}
-            {isLoading && !streamingResponse && (
-              <div className="w-full px-4">
-                <div className="flex items-center space-x-3 text-gray-300">
-                  <PendulumDots />
-                  <span className="text-sm sm:text-base animate-pulse">{thinkingText}</span>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Streaming Response */}
-            {streamingResponse && (
-              <div className="w-full px-4">
-                <ResponseRenderer content={streamingResponse} />
-                {isLoading && (
-                  <div className="flex items-center space-x-2 mt-2 text-gray-300">
-                    <PendulumDots />
-                    <span className="text-sm animate-pulse">Generating...</span>
-                  </div>
-                )}
-                {/* Action buttons for streaming response */}
-                {!isLoading && (
-                  <div className="flex items-center space-x-2 mt-3">
-                    <button
-                      onClick={() => navigator.clipboard.writeText(streamingResponse)}
-                      className="p-2 rounded hover:bg-gray-700 transition-colors"
-                      title="Copy response"
-                    >
-                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                      </svg>
-                    </button>
-                    <button
-                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                      title="Upvote"
-                    >
-                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                    <button
-                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                      title="Downvote"
-                    >
-                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Error Message */}
-            {error && (
-              <div className="w-full px-4">
-                <p className="text-red-400 text-sm sm:text-base">{error}</p>
-              </div>
-            )}
+              {/* Error Message */}
+              {error && (
+                <div className="w-full">
+                  <p className="text-red-400 text-sm sm:text-base">{error}</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -367,9 +371,9 @@ export default function Home() {
       {/* Search Bar - Only show when conversation has started */}
       {conversationStarted && (
         <div className="w-full px-4 py-4">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="relative">
-              <div className="flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+              <div className="flex items-start rounded-2xl px-4 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
                 {/* Search Icon */}
                 <svg
                   className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-4 mt-1 flex-shrink-0"
