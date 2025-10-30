@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -289,15 +290,7 @@ export default function Home() {
                   style={{ backgroundColor: '#2a2a29' }}
                   title={isRecording ? 'Stop dictation' : 'Dictate'}
                 >
-                  {isRecording ? (
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  ) : (
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3z" />
-                      <path d="M5 10a5 5 0 0010 0h-1a4 4 0 11-8 0H5z" />
-                      <path d="M10 18a.75.75 0 01-.75-.75V16H8a1 1 0 110-2h4a1 1 0 110 2h-1.25v1.25A.75.75 0 0110 18z" />
-                    </svg>
-                  )}
+                  <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
                 </button>
 
                 {/* Search Button */}
@@ -312,19 +305,7 @@ export default function Home() {
                   {isLoading ? (
                     <PendulumDots />
                   ) : (
-                    <svg
-                      className="w-4 h-4 sm:w-5 sm:h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 12h14M12 5l7 7-7 7"
-                      />
-                    </svg>
+                    <Send size={20} className="text-white" />
                   )}
                 </button>
               </div>
@@ -354,32 +335,25 @@ export default function Home() {
                       <ResponseRenderer content={message.content} />
                       {/* Action buttons for AI responses */}
                       <div className="flex items-center space-x-2 mt-3">
-                        <button
-                          onClick={() => navigator.clipboard.writeText(message.content)}
-                          className="p-2 rounded hover:bg-gray-700 transition-colors"
-                          title="Copy response"
-                        >
-                          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                          </svg>
-                        </button>
-                        <button
-                          className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                          title="Upvote"
-                        >
-                          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                        <button
-                          className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                          title="Downvote"
-                        >
-                          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(message.content)}
+                        className="p-2 rounded hover:bg-gray-700 transition-colors"
+                        title="Copy response"
+                      >
+                        <CopyIcon size={18} className="text-gray-400" />
+                      </button>
+                      <button
+                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                        title="Upvote"
+                      >
+                        <ThumbsUp size={18} className="text-gray-400" />
+                      </button>
+                      <button
+                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                        title="Downvote"
+                      >
+                        <ThumbsDown size={18} className="text-gray-400" />
+                      </button>
                       </div>
                     </div>
                   )}
@@ -408,34 +382,27 @@ export default function Home() {
                   )}
                   {/* Action buttons for streaming response */}
                   {!isLoading && (
-                    <div className="flex items-center space-x-2 mt-3">
-                      <button
-                        onClick={() => navigator.clipboard.writeText(streamingResponse)}
-                        className="p-2 rounded hover:bg-gray-700 transition-colors"
-                        title="Copy response"
-                      >
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                          <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
-                        </svg>
-                      </button>
-                      <button
-                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                        title="Upvote"
-                      >
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      <button
-                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
-                        title="Downvote"
-                      >
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                    </div>
+                  <div className="flex items-center space-x-2 mt-3">
+                    <button
+                      onClick={() => navigator.clipboard.writeText(streamingResponse)}
+                      className="p-2 rounded hover:bg-gray-700 transition-colors"
+                      title="Copy response"
+                    >
+                      <CopyIcon size={18} className="text-gray-400" />
+                    </button>
+                    <button
+                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                      title="Upvote"
+                    >
+                      <ThumbsUp size={18} className="text-gray-400" />
+                    </button>
+                    <button
+                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                      title="Downvote"
+                    >
+                      <ThumbsDown size={18} className="text-gray-400" />
+                    </button>
+                  </div>
                   )}
                 </div>
               )}
@@ -499,15 +466,7 @@ export default function Home() {
                   style={{ backgroundColor: '#2a2a29' }}
                   title={isRecording ? 'Stop dictation' : 'Dictate'}
                 >
-                  {isRecording ? (
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  ) : (
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3z" />
-                      <path d="M5 10a5 5 0 0010 0h-1a4 4 0 11-8 0H5z" />
-                      <path d="M10 18a.75.75 0 01-.75-.75V16H8a1 1 0 110-2h4a1 1 0 110 2h-1.25v1.25A.75.75 0 0110 18z" />
-                    </svg>
-                  )}
+                  <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
                 </button>
 
                 {/* Search Button */}
@@ -522,19 +481,7 @@ export default function Home() {
                   {isLoading ? (
                     <PendulumDots />
                   ) : (
-                    <svg
-                      className="w-4 h-4 sm:w-5 sm:h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 12h14M12 5l7 7-7 7"
-                      />
-                    </svg>
+                    <Send size={20} className="text-white" />
                   )}
                 </button>
               </div>
