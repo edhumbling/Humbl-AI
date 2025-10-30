@@ -311,7 +311,14 @@ export default function Home() {
           {/* Search Bar */}
           <div className="w-full max-w-2xl mb-6 sm:mb-8">
             <div className="relative">
-              <div className="flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+              <div className="relative overflow-hidden flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+                {/* Full-bar waveform background */}
+                {isRecording && (
+                  <canvas
+                    ref={waveCanvasRef}
+                    className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
+                  />
+                )}
                 {/* Search Icon */}
                 <svg
                   className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-4 mt-1 flex-shrink-0"
@@ -347,14 +354,10 @@ export default function Home() {
                   }}
                 />
 
-                {/* Recording waveform / Transcribing indicator */}
-                {(isRecording || isTranscribing) && (
-                  <div className="absolute left-10 right-24 -bottom-3 translate-y-full px-1">
-                    {isRecording ? (
-                      <canvas ref={waveCanvasRef} className="w-full h-4 opacity-90" style={{ filter: 'drop-shadow(0 1px 0 rgba(255,255,255,0.05))' }} />
-                    ) : (
-                      <p className="text-xs text-gray-400 animate-pulse">Transcribing…</p>
-                    )}
+                {/* Transcribing indicator */}
+                {(!isRecording && isTranscribing) && (
+                  <div className="absolute left-0 right-0 -bottom-3 translate-y-full px-2">
+                    <p className="text-xs text-gray-400 animate-pulse">Transcribing…</p>
                   </div>
                 )}
 
@@ -498,7 +501,14 @@ export default function Home() {
         <div className="w-full px-4 py-4">
           <div className="max-w-6xl mx-auto">
             <div className="relative">
-              <div className="flex items-start rounded-2xl px-4 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+              <div className="relative overflow-hidden flex items-start rounded-2xl px-4 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+                {/* Full-bar waveform background */}
+                {isRecording && (
+                  <canvas
+                    ref={waveCanvasRef}
+                    className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
+                  />
+                )}
                 {/* Search Icon */}
                 <svg
                   className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-4 mt-1 flex-shrink-0"
@@ -534,14 +544,10 @@ export default function Home() {
                   }}
                 />
 
-                {/* Recording waveform / Transcribing indicator */}
-                {(isRecording || isTranscribing) && (
-                  <div className="absolute left-10 right-24 -bottom-2 translate-y-full px-1">
-                    {isRecording ? (
-                      <canvas ref={waveCanvasRef} className="w-full h-4 opacity-90" style={{ filter: 'drop-shadow(0 1px 0 rgba(255,255,255,0.05))' }} />
-                    ) : (
-                      <p className="text-xs text-gray-400 animate-pulse">Transcribing…</p>
-                    )}
+                {/* Transcribing indicator */}
+                {(!isRecording && isTranscribing) && (
+                  <div className="absolute left-0 right-0 -bottom-2 translate-y-full px-2">
+                    <p className="text-xs text-gray-400 animate-pulse">Transcribing…</p>
                   </div>
                 )}
 
