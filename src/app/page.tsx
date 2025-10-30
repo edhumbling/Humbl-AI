@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -19,6 +19,71 @@ export default function Home() {
   const [conversationStarted, setConversationStarted] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string}>>([]);
   const [thinkingText, setThinkingText] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const micStreamRef = useRef<MediaStream | null>(null);
+
+  const startRecording = async () => {
+    try {
+      // Reuse microphone stream within the same browsing session to avoid repeated prompts
+      let stream = micStreamRef.current;
+      if (!stream) {
+        // Check Permissions API when available
+        if (navigator.permissions && 'query' in navigator.permissions) {
+          try {
+            const status = await (navigator.permissions as any).query({ name: 'microphone' });
+            if (status.state === 'denied') {
+              console.warn('Microphone permission denied by the user');
+              return;
+            }
+          } catch {
+            // ignore - not all browsers support permissions query for microphone
+          }
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        // Mark permission as granted for this tab session
+        try { sessionStorage.setItem('humblai_mic_granted', 'true'); } catch {}
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      recordedChunksRef.current = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', blob, 'recording.webm');
+        try {
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json?.text) {
+            setSearchQuery(prev => (prev ? prev + ' ' : '') + json.text);
+          }
+        } catch (e) {
+          console.error('Transcription request failed', e);
+        }
+      };
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone permission/recording error:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== 'inactive') {
+      mr.stop();
+      // Do not stop tracks here so the same stream can be reused without re-prompting
+      // mr.stream.getTracks().forEach(t => t.stop());
+    }
+    setIsRecording(false);
+  };
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -217,6 +282,24 @@ export default function Home() {
                   }}
                 />
 
+                {/* Dictate Button */}
+                <button
+                  onClick={() => (isRecording ? stopRecording() : startRecording())}
+                  className="ml-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 flex-shrink-0"
+                  style={{ backgroundColor: '#2a2a29' }}
+                  title={isRecording ? 'Stop dictation' : 'Dictate'}
+                >
+                  {isRecording ? (
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  ) : (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3z" />
+                      <path d="M5 10a5 5 0 0010 0h-1a4 4 0 11-8 0H5z" />
+                      <path d="M10 18a.75.75 0 01-.75-.75V16H8a1 1 0 110-2h4a1 1 0 110 2h-1.25v1.25A.75.75 0 0110 18z" />
+                    </svg>
+                  )}
+                </button>
+
                 {/* Search Button */}
                 <button
                   onClick={handleSearch}
@@ -408,6 +491,24 @@ export default function Home() {
                     target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                   }}
                 />
+
+                {/* Dictate Button */}
+                <button
+                  onClick={() => (isRecording ? stopRecording() : startRecording())}
+                  className="ml-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 flex-shrink-0"
+                  style={{ backgroundColor: '#2a2a29' }}
+                  title={isRecording ? 'Stop dictation' : 'Dictate'}
+                >
+                  {isRecording ? (
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  ) : (
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3z" />
+                      <path d="M5 10a5 5 0 0010 0h-1a4 4 0 11-8 0H5z" />
+                      <path d="M10 18a.75.75 0 01-.75-.75V16H8a1 1 0 110-2h4a1 1 0 110 2h-1.25v1.25A.75.75 0 0110 18z" />
+                    </svg>
+                  )}
+                </button>
 
                 {/* Search Button */}
                 <button
