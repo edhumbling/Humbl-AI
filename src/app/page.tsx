@@ -21,9 +21,61 @@ export default function Home() {
   const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string}>>([]);
   const [thinkingText, setThinkingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  const startVisualizer = (stream: MediaStream) => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const audioCtx = audioContextRef.current!;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const canvas = waveCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const render = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth * dpr;
+        const height = canvas.clientHeight * dpr;
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, width, height);
+        const bars = 64;
+        const barWidth = Math.max(2 * dpr, Math.floor(width / (bars * 1.5)));
+        const gap = 2 * dpr;
+        let x = 0;
+        for (let i = 0; i < bars; i++) {
+          const v = dataArray[Math.floor((i / bars) * bufferLength)] / 255;
+          const barHeight = Math.max(2 * dpr, v * height);
+          ctx.fillStyle = '#8b8b8a';
+          ctx.fillRect(x, (height - barHeight) / 2, barWidth, barHeight);
+          x += barWidth + gap;
+        }
+        animationRef.current = requestAnimationFrame(render);
+      };
+      render();
+    } catch (e) {
+      // fail silently if visualizer can't start
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -50,15 +102,25 @@ export default function Home() {
       }
 
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // Start waveform visualizer
+      startVisualizer(stream);
       recordedChunksRef.current = [];
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) recordedChunksRef.current.push(event.data);
       };
       mediaRecorder.onstop = async () => {
+        // Stop visualizer and clear canvas
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        const c = waveCanvasRef.current;
+        if (c) {
+          const ctx = c.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, c.width, c.height);
+        }
         const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
         const formData = new FormData();
         formData.append('file', blob, 'recording.webm');
         try {
+          setIsTranscribing(true);
           const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
           const json = await res.json();
           if (json?.text) {
@@ -66,6 +128,8 @@ export default function Home() {
           }
         } catch (e) {
           console.error('Transcription request failed', e);
+        } finally {
+          setIsTranscribing(false);
         }
       };
       mediaRecorder.start();
@@ -283,6 +347,17 @@ export default function Home() {
                   }}
                 />
 
+                {/* Recording waveform / Transcribing indicator */}
+                {(isRecording || isTranscribing) && (
+                  <div className="absolute left-10 right-24 -bottom-3 translate-y-full px-1">
+                    {isRecording ? (
+                      <canvas ref={waveCanvasRef} className="w-full h-4 opacity-90" style={{ filter: 'drop-shadow(0 1px 0 rgba(255,255,255,0.05))' }} />
+                    ) : (
+                      <p className="text-xs text-gray-400 animate-pulse">Transcribing…</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Dictate Button */}
                 <button
                   onClick={() => (isRecording ? stopRecording() : startRecording())}
@@ -458,6 +533,17 @@ export default function Home() {
                     target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                   }}
                 />
+
+                {/* Recording waveform / Transcribing indicator */}
+                {(isRecording || isTranscribing) && (
+                  <div className="absolute left-10 right-24 -bottom-2 translate-y-full px-1">
+                    {isRecording ? (
+                      <canvas ref={waveCanvasRef} className="w-full h-4 opacity-90" style={{ filter: 'drop-shadow(0 1px 0 rgba(255,255,255,0.05))' }} />
+                    ) : (
+                      <p className="text-xs text-gray-400 animate-pulse">Transcribing…</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Dictate Button */}
                 <button
