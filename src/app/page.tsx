@@ -144,8 +144,17 @@ export default function Home() {
     const mr = mediaRecorderRef.current;
     if (mr && mr.state !== 'inactive') {
       mr.stop();
-      // Do not stop tracks here so the same stream can be reused without re-prompting
-      // mr.stream.getTracks().forEach(t => t.stop());
+    }
+    // Stop all audio tracks
+    const micStream = micStreamRef.current;
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+      micStreamRef.current = null;
+    }
+    // Close the audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
     }
     setIsRecording(false);
   };
