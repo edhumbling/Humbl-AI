@@ -26,16 +26,33 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Groq JS SDK expects a Web/File-like object; provide name and data
-    const transcription = await client.audio.transcriptions.create({
-      file: new File([buffer], file.name || 'audio.webm', { type: file.type || 'audio/webm' }) as any,
-      model: 'whisper-large-v3',
-      temperature: 0,
-      response_format: 'verbose_json' as any,
-    } as any);
+    const webFile = new File([buffer], file.name || 'audio.webm', { type: file.type || 'audio/webm' }) as any;
 
+    async function attemptTranscribe(model: string) {
+      return await client.audio.transcriptions.create({
+        file: webFile,
+        model,
+        temperature: 0,
+        response_format: 'verbose_json' as any,
+      } as any);
+    }
+
+    // Try primary Whisper model, then fall back to turbo variant
+    let transcription: any;
+    try {
+      transcription = await attemptTranscribe('whisper-large-v3');
+    } catch (primaryErr: any) {
+      const status = primaryErr?.status;
+      if (status === 400 || status === 403 || status === 429) {
+        // soft fallback
+      }
+      // Fallback to turbo regardless of specific error to maximize resilience
+      transcription = await attemptTranscribe('whisper-large-v3-turbo');
+    }
+
+    const text = transcription?.text || '';
     return new Response(
-      JSON.stringify({ text: (transcription as any)?.text || '' }),
+      JSON.stringify({ text }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
