@@ -612,14 +612,14 @@ export default function Home() {
                       onClick={handleSearch}
                       disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
                       className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: canSend ? '#ffffff' : '#1a1a19' }}
-                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#e5e7eb' : '#2a2a29'}
-                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#ffffff' : '#1a1a19'}
+                      style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
+                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
+                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
                     >
                       {isLoading ? (
-                        <Square size={18} className="text-white" />
+                        <Square size={18} className="text-black" />
                       ) : (
-                        <ArrowUp size={18} className={canSend ? 'text-black' : 'text-white'} />
+                        <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
                       )}
                     </button>
                   </div>
@@ -878,14 +878,14 @@ export default function Home() {
                       onClick={handleSearch}
                       disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
                       className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: canSend ? '#ffffff' : '#1a1a19' }}
-                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#e5e7eb' : '#2a2a29'}
-                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#ffffff' : '#1a1a19'}
+                      style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
+                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
+                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
                     >
                       {isLoading ? (
-                        <Square size={18} className="text-white" />
+                        <Square size={18} className="text-black" />
                       ) : (
-                        <ArrowUp size={18} className={canSend ? 'text-black' : 'text-white'} />
+                        <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
                       )}
                     </button>
                   </div>
