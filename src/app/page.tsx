@@ -188,6 +188,7 @@ export default function Home() {
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
   const [isMobile, setIsMobile] = useState(false);
+  const [showCopied, setShowCopied] = useState(false);
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -364,6 +365,16 @@ export default function Home() {
   const handleRetry = (message: any) => {
     if (message.originalQuery !== undefined || message.originalImages?.length) {
       handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default');
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShowCopied(true);
+      setTimeout(() => setShowCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
     }
   };
 
@@ -606,7 +617,11 @@ export default function Home() {
             onClick={() => setShowInfo(false)}
           />
           <div className="relative h-full w-full flex items-center justify-center px-4">
-            <div className="w-[90%] sm:w-full max-w-sm sm:max-w-3xl rounded-2xl shadow-xl" style={{ backgroundColor: '#1f1f1f' }}>
+            <div 
+              className="w-[90%] sm:w-full max-w-sm sm:max-w-3xl rounded-2xl shadow-xl" 
+              style={{ backgroundColor: '#1f1f1f' }}
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center justify-between px-3 py-2 sm:px-5 sm:py-4 border-b border-gray-800/60">
                 <div className="flex items-center space-x-2">
                   <Info size={18} className="text-gray-200" />
@@ -839,7 +854,7 @@ export default function Home() {
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
                       <button
-                        onClick={handleSearch}
+                        onClick={() => handleSearch()}
                         disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
@@ -893,7 +908,7 @@ export default function Home() {
                       {/* Action buttons for AI responses */}
                       <div className="flex items-center space-x-2 mt-3">
                       <button
-                        onClick={() => navigator.clipboard.writeText(message.content)}
+                        onClick={() => handleCopy(message.content)}
                         className="p-2 rounded hover:bg-gray-700 transition-colors"
                         title="Copy response"
                       >
@@ -974,7 +989,7 @@ export default function Home() {
                   {!isLoading && (
                   <div className="flex items-center space-x-2 mt-3">
                     <button
-                      onClick={() => navigator.clipboard.writeText(streamingResponse)}
+                      onClick={() => handleCopy(streamingResponse)}
                       className="p-2 rounded hover:bg-gray-700 transition-colors"
                       title="Copy response"
                     >
@@ -1136,7 +1151,7 @@ export default function Home() {
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
                       <button
-                        onClick={handleSearch}
+                        onClick={() => handleSearch()}
                         disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
@@ -1154,6 +1169,16 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Copied notification */}
+      {showCopied && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-200 opacity-100">
+          <div className="bg-gray-800 text-gray-200 px-4 py-2 rounded-lg shadow-lg border border-gray-700 flex items-center gap-2">
+            <CopyIcon size={16} className="text-[#f1d08c]" />
+            <span className="text-sm font-medium">Copied!</span>
           </div>
         </div>
       )}
