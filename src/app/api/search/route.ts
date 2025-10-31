@@ -33,7 +33,7 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
       userContent.push({ type: "text", text: query });
     }
     for (const img of (images || []).slice(0, 4)) {
-      userContent.push({ type: "input_image", image_url: img });
+      userContent.push({ type: "image_url", image_url: { url: img } });
     }
 
     const stream = client.chat.completions.create({
