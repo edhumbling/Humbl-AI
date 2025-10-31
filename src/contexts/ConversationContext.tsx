@@ -95,7 +95,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       if (prev.length === 0) {
         // If no messages, create a new AI message
         return [{
-          type: 'ai',
+          type: 'ai' as const,
           content,
           images,
           timestamp: new Date().toISOString(),
@@ -115,7 +115,7 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
       } else {
         // Add new AI message if last message is from user
         return [...prev, {
-          type: 'ai',
+          type: 'ai' as const,
           content,
           images,
           timestamp: new Date().toISOString(),
