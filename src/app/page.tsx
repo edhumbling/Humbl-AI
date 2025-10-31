@@ -533,6 +533,33 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#151514' }}>
+      {/* Desktop-only electric border filter defs */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <defs>
+          <filter id="turbulent-displace" colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise1" seed="1" />
+            <feOffset in="noise1" dx="0" dy="0" result="offsetNoise1">
+              <animate attributeName="dy" values="700; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
+            </feOffset>
+            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise2" seed="1" />
+            <feOffset in="noise2" dx="0" dy="0" result="offsetNoise2">
+              <animate attributeName="dy" values="0; -700" dur="6s" repeatCount="indefinite" calcMode="linear" />
+            </feOffset>
+            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise3" seed="2" />
+            <feOffset in="noise3" dx="0" dy="0" result="offsetNoise3">
+              <animate attributeName="dx" values="490; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
+            </feOffset>
+            <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise4" seed="2" />
+            <feOffset in="noise4" dx="0" dy="0" result="offsetNoise4">
+              <animate attributeName="dx" values="0; -490" dur="6s" repeatCount="indefinite" calcMode="linear" />
+            </feOffset>
+            <feComposite in="offsetNoise1" in2="offsetNoise2" result="part1" />
+            <feComposite in="offsetNoise3" in2="offsetNoise4" result="part2" />
+            <feBlend in="part1" in2="part2" mode="color-dodge" result="combinedNoise" />
+            <feDisplacementMap in="SourceGraphic" in2="combinedNoise" scale="30" xChannelSelector="R" yChannelSelector="B" />
+          </filter>
+        </defs>
+      </svg>
       {/* Header Bar with New Conversation button */}
       <div className="w-full border-b border-gray-800/60">
         <div className="max-w-6xl mx-auto px-4 py-3">
@@ -669,7 +696,13 @@ export default function Home() {
           {/* Search Bar */}
           <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+                {/* Mobile simple outline */}
+                <div className="md:hidden pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '1px solid #f1d08c' }} />
+                {/* Desktop electric border + glow */}
+                <div className="hidden md:block pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '2px solid #dd8448', filter: 'url(#turbulent-displace)' }} />
+                <div className="hidden md:block pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '2px solid rgba(221,132,72,0.6)', filter: 'blur(1px)' }} />
+                <div className="hidden md:block pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '2px solid rgba(221,132,72,0.35)', filter: 'blur(4px)' }} />
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -959,7 +992,13 @@ export default function Home() {
         <div className="w-full px-4 py-4" ref={conversationBarRef}>
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+                {/* Mobile simple outline */}
+                <div className="md:hidden pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '1px solid #f1d08c' }} />
+                {/* Desktop electric border + glow */}
+                <div className="hidden md:block pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '2px solid #dd8448', filter: 'url(#turbulent-displace)' }} />
+                <div className="hidden md:block pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '2px solid rgba(221,132,72,0.6)', filter: 'blur(1px)' }} />
+                <div className="hidden md:block pointer-events-none absolute inset-0 rounded-2xl" style={{ border: '2px solid rgba(221,132,72,0.35)', filter: 'blur(4px)' }} />
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
