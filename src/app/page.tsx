@@ -759,7 +759,11 @@ export default function Home() {
                   )}
                   {/* Mobile: place waveform between left and right groups */}
                   <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
-                    {isRecording && <SoundWave bars={60} />}
+                    {isRecording && (
+                      <div className="w-28">
+                        <SoundWave bars={36} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center">
                     <button
@@ -1033,7 +1037,11 @@ export default function Home() {
                   )}
                   {/* Mobile: place waveform between left and right groups */}
                   <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
-                    {isRecording && <SoundWave bars={60} />}
+                    {isRecording && (
+                      <div className="w-28">
+                        <SoundWave bars={36} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center">
                     <button
