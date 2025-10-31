@@ -90,6 +90,94 @@ const PROMPT_GUARD_FALLBACK = {
   stop: null
 };
 
+// Detect if query is code/calculation related
+function isCodeRelatedQuery(query: string): boolean {
+  const codeKeywords = [
+    'calculate', 'computation', 'compute', 'solve', 'formula', 'equation',
+    'python', 'code', 'program', 'function', 'algorithm', 'debug', 'error',
+    'math', 'mathematical', 'statistics', 'percentage', 'square root', 'sqrt',
+    'loan', 'interest', 'payment', 'convert', 'parse', 'execute', 'run code',
+    'will this code', 'does this code', 'check if code', 'test code', 'fix code'
+  ];
+  const lowerQuery = query.toLowerCase();
+  return codeKeywords.some(keyword => lowerQuery.includes(keyword));
+}
+
+// Code execution models
+const CODE_COMPOUND_MINI = {
+  model: "groq/compound-mini",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  stream: true,
+  stop: null
+};
+
+const CODE_COMPOUND = {
+  model: "groq/compound",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  stream: true,
+  stop: null
+};
+
+const CODE_OSS_20B = {
+  model: "openai/gpt-oss-20b",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  top_p: 1,
+  stream: true,
+  stop: null,
+  tool_choice: "required" as any,
+  tools: [{ type: "code_interpreter" }] as any
+};
+
+// Try code execution model with special handling
+async function tryCodeExecutionModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[]) {
+  try {
+    const userContent: any[] = [];
+    if (query) {
+      userContent.push({ type: "text", text: query });
+    }
+    for (const img of (images || []).slice(0, 4)) {
+      userContent.push({ type: "image_url", image_url: { url: img } });
+    }
+
+    const messages = [
+      {
+        role: "system",
+        content: "You are Humbl AI, a powerful assistant with code execution capabilities. When computational problems or code-related queries arise, use code execution to provide accurate results. Show both the code you used and the final answer."
+      },
+      {
+        role: "user",
+        content: userContent.length > 0 ? userContent : [{ type: "text", text: query }]
+      }
+    ];
+
+    const stream = client.chat.completions.create({
+      ...modelConfig,
+      messages: messages as any
+    });
+
+    const streamResult = await stream;
+    for await (const chunk of streamResult as any) {
+      const content = chunk.choices[0]?.delta?.content || "";
+      if (content) {
+        controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
+      }
+    }
+
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+    controller.close();
+    return true;
+  } catch (error: any) {
+    console.error('Code execution model error:', error);
+    if (error.status === 400 || error.status === 429 || error.status === 403) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 async function tryGuardModel(query: string, controller: ReadableStreamDefaultController) {
   try {
     const completion: any = await client.chat.completions.create({
@@ -245,6 +333,31 @@ export async function POST(request: NextRequest) {
 
           // Default streaming flow (images supported)
           const imgs = Array.isArray(images) ? images.slice(0,4) : [];
+          
+          // Check if query is code/calculation related and use code execution models
+          if (isCodeRelatedQuery(query)) {
+            console.log('Detected code-related query, using code execution models...');
+            const codeMiniSuccess = await tryCodeExecutionModel(CODE_COMPOUND_MINI, query, controller, imgs);
+            if (!codeMiniSuccess) {
+              console.log('Attempting Compound for code execution...');
+              const codeCompoundSuccess = await tryCodeExecutionModel(CODE_COMPOUND, query, controller, imgs);
+              if (!codeCompoundSuccess) {
+                console.log('Attempting GPT-OSS 20B with code interpreter...');
+                const codeOssSuccess = await tryCodeExecutionModel(CODE_OSS_20B, query, controller, imgs);
+                if (!codeOssSuccess) {
+                  console.log('Code execution models failed, falling back to regular models...');
+                  // Fall through to regular model flow
+                } else {
+                  return; // Code execution succeeded
+                }
+              } else {
+                return; // Code execution succeeded
+              }
+            } else {
+              return; // Code execution succeeded
+            }
+          }
+          
           const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, imgs);
           if (!primarySuccess) {
             console.log('Attempting moonshot fallback model...');
