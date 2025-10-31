@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2 } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -190,6 +190,9 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [editInstruction, setEditInstruction] = useState('');
+  const [isEditingImage, setIsEditingImage] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -576,6 +579,64 @@ export default function Home() {
     }
   };
 
+  const handleStartEditImage = (index: number) => {
+    setEditingImageIndex(index);
+    setEditInstruction('');
+  };
+
+  const handleCancelEditImage = () => {
+    setEditingImageIndex(null);
+    setEditInstruction('');
+  };
+
+  const handleEditImage = async () => {
+    if (editingImageIndex === null || !editInstruction.trim()) return;
+
+    setIsEditingImage(true);
+    setError(null);
+
+    try {
+      const imageToEdit = attachedImages[editingImageIndex];
+      if (!imageToEdit) {
+        throw new Error('Image not found');
+      }
+
+      const response = await fetch('/api/edit-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          editInstruction: editInstruction.trim(),
+          referenceImage: imageToEdit,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to edit image');
+      }
+
+      const data = await response.json();
+      
+      // Replace the original image with the edited one
+      setAttachedImages(prev => {
+        const newImages = [...prev];
+        newImages[editingImageIndex] = data.imageUrl;
+        return newImages;
+      });
+
+      // Reset editing state
+      setEditingImageIndex(null);
+      setEditInstruction('');
+    } catch (err: any) {
+      console.error('Failed to edit image:', err);
+      setError(err.message || 'Failed to edit image');
+    } finally {
+      setIsEditingImage(false);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (showSuggestions && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault();
@@ -916,6 +977,74 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Edit Image Modal */}
+      {editingImageIndex !== null && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={handleCancelEditImage}
+          />
+          <div className="relative h-full w-full flex items-center justify-center px-4">
+            <div 
+              className="w-full max-w-md rounded-2xl shadow-xl p-6" 
+              style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4">
+                <h3 className="text-white text-lg font-semibold mb-2">Edit Image</h3>
+                {attachedImages[editingImageIndex] && (
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    <img 
+                      src={attachedImages[editingImageIndex]} 
+                      alt="Preview" 
+                      className="w-full max-h-48 object-contain bg-black rounded-lg"
+                    />
+                  </div>
+                )}
+                <label className="block text-gray-300 text-sm mb-2">
+                  Edit Instruction
+                </label>
+                <textarea
+                  value={editInstruction}
+                  onChange={(e) => setEditInstruction(e.target.value)}
+                  placeholder="Describe how to edit the image (e.g., 'Remove all people from the background')"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 outline-none resize-none"
+                  rows={4}
+                  style={{ border: '1px solid #3a3a39' }}
+                  autoFocus
+                  maxLength={2560}
+                />
+                <p className="text-gray-400 text-xs mt-1">
+                  {editInstruction.length}/2560 characters
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={handleCancelEditImage}
+                  disabled={isEditingImage}
+                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: '#2a2a29', color: '#ffffff' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditImage}
+                  disabled={isEditingImage || !editInstruction.trim()}
+                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  style={{ 
+                    backgroundColor: isEditingImage || !editInstruction.trim() ? '#2a2a29' : '#f1d08c', 
+                    color: isEditingImage || !editInstruction.trim() ? '#ffffff' : '#000000' 
+                  }}
+                >
+                  {isEditingImage ? 'Editing...' : 'Apply Edit'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (
         <div className="flex flex-col items-center justify-center flex-1 px-4">
@@ -954,7 +1083,7 @@ export default function Home() {
                 {attachedImages.length > 0 && (
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {attachedImages.map((src, idx) => (
-                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0">
+                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0 group">
                         <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => removeAttachedImage(idx)}
@@ -962,6 +1091,14 @@ export default function Home() {
                           title="Remove"
                         >
                           <X size={12} className="text-white" />
+                        </button>
+                        <button
+                          onClick={() => handleStartEditImage(idx)}
+                          className="absolute bottom-0 left-0 p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
+                          style={{ backgroundColor: '#f1d08c' }}
+                          title="Edit image"
+                        >
+                          <Edit2 size={10} className="text-black" />
                         </button>
                       </div>
                     ))}
@@ -1412,7 +1549,7 @@ export default function Home() {
                 {attachedImages.length > 0 && (
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
                     {attachedImages.map((src, idx) => (
-                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0">
+                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0 group">
                         <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
                         <button
                           onClick={() => removeAttachedImage(idx)}
@@ -1420,6 +1557,14 @@ export default function Home() {
                           title="Remove"
                         >
                           <X size={12} className="text-white" />
+                        </button>
+                        <button
+                          onClick={() => handleStartEditImage(idx)}
+                          className="absolute bottom-0 left-0 p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
+                          style={{ backgroundColor: '#f1d08c' }}
+                          title="Edit image"
+                        >
+                          <Edit2 size={10} className="text-black" />
                         </button>
                       </div>
                     ))}
