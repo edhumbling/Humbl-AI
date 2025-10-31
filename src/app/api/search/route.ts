@@ -5,12 +5,13 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// Primary model configuration
+// Primary model configuration (Qwen)
 const PRIMARY_MODEL = {
-  model: "meta-llama/llama-4-maverick-17b-128e-instruct",
+  model: "qwen/qwen3-32b",
   temperature: 0.6,
   max_completion_tokens: 4096,
-  top_p: 1,
+  top_p: 0.95,
+  reasoning_effort: "default" as any,
   stream: true,
   stop: null
 };
@@ -25,6 +26,86 @@ const FALLBACK_MODEL = {
   stream: true,
   stop: null
 };
+
+// Secondary fallback (after primary): Moonshot Kimi
+const MOONSHOT_FALLBACK = {
+  model: "moonshotai/kimi-k2-instruct-0905",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+// Secondary fallback: Open-source safeguard model
+const SAFEGUARD_FALLBACK = {
+  model: "openai/gpt-oss-safeguard-20b",
+  temperature: 1,
+  max_completion_tokens: 8192,
+  top_p: 1,
+  reasoning_effort: "medium" as any,
+  stream: true,
+  stop: null
+};
+
+// Additional OSS 20B fallback (non-safeguard)
+const OSS20B_FALLBACK = {
+  model: "openai/gpt-oss-20b",
+  temperature: 1,
+  max_completion_tokens: 8192,
+  top_p: 1,
+  reasoning_effort: "medium" as any,
+  stream: true,
+  stop: null
+};
+
+// Additional fallback: Llama 3.3 70B Versatile
+const VERSATILE_FALLBACK = {
+  model: "llama-3.3-70b-versatile",
+  temperature: 1,
+  max_completion_tokens: 1024,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+// Lightweight instant fallback: Llama 3.1 8B
+const INSTANT_FALLBACK = {
+  model: "llama-3.1-8b-instant",
+  temperature: 1,
+  max_completion_tokens: 1024,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+// Prompt guard model (non-streaming, minimal tokens) as a final fallback/safety responder
+const PROMPT_GUARD_FALLBACK = {
+  model: "meta-llama/llama-prompt-guard-2-22m",
+  temperature: 1,
+  max_completion_tokens: 1,
+  top_p: 1,
+  stream: false,
+  stop: null
+};
+
+async function tryGuardModel(query: string, controller: ReadableStreamDefaultController) {
+  try {
+    const completion: any = await client.chat.completions.create({
+      ...PROMPT_GUARD_FALLBACK as any,
+      messages: [
+        { role: 'user', content: query }
+      ]
+    } as any);
+    const msg = completion?.choices?.[0]?.message?.content || 'Request received.';
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content: msg })}\n\n`));
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+    controller.close();
+  } catch (e) {
+    controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'All models unavailable. Please try again later.' })}\n\n`));
+    controller.close();
+  }
+}
 
 async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[]) {
   try {
@@ -162,12 +243,32 @@ export async function POST(request: NextRequest) {
           }
 
           // Default streaming flow (images supported)
-          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, Array.isArray(images) ? images.slice(0,4) : []);
-          
+          const imgs = Array.isArray(images) ? images.slice(0,4) : [];
+          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, imgs);
           if (!primarySuccess) {
-            // If primary failed with 400/429/403, try fallback model
-            console.log('Attempting fallback model...');
-            await tryModel(FALLBACK_MODEL, query, controller, Array.isArray(images) ? images.slice(0,4) : []);
+            console.log('Attempting moonshot fallback model...');
+            const moonshotSuccess = await tryModel(MOONSHOT_FALLBACK as any, query, controller, imgs);
+            const fallbackSuccess = moonshotSuccess ? true : await tryModel(FALLBACK_MODEL, query, controller, imgs);
+            if (!fallbackSuccess) {
+              console.log('Attempting versatile 70B fallback model...');
+              const versatileSuccess = await tryModel(VERSATILE_FALLBACK as any, query, controller, imgs);
+              if (!versatileSuccess) {
+                console.log('Attempting instant 8B fallback model...');
+                const instantSuccess = await tryModel(INSTANT_FALLBACK as any, query, controller, imgs);
+                if (!instantSuccess) {
+                  console.log('Attempting OSS 20B fallback model...');
+                  const oss20bSuccess = await tryModel(OSS20B_FALLBACK as any, query, controller, imgs);
+                  if (!oss20bSuccess) {
+                    console.log('Attempting safeguard fallback model...');
+                    const safeguardSuccess = await tryModel(SAFEGUARD_FALLBACK, query, controller, imgs);
+                    if (!safeguardSuccess) {
+                      console.log('Attempting prompt guard final fallback...');
+                      await tryGuardModel(query, controller);
+                    }
+                  }
+                }
+              }
+            }
           }
         } catch (error) {
           console.error('All models failed:', error);
