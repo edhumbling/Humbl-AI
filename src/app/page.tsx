@@ -492,6 +492,22 @@ export default function Home() {
     </div>
   );
 
+  // SoundWave visualization for recording state
+  const SoundWave = ({ bars = 80 }: { bars?: number }) => {
+    const items = Array.from({ length: bars });
+    return (
+      <div className="sound-wave flex items-end justify-center h-6">
+        {items.map((_, i) => (
+          <div
+            key={i}
+            className="bar"
+            style={{ animationDuration: `${(Math.random() * 0.5 + 0.2).toFixed(2)}s` }}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#151514' }}>
       {/* Header Bar with New Conversation button */}
@@ -735,6 +751,11 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+                  {isRecording && (
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
+                      <SoundWave bars={80} />
+                    </div>
+                  )}
                   <div className="flex items-center">
                     <button
                       onClick={() => (isRecording ? stopRecording() : startRecording())}
@@ -999,6 +1020,11 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+                  {isRecording && (
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
+                      <SoundWave bars={80} />
+                    </div>
+                  )}
                   <div className="flex items-center">
                     <button
                       onClick={() => (isRecording ? stopRecording() : startRecording())}
@@ -1050,6 +1076,13 @@ export default function Home() {
         .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
         .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
         .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
+        /* Recording waveform */
+        .sound-wave .bar { width: 2px; margin: 0 1px; height: 10px; background: #f1d08c; animation-name: wave-lg; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; }
+        .sound-wave .bar:nth-child(-n + 7), .sound-wave .bar:nth-last-child(-n + 7) { animation-name: wave-md; }
+        .sound-wave .bar:nth-child(-n + 3), .sound-wave .bar:nth-last-child(-n + 3) { animation-name: wave-sm; }
+        @keyframes wave-sm { 0% { opacity: 0.35; height: 10px; } 100% { opacity: 1; height: 18px; } }
+        @keyframes wave-md { 0% { opacity: 0.35; height: 14px; } 100% { opacity: 1; height: 34px; } }
+        @keyframes wave-lg { 0% { opacity: 0.35; height: 16px; } 100% { opacity: 1; height: 44px; } }
       `}</style>
     </div>
   );
