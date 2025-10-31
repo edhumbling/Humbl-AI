@@ -156,9 +156,18 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
     formattedText = formattedText.replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-gray-600 pl-4 my-3 italic text-gray-400">$1</blockquote>');
     
     // Process lists - simple approach: wrap consecutive list items
+    type ListState = { items: string[], isOrdered: boolean };
     const lines = formattedText.split('\n');
     const processedLines: string[] = [];
-    let currentList: { items: string[], isOrdered: boolean } | null = null;
+    let currentList: ListState | null = null;
+    
+    const renderList = (list: ListState): string => {
+      const tag = list.isOrdered ? 'ol' : 'ul';
+      const className = list.isOrdered 
+        ? 'list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400' 
+        : 'list-disc space-y-1.5 my-4 ml-6 marker:text-gray-400';
+      return `<${tag} class="${className}">${list.items.join('\n')}</${tag}>`;
+    };
     
     lines.forEach(line => {
       const orderedMatch = line.match(/^(\d+)\.\s+(.+)$/);
@@ -173,21 +182,13 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
           currentList.items.push(item);
         } else {
           if (currentList) {
-            const tag = currentList.isOrdered ? 'ol' : 'ul';
-            const className = currentList.isOrdered 
-              ? 'list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400' 
-              : 'list-disc space-y-1.5 my-4 ml-6 marker:text-gray-400';
-            processedLines.push(`<${tag} class="${className}">${currentList.items.join('\n')}</${tag}>`);
+            processedLines.push(renderList(currentList));
           }
           currentList = { items: [item], isOrdered };
         }
       } else {
         if (currentList) {
-          const tag = currentList.isOrdered ? 'ol' : 'ul';
-          const className = currentList.isOrdered 
-            ? 'list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400' 
-            : 'list-disc space-y-1.5 my-4 ml-6 marker:text-gray-400';
-          processedLines.push(`<${tag} class="${className}">${currentList.items.join('\n')}</${tag}>`);
+          processedLines.push(renderList(currentList));
           currentList = null;
         }
         processedLines.push(line);
@@ -195,11 +196,7 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
     });
     
     if (currentList) {
-      const tag = currentList.isOrdered ? 'ol' : 'ul';
-      const className = currentList.isOrdered 
-        ? 'list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400' 
-        : 'list-disc space-y-1.5 my-4 ml-6 marker:text-gray-400';
-      processedLines.push(`<${tag} class="${className}">${currentList.items.join('\n')}</${tag}>`);
+      processedLines.push(renderList(currentList));
     }
     
     formattedText = processedLines.join('\n');
