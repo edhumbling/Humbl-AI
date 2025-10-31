@@ -242,13 +242,13 @@ export default function Home() {
     // Start conversation and add user message to history (skip if retry)
     setConversationStarted(true);
     if (!isRetry) {
-      const userMessage = {
-        type: 'user' as const,
+    const userMessage = {
+      type: 'user' as const,
         content: queryToUse,
         images: imagesToUse.slice(0, 3),
-        timestamp: new Date().toISOString()
-      };
-      setConversationHistory(prev => [...prev, userMessage]);
+      timestamp: new Date().toISOString()
+    };
+    setConversationHistory(prev => [...prev, userMessage]);
     }
 
     setIsLoading(true);
@@ -413,12 +413,44 @@ export default function Home() {
         body: JSON.stringify({ text }),
       });
 
+      // Check content type first
+      const contentType = response.headers.get('content-type');
+      
       if (!response.ok) {
-        throw new Error('Failed to generate audio');
+        // Try to get error message from response
+        let errorMessage = 'Failed to generate audio';
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = `Failed to generate audio (${response.status})`;
+          }
+        } else {
+          errorMessage = `Failed to generate audio (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Verify response is actually audio
+      if (contentType && !contentType.startsWith('audio/')) {
+        // Response might be an error JSON even if status is ok
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Invalid response format');
+        } catch (jsonError) {
+          throw new Error('Invalid response format: expected audio, got ' + contentType);
+        }
       }
 
       // Create audio blob and play it
       const audioBlob = await response.blob();
+      
+      // Verify blob is not empty
+      if (audioBlob.size === 0) {
+        throw new Error('Received empty audio file');
+      }
+      
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
@@ -430,15 +462,19 @@ export default function Home() {
         URL.revokeObjectURL(audioUrl);
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setPlayingAudioId(null);
         URL.revokeObjectURL(audioUrl);
       };
 
       await audio.play();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to play audio:', error);
+      console.error('Error details:', error.message || error);
       setPlayingAudioId(null);
+      // Optionally show error to user
+      // setError(error.message || 'Failed to generate audio');
     }
   };
 
@@ -685,13 +721,13 @@ export default function Home() {
 
             {/* Right: Info */}
             <div className="flex items-center justify-end">
-              <button
-                onClick={() => setShowInfo(true)}
-                className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
-                title="Info"
-              >
-                <Info size={18} className="text-gray-200" />
-              </button>
+            <button
+              onClick={() => setShowInfo(true)}
+              className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+              title="Info"
+            >
+              <Info size={18} className="text-gray-200" />
+            </button>
             </div>
           </div>
         </div>
@@ -836,40 +872,40 @@ export default function Home() {
 
                 {/* Input Field */}
                 <div className="flex items-start gap-2">
-                  <textarea
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                <textarea
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
                     onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                     placeholder={placeholderText}
-                    className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
-                    rows={1}
-                    style={{
-                      height: 'auto',
-                      minHeight: '1.5rem',
-                      maxHeight: '8rem'
-                    }}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                    }}
-                  />
+                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                  rows={1}
+                  style={{
+                    height: 'auto',
+                    minHeight: '1.5rem',
+                    maxHeight: '8rem'
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                  }}
+                />
                 </div>
 
                 {/* Suggestions dropdown (desktop top bar) */}
                 {!conversationStarted && showSuggestions && suggestions.length > 0 && (
                   <div className="absolute left-3 right-3 top-full mt-0 rounded-b-2xl bg-[#1f1f1f]/95 backdrop-blur-sm z-20 max-h-64 overflow-auto humbl-suggest">
                     {suggestions.map((s, i) => (
-                      <button
+                          <button
                         key={i}
                         className={"w-full text-left px-3 py-2 text-sm border-t border-gray-800/60 " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
                         onMouseDown={(e) => { e.preventDefault(); setSearchQuery(s); setShowSuggestions(false); setActiveSuggestionIndex(-1); }}
                       >
                         {s}
-                      </button>
-                    ))}
+                          </button>
+                      ))}
                   </div>
                 )}
 
@@ -897,23 +933,23 @@ export default function Home() {
                     {/* Mode buttons */}
                     <div className="ml-2 hidden sm:flex items-center gap-2 relative">
                       <div className="relative">
-                        <button
+                      <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowWebSearchDropdown(!showWebSearchDropdown);
                           }}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors hover:bg-opacity-80"
                           style={{ backgroundColor: webSearchMode !== 'off' ? '#f1d08c' : '#2a2a29', color: webSearchMode !== 'off' ? '#000000' : '#ffffff' }}
-                          title="Search the web"
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="9" strokeWidth="2"/>
-                            <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
-                          </svg>
+                        title="Search the web"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
                           <span className="text-xs font-medium hidden lg:inline">
                             Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}
                           </span>
-                        </button>
+                      </button>
                         {showWebSearchDropdown && (
                           <>
                             <div 
@@ -922,7 +958,7 @@ export default function Home() {
                             />
                             <div className="absolute bottom-full left-0 mb-2 z-50 w-72 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
                               <div className="py-1">
-                                <button
+                      <button
                                   onClick={() => {
                                     setWebSearchMode('auto');
                                     setMode('default');
@@ -935,7 +971,7 @@ export default function Home() {
                                     <div className="text-gray-400 text-xs mt-0.5">Automatically determine whether to search the web to answer your question.</div>
                                   </div>
                                   {webSearchMode === 'auto' && <Check size={16} className="text-white flex-shrink-0" />}
-                                </button>
+                      </button>
                                 <button
                                   onClick={() => {
                                     setWebSearchMode('on');
@@ -1004,20 +1040,20 @@ export default function Home() {
                       {isLoading && (
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
-                      <button
+                    <button
                         onClick={() => handleSearch()}
-                        disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
                         onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
-                      >
-                        {isLoading ? (
+                    >
+                      {isLoading ? (
                           <Square size={18} className="text-black" />
-                        ) : (
+                      ) : (
                           <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
-                        )}
-                      </button>
+                      )}
+                    </button>
                     </div>
                   </div>
                 </div>
@@ -1073,7 +1109,7 @@ export default function Home() {
                               <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
                             </div>
                           </div>
-                          <button
+                      <button
                             onClick={() => handleRetry(message, index)}
                             className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                             title="Try again"
@@ -1166,7 +1202,7 @@ export default function Home() {
                     <button
                       className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                       title="Downvote"
-                    >
+            >
                       <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                     </button>
                     <button
@@ -1244,27 +1280,27 @@ export default function Home() {
 
                 {/* Input Field */}
                 <div className="flex items-start gap-2">
-                  <textarea
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                <textarea
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
                     onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                     placeholder={placeholderText}
-                    className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
-                    rows={1}
-                    style={{
-                      height: 'auto',
-                      minHeight: '1.5rem',
-                      maxHeight: '8rem'
-                    }}
-                    onInput={(e) => {
-                      const target = e.target as HTMLTextAreaElement;
-                      target.style.height = 'auto';
-                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                    }}
-                  />
-                </div>
+                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                  rows={1}
+                  style={{
+                    height: 'auto',
+                    minHeight: '1.5rem',
+                    maxHeight: '8rem'
+                  }}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                  }}
+                />
+                        </div>
 
                 {/* Suggestions dropdown (conversation bar) */}
                 {/* No autocomplete during conversation */}
@@ -1293,23 +1329,23 @@ export default function Home() {
                     {/* Mode buttons in conversation bar */}
                     <div className="ml-2 hidden sm:flex items-center gap-2 relative">
                       <div className="relative">
-                        <button
+                      <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setShowWebSearchDropdown(!showWebSearchDropdown);
                           }}
                           className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors hover:bg-opacity-80"
                           style={{ backgroundColor: webSearchMode !== 'off' ? '#f1d08c' : '#2a2a29', color: webSearchMode !== 'off' ? '#000000' : '#ffffff' }}
-                          title="Search the web"
-                        >
-                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <circle cx="12" cy="12" r="9" strokeWidth="2"/>
-                            <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
-                          </svg>
+                        title="Search the web"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
                           <span className="text-xs font-medium hidden lg:inline">
                             Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}
                           </span>
-                        </button>
+                      </button>
                         {showWebSearchDropdown && (
                           <>
                             <div 
@@ -1318,7 +1354,7 @@ export default function Home() {
                             />
                             <div className="absolute bottom-full left-0 mb-2 z-50 w-72 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
                               <div className="py-1">
-                                <button
+                      <button
                                   onClick={() => {
                                     setWebSearchMode('auto');
                                     setMode('default');
@@ -1331,7 +1367,7 @@ export default function Home() {
                                     <div className="text-gray-400 text-xs mt-0.5">Automatically determine whether to search the web to answer your question.</div>
                                   </div>
                                   {webSearchMode === 'auto' && <Check size={16} className="text-white flex-shrink-0" />}
-                                </button>
+                      </button>
                                 <button
                                   onClick={() => {
                                     setWebSearchMode('on');
@@ -1400,20 +1436,20 @@ export default function Home() {
                       {isLoading && (
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
-                      <button
+                    <button
                         onClick={() => handleSearch()}
-                        disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
                         onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
-                      >
-                        {isLoading ? (
+                    >
+                      {isLoading ? (
                           <Square size={18} className="text-black" />
-                        ) : (
+                      ) : (
                           <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
-                        )}
-                      </button>
+                      )}
+                    </button>
                     </div>
                   </div>
                 </div>
