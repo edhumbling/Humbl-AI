@@ -10,7 +10,7 @@ interface ResponseRendererProps {
 }
 
 export default function ResponseRenderer({ content, className = '' }: ResponseRendererProps) {
-  const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'table', content: string | TableData }>>([]);
+  const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'table' | 'thinking', content: string | TableData, thinkingIndex?: number }>>([]);
   const [revealedThinking, setRevealedThinking] = useState<Set<number>>(new Set());
 
   useEffect(() => {
