@@ -193,6 +193,7 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   const suggestTimeoutRef = useRef<number | null>(null);
+  const initialSearchRef = useRef<HTMLDivElement | null>(null);
 
   const handleImagePickClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
@@ -421,6 +422,45 @@ export default function Home() {
     };
   }, [searchQuery, conversationStarted]);
 
+  // Ensure suggestions stay visible on mobile when keyboard opens
+  useEffect(() => {
+    if (conversationStarted || !showSuggestions) return;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    if (!isMobile) return;
+
+    const scrollIntoViewSafely = () => {
+      const el = initialSearchRef.current;
+      if (!el) return;
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollBy({ top: -24, left: 0, behavior: 'smooth' });
+      } catch {
+        const rect = el.getBoundingClientRect();
+        window.scrollTo({ top: window.scrollY + rect.top - 24 });
+      }
+    };
+
+    // Attempt immediately and after viewport settles (keyboard shown)
+    scrollIntoViewSafely();
+    const raf = requestAnimationFrame(scrollIntoViewSafely);
+
+    // Listen for visualViewport changes where supported (mobile browsers)
+    const vv: any = (window as any).visualViewport;
+    const onVVChange = () => scrollIntoViewSafely();
+    if (vv && vv.addEventListener) {
+      vv.addEventListener('resize', onVVChange);
+      vv.addEventListener('scroll', onVVChange);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      if (vv && vv.removeEventListener) {
+        vv.removeEventListener('resize', onVVChange);
+        vv.removeEventListener('scroll', onVVChange);
+      }
+    };
+  }, [showSuggestions, conversationStarted]);
+
   // Auto-scroll to the beginning of the streaming response when it starts
   useEffect(() => {
     if (!(isLoading && streamingResponse)) return;
@@ -588,7 +628,7 @@ export default function Home() {
           </div>
 
           {/* Search Bar */}
-          <div className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
+          <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
               <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
