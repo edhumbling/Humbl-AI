@@ -182,8 +182,9 @@ export default function Home() {
   };
 
   const [showInfo, setShowInfo] = useState(false);
-  const [mode, setMode] = useState<'default' | 'search' | 'study'>('default');
+  const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
+  const [imageGenerationMode, setImageGenerationMode] = useState(false);
   const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -194,7 +195,6 @@ export default function Home() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -282,7 +282,56 @@ export default function Home() {
     // Store interval to clear later
     (window as any).thinkingInterval = textInterval;
 
-    const modeToUse = retryMode ?? mode;
+    const modeToUse = retryMode ?? (imageGenerationMode ? 'image' : mode);
+    
+    // Handle image generation mode
+    if (modeToUse === 'image') {
+      try {
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt: queryToUse }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to generate image' }));
+          throw new Error(errorData.error || 'Failed to generate image');
+        }
+
+        const imageData = await response.json();
+        
+        if (imageData.imageUrl) {
+          // Add generated image to conversation
+          const aiMessage = {
+            type: 'ai' as const,
+            content: '',
+            timestamp: new Date().toISOString(),
+            images: [imageData.imageUrl],
+            originalQuery: queryToUse,
+            originalImages: imagesToUse.slice(0, 3),
+            originalMode: modeToUse
+          };
+          setConversationHistory(prev => [...prev, aiMessage]);
+          setSearchQuery('');
+          setAttachedImages([]);
+          setIsLoading(false);
+          setThinkingText('');
+          clearInterval((window as any).thinkingInterval);
+          setImageGenerationMode(false); // Reset mode after generation
+          return;
+        }
+      } catch (err: any) {
+        console.error('Failed to generate image:', err);
+        setError(err.message || 'Failed to generate image');
+        setIsLoading(false);
+        setThinkingText('');
+        clearInterval((window as any).thinkingInterval);
+        return;
+      }
+    }
+    
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
@@ -479,55 +528,17 @@ export default function Home() {
     }
   };
 
-  const handleGenerateImage = async () => {
-    if (!searchQuery.trim() || isGeneratingImage) return;
-
-    setIsGeneratingImage(true);
-    setError(null);
-
-    try {
-      const prompt = searchQuery.trim() || "a beautiful landscape";
-      
-      const response = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to generate image' }));
-        throw new Error(errorData.error || 'Failed to generate image');
-      }
-
-      const imageData = await response.json();
-      
-      if (imageData.imageUrl) {
-        // Add generated image to conversation
-        const timestamp = new Date().toISOString();
-        setConversationHistory(prev => [
-          ...prev,
-          {
-            type: 'user',
-            content: `Generate an image: ${prompt}`,
-            timestamp,
-          },
-          {
-            type: 'ai',
-            content: '',
-            timestamp: new Date().toISOString(),
-            images: [imageData.imageUrl],
-          },
-        ]);
-        setConversationStarted(true);
-        setSearchQuery('');
-      }
-    } catch (err: any) {
-      console.error('Failed to generate image:', err);
-      setError(err.message || 'Failed to generate image');
-    } finally {
-      setIsGeneratingImage(false);
+  const handleToggleImageMode = () => {
+    if (imageGenerationMode) {
+      // Turn off image mode
+      setImageGenerationMode(false);
+      setMode('default');
+    } else {
+      // Turn on image mode, turn off web search
+      setImageGenerationMode(true);
+      setMode('default');
+      setWebSearchMode('off');
+      setShowWebSearchDropdown(false);
     }
   };
 
@@ -1015,6 +1026,7 @@ export default function Home() {
                                   onClick={() => {
                                     setWebSearchMode('auto');
                                     setMode('default');
+                                    setImageGenerationMode(false);
                                     setShowWebSearchDropdown(false);
                                   }}
                                   className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
@@ -1029,6 +1041,7 @@ export default function Home() {
                                   onClick={() => {
                                     setWebSearchMode('on');
                                     setMode('search');
+                                    setImageGenerationMode(false);
                                     setShowWebSearchDropdown(false);
                                   }}
                                   className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
@@ -1060,36 +1073,26 @@ export default function Home() {
                       </div>
                       {/* Create Image button */}
                       <button
-                        onClick={handleGenerateImage}
-                        disabled={!searchQuery.trim() || isGeneratingImage}
-                        className="ml-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: isGeneratingImage ? '#f1d08c' : '#2a2a29', color: isGeneratingImage ? '#000000' : '#ffffff' }}
+                        onClick={handleToggleImageMode}
+                        className="ml-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
                         title="Create image"
                       >
-                        {isGeneratingImage ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <ImageIcon size={16} className="w-4 h-4" />
-                        )}
+                        <ImageIcon size={16} className="w-4 h-4" />
                       </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
-                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
+                      <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
                       <button
-                        onClick={handleGenerateImage}
-                        disabled={!searchQuery.trim() || isGeneratingImage}
-                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: isGeneratingImage ? '#f1d08c' : '#2a2a29', color: isGeneratingImage ? '#000000' : '#ffffff' }}
+                        onClick={handleToggleImageMode}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
                         title="Create image"
                       >
-                        {isGeneratingImage ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <ImageIcon size={16} className="w-4 h-4" />
-                        )}
+                        <ImageIcon size={16} className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -1448,6 +1451,7 @@ export default function Home() {
                                   onClick={() => {
                                     setWebSearchMode('auto');
                                     setMode('default');
+                                    setImageGenerationMode(false);
                                     setShowWebSearchDropdown(false);
                                   }}
                                   className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
@@ -1462,6 +1466,7 @@ export default function Home() {
                                   onClick={() => {
                                     setWebSearchMode('on');
                                     setMode('search');
+                                    setImageGenerationMode(false);
                                     setShowWebSearchDropdown(false);
                                   }}
                                   className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
@@ -1494,7 +1499,7 @@ export default function Home() {
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
-                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
+                      <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
                     </div>
