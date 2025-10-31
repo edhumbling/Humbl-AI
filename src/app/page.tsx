@@ -229,20 +229,22 @@ export default function Home() {
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSearch = async (retryQuery?: string, retryImages?: string[], retryMode?: 'default' | 'search' | 'study') => {
+  const handleSearch = async (retryQuery?: string, retryImages?: string[], retryMode?: 'default' | 'search' | 'study', isRetry?: boolean) => {
     const queryToUse = retryQuery ?? searchQuery;
     const imagesToUse = retryImages ?? attachedImages;
     if (!queryToUse.trim() && imagesToUse.length === 0) return;
 
-    // Start conversation and add user message to history
+    // Start conversation and add user message to history (skip if retry)
     setConversationStarted(true);
-    const userMessage = {
-      type: 'user' as const,
-      content: queryToUse,
-      images: imagesToUse.slice(0, 3),
-      timestamp: new Date().toISOString()
-    };
-    setConversationHistory(prev => [...prev, userMessage]);
+    if (!isRetry) {
+      const userMessage = {
+        type: 'user' as const,
+        content: queryToUse,
+        images: imagesToUse.slice(0, 3),
+        timestamp: new Date().toISOString()
+      };
+      setConversationHistory(prev => [...prev, userMessage]);
+    }
 
     setIsLoading(true);
     setError(null);
@@ -364,7 +366,7 @@ export default function Home() {
 
   const handleRetry = (message: any) => {
     if (message.originalQuery !== undefined || message.originalImages?.length) {
-      handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default');
+      handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default', true);
     }
   };
 
