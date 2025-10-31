@@ -138,6 +138,7 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
     if (query) {
       userContent.push({ type: "text", text: query });
     }
+    const hasImages = (images || []).length > 0;
     for (const img of (images || []).slice(0, 4)) {
       userContent.push({ type: "image_url", image_url: { url: img } });
     }
@@ -153,8 +154,13 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
       }
     ];
 
+    // Remove parse option when images are present to avoid structured/decimal outputs
+    const modelConfigToUse = hasImages && modelConfig.parse 
+      ? { ...modelConfig, parse: undefined } 
+      : modelConfig;
+
     const stream = client.chat.completions.create({
-      ...modelConfig,
+      ...modelConfigToUse,
       messages: messages as any
     });
 
@@ -202,12 +208,18 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
     if (query) {
       userContent.push({ type: "text", text: query });
     }
+    const hasImages = (images || []).length > 0;
     for (const img of (images || []).slice(0, 4)) {
       userContent.push({ type: "image_url", image_url: { url: img } });
     }
 
+    // Remove parse option when images are present to avoid structured/decimal outputs
+    const modelConfigToUse = hasImages && modelConfig.parse 
+      ? { ...modelConfig, parse: undefined } 
+      : modelConfig;
+
     const stream = client.chat.completions.create({
-      ...modelConfig,
+      ...modelConfigToUse,
       messages: [
         {
           role: "system",
