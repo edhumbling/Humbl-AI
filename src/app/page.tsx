@@ -1462,9 +1462,9 @@ export default function Home() {
       {/* Copied notification */}
       {showCopied && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-200 opacity-100">
-          <div className="bg-gray-800 text-gray-200 px-4 py-2 rounded-lg shadow-lg border border-gray-700 flex items-center gap-2">
-            <CopyIcon size={16} className="text-[#f1d08c]" />
-            <span className="text-sm font-medium">Copied!</span>
+          <div className="px-4 py-2 rounded-lg shadow-lg border-2 flex items-center gap-2" style={{ backgroundColor: '#f1d08c', borderColor: '#f1d08c' }}>
+            <CopyIcon size={16} className="text-black" />
+            <span className="text-sm font-medium text-black">Copied!</span>
           </div>
         </div>
       )}
