@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -159,6 +159,26 @@ export default function Home() {
     setIsRecording(false);
   };
 
+  const startNewConversation = () => {
+    try {
+      // Stop any ongoing recording/visualizer
+      if (isRecording) {
+        stopRecording();
+      }
+      if ((window as any).thinkingInterval) {
+        clearInterval((window as any).thinkingInterval);
+      }
+    } catch {}
+
+    setConversationStarted(false);
+    setConversationHistory([]);
+    setSearchQuery('');
+    setSearchResult(null);
+    setStreamingResponse('');
+    setError(null);
+    setThinkingText('');
+  };
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
@@ -297,6 +317,24 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col" style={{ backgroundColor: '#151514' }}>
+      {/* Header Bar with New Conversation button */}
+      <div className="w-full border-b border-gray-800/60">
+        <div className="max-w-6xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={startNewConversation}
+                className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+                title="New conversation"
+              >
+                <Plus size={18} className="text-gray-200" />
+              </button>
+              <span className="text-sm text-gray-400 hidden sm:inline">New</span>
+            </div>
+            <div className="text-gray-300 text-sm">Humbl AI</div>
+          </div>
+        </div>
+      </div>
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (
         <div className="flex flex-col items-center justify-center flex-1 px-4">
@@ -486,7 +524,7 @@ export default function Home() {
                     <button
                       className="p-2 rounded-full hover:bg-gray-700 transition-colors"
                       title="Downvote"
-                    >
+            >
                       <ThumbsDown size={18} className="text-gray-400" />
                     </button>
                   </div>
