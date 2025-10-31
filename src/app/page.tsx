@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -194,6 +194,7 @@ export default function Home() {
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -475,6 +476,58 @@ export default function Home() {
       setPlayingAudioId(null);
       // Optionally show error to user
       // setError(error.message || 'Failed to generate audio');
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!searchQuery.trim() || isGeneratingImage) return;
+
+    setIsGeneratingImage(true);
+    setError(null);
+
+    try {
+      const prompt = searchQuery.trim() || "a beautiful landscape";
+      
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to generate image' }));
+        throw new Error(errorData.error || 'Failed to generate image');
+      }
+
+      const imageData = await response.json();
+      
+      if (imageData.imageUrl) {
+        // Add generated image to conversation
+        const timestamp = new Date().toISOString();
+        setConversationHistory(prev => [
+          ...prev,
+          {
+            type: 'user',
+            content: `Generate an image: ${prompt}`,
+            timestamp,
+          },
+          {
+            type: 'ai',
+            content: '',
+            timestamp: new Date().toISOString(),
+            images: [imageData.imageUrl],
+          },
+        ]);
+        setConversationStarted(true);
+        setSearchQuery('');
+      }
+    } catch (err: any) {
+      console.error('Failed to generate image:', err);
+      setError(err.message || 'Failed to generate image');
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -1005,11 +1058,38 @@ export default function Home() {
                           </>
                         )}
                       </div>
+                      {/* Create Image button */}
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={!searchQuery.trim() || isGeneratingImage}
+                        className="ml-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: isGeneratingImage ? '#f1d08c' : '#2a2a29', color: isGeneratingImage ? '#000000' : '#ffffff' }}
+                        title="Create image"
+                      >
+                        {isGeneratingImage ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <ImageIcon size={16} className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </button>
+                      <button
+                        onClick={handleGenerateImage}
+                        disabled={!searchQuery.trim() || isGeneratingImage}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: isGeneratingImage ? '#f1d08c' : '#2a2a29', color: isGeneratingImage ? '#000000' : '#ffffff' }}
+                        title="Create image"
+                      >
+                        {isGeneratingImage ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <ImageIcon size={16} className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -1091,7 +1171,17 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="w-full">
-                      <ResponseRenderer content={message.content} />
+                      {/* Generated images for AI */}
+                      {message.images && message.images.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-3">
+                          {message.images.map((src, idx) => (
+                            <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full">
+                              <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {message.content && <ResponseRenderer content={message.content} />}
                       {/* Action buttons for AI responses */}
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       <button
