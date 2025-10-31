@@ -1550,11 +1550,28 @@ export default function Home() {
                           </>
                         )}
                       </div>
+                      {/* Create Image button */}
+                      <button
+                        onClick={handleToggleImageMode}
+                        className="ml-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                        title="Create image"
+                      >
+                        <ImageIcon size={16} className="w-4 h-4" />
+                      </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </button>
+                      <button
+                        onClick={handleToggleImageMode}
+                        className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                        title="Create image"
+                      >
+                        <ImageIcon size={16} className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
