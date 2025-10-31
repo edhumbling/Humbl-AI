@@ -773,7 +773,7 @@ export default function Home() {
 
       {/* Conversation Area - Only show when conversation has started */}
       {conversationStarted && (
-        <div ref={conversationScrollRef} className="flex-1 relative overflow-y-auto py-4">
+        <div ref={conversationScrollRef} className="flex-1 relative overflow-y-auto py-4 humbl-scroll">
           <div className="w-full px-4">
             <div className="max-w-xl lg:max-w-3xl mx-auto space-y-6 pb-32">
               {/* Conversation History */}
@@ -1046,6 +1046,12 @@ export default function Home() {
         /* Suggestions list: hide scrollbar but keep scroll */
         .humbl-suggest { -ms-overflow-style: none; scrollbar-width: none; }
         .humbl-suggest::-webkit-scrollbar { display: none; }
+        /* Conversation scroll: dark, faded scrollbar */
+        .humbl-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.6) transparent; }
+        .humbl-scroll::-webkit-scrollbar { width: 10px; }
+        .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
+        .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
+        .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
       `}</style>
     </div>
   );
