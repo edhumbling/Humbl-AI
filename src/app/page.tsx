@@ -183,6 +183,7 @@ export default function Home() {
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
+  const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
 
   const handleImagePickClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
@@ -484,14 +485,14 @@ export default function Home() {
           </div>
 
           {/* Desktop Title */}
-          <div className="w-full text-center mb-4 hidden md:block">
-            <h1 className="text-white text-2xl sm:text-3xl font-semibold">What's on your mind today?</h1>
+          <div className="w-full text-center mb-3 hidden md:block">
+            <h2 className="text-gray-300 text-sm sm:text-base font-normal">What's on your mind today?</h2>
           </div>
 
           {/* Search Bar */}
           <div className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -570,15 +571,15 @@ export default function Home() {
                     <button
                       onClick={handleSearch}
                       disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80"
-                      style={{ backgroundColor: '#1a1a19' }}
-                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
-                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: canSend ? '#ffffff' : '#1a1a19' }}
+                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#e5e7eb' : '#2a2a29'}
+                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#ffffff' : '#1a1a19'}
                     >
                       {isLoading ? (
                         <Square size={18} className="text-white" />
                       ) : (
-                        <ArrowUp size={18} className="text-white" />
+                        <ArrowUp size={18} className={canSend ? 'text-black' : 'text-white'} />
                       )}
                     </button>
                   </div>
@@ -708,7 +709,7 @@ export default function Home() {
         <div className="w-full px-4 py-4">
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -787,15 +788,15 @@ export default function Home() {
                     <button
                       onClick={handleSearch}
                       disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80"
-                      style={{ backgroundColor: '#1a1a19' }}
-                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
-                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: canSend ? '#ffffff' : '#1a1a19' }}
+                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#e5e7eb' : '#2a2a29'}
+                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = canSend ? '#ffffff' : '#1a1a19'}
                     >
                       {isLoading ? (
                         <Square size={18} className="text-white" />
                       ) : (
-                        <ArrowUp size={18} className="text-white" />
+                        <ArrowUp size={18} className={canSend ? 'text-black' : 'text-white'} />
                       )}
                     </button>
                   </div>
