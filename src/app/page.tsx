@@ -207,7 +207,7 @@ export default function Home() {
   const handleImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    const maxAllowed = 4 - attachedImages.length;
+    const maxAllowed = Math.max(0, 3 - attachedImages.length);
     const toRead = Array.from(files).slice(0, Math.max(0, maxAllowed));
     const readers = toRead.map(file => new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
@@ -217,7 +217,7 @@ export default function Home() {
     }));
     try {
       const results = await Promise.all(readers);
-      setAttachedImages(prev => [...prev, ...results].slice(0, 4));
+      setAttachedImages(prev => [...prev, ...results].slice(0, 3));
     } catch {}
     // reset input so selecting the same file again triggers change
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -555,7 +555,9 @@ export default function Home() {
             {/* Center: Logo when conversation is active */}
             <div className="flex items-center justify-center">
               {conversationStarted && (
-                <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-6 w-auto opacity-90" />
+                <button onClick={startNewConversation} className="cursor-pointer hover:opacity-80 transition-opacity" title="New conversation">
+                  <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-6 w-auto opacity-90" />
+                </button>
               )}
             </div>
 
@@ -738,10 +740,10 @@ export default function Home() {
                           <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeAttachedImage(idx)}
-                            className="absolute -top-1 -right-1 bg-black/80 rounded-full p-0.5"
+                            className="absolute -top-1 -right-1 bg-black/90 hover:bg-[#f1d08c] rounded-full p-1 ring-1 ring-[#f1d08c] shadow-md transition-colors"
                             title="Remove"
                           >
-                            <X size={12} className="text-white" />
+                            <X size={14} className="text-white hover:text-black" />
                           </button>
                         </div>
                       ))}
@@ -761,7 +763,8 @@ export default function Home() {
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClick}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      disabled={attachedImages.length >= 3}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#2a2a29' }}
                       title="Attach images"
                     >
@@ -1017,10 +1020,10 @@ export default function Home() {
                           <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeAttachedImage(idx)}
-                            className="absolute -top-1 -right-1 bg-black/80 rounded-full p-0.5"
+                            className="absolute -top-1 -right-1 bg-black/90 hover:bg-[#f1d08c] rounded-full p-1 ring-1 ring-[#f1d08c] shadow-md transition-colors"
                             title="Remove"
                           >
-                            <X size={12} className="text-white" />
+                            <X size={14} className="text-white hover:text-black" />
                           </button>
                         </div>
                       ))}
@@ -1040,7 +1043,8 @@ export default function Home() {
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClickLower}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      disabled={attachedImages.length >= 3}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: '#2a2a29' }}
                       title="Attach images"
                     >
