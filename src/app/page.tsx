@@ -194,6 +194,7 @@ export default function Home() {
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   const suggestTimeoutRef = useRef<number | null>(null);
   const initialSearchRef = useRef<HTMLDivElement | null>(null);
+  const conversationBarRef = useRef<HTMLDivElement | null>(null);
 
   const handleImagePickClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
@@ -378,6 +379,28 @@ export default function Home() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSearch();
+    }
+  };
+
+  const scrollBarAboveKeyboard = (el: HTMLElement | null) => {
+    if (!el) return;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    if (!isMobile) return;
+    const doScroll = () => {
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollBy({ top: -16, left: 0, behavior: 'smooth' });
+      } catch {
+        const rect = el.getBoundingClientRect();
+        window.scrollTo({ top: window.scrollY + rect.top - 16 });
+      }
+    };
+    // small delay to allow keyboard animation to begin
+    setTimeout(doScroll, 50);
+    const vv: any = (window as any).visualViewport;
+    if (vv && vv.addEventListener) {
+      const once = () => { doScroll(); vv.removeEventListener('resize', once); };
+      vv.addEventListener('resize', once);
     }
   };
 
@@ -659,7 +682,7 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); }}
+                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                   placeholder=""
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
@@ -933,7 +956,7 @@ export default function Home() {
 
       {/* Search Bar - Only show when conversation has started */}
       {conversationStarted && (
-        <div className="w-full px-4 py-4">
+        <div className="w-full px-4 py-4" ref={conversationBarRef}>
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
               <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
@@ -949,7 +972,7 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); }}
+                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                   placeholder="Continue the conversation..."
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
