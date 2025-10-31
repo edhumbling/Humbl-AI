@@ -11,19 +11,42 @@ interface ResponseRendererProps {
 
 export default function ResponseRenderer({ content, className = '' }: ResponseRendererProps) {
   const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'table', content: string | TableData }>>([]);
+  const [revealedThinking, setRevealedThinking] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const parseContent = () => {
-      const parts: Array<{ type: 'text' | 'table', content: string | TableData }> = [];
+      const parts: Array<{ type: 'text' | 'table' | 'thinking', content: string | TableData, thinkingIndex?: number }> = [];
       let currentText = '';
       let textIndex = 0;
+      let thinkingIndex = 0;
 
-      // Split content by potential table boundaries
-      const lines = content.split('\n');
+      // Extract thinking tags first (Qwen parse mode outputs <think>...</think>)
+      const thinkTagRegex = /<think>([\s\S]*?)<\/think>/gi;
+      const thinkingBlocks: string[] = [];
+      let processedContent = content.replace(thinkTagRegex, (match, thinkingContent) => {
+        thinkingBlocks.push(thinkingContent.trim());
+        return `__THINKING_${thinkingBlocks.length - 1}__`;
+      });
+
+      // Split content by potential table boundaries and thinking placeholders
+      const lines = processedContent.split('\n');
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const nextLine = lines[i + 1];
+        
+        // Check for thinking placeholder
+        const thinkingMatch = line.match(/__THINKING_(\d+)__/);
+        if (thinkingMatch) {
+          // Save current text if any
+          if (currentText.trim()) {
+            parts.push({ type: 'text', content: currentText.trim() });
+            currentText = '';
+          }
+          const idx = parseInt(thinkingMatch[1]);
+          parts.push({ type: 'thinking', content: thinkingBlocks[idx] || '', thinkingIndex: idx });
+          continue;
+        }
         
         // Check if this line might be the start of a table
         if (isPotentialTableStart(line, nextLine)) {
@@ -131,6 +154,34 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
     );
   };
 
+  const renderThinking = (thinkingContent: string, index: number) => {
+    const isRevealed = revealedThinking.has(index);
+    return (
+      <div className="my-3 border border-gray-700 rounded-lg overflow-hidden">
+        <button
+          onClick={() => {
+            const newSet = new Set(revealedThinking);
+            if (isRevealed) {
+              newSet.delete(index);
+            } else {
+              newSet.add(index);
+            }
+            setRevealedThinking(newSet);
+          }}
+          className="w-full px-3 py-2 text-left text-xs text-gray-400 hover:text-gray-300 hover:bg-gray-800/30 transition-colors flex items-center justify-between"
+        >
+          <span>💭 Thinking process</span>
+          <span>{isRevealed ? '▼' : '▶'}</span>
+        </button>
+        {isRevealed && (
+          <div className="px-3 py-2 text-xs text-gray-500 bg-gray-900/30 leading-relaxed whitespace-pre-wrap">
+            {thinkingContent}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (parsedContent.length === 0) {
     return <div className={className}>Loading...</div>;
   }
@@ -141,6 +192,8 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
         <div key={index} className="mb-4 last:mb-0">
           {part.type === 'text' ? (
             renderText(part.content as string)
+          ) : part.type === 'thinking' ? (
+            renderThinking(part.content as string, part.thinkingIndex ?? index)
           ) : (
             renderTable(part.content as TableData)
           )}
