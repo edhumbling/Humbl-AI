@@ -751,11 +751,16 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+                  {/* Desktop/tablet: center absolute */}
                   {isRecording && (
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
+                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
                       <SoundWave bars={80} />
                     </div>
                   )}
+                  {/* Mobile: place waveform between left and right groups */}
+                  <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
+                    {isRecording && <SoundWave bars={60} />}
+                  </div>
                   <div className="flex items-center">
                     <button
                       onClick={() => (isRecording ? stopRecording() : startRecording())}
@@ -1020,11 +1025,16 @@ export default function Home() {
                       </button>
                     </div>
                   </div>
+                  {/* Desktop/tablet: center absolute */}
                   {isRecording && (
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
+                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
                       <SoundWave bars={80} />
                     </div>
                   )}
+                  {/* Mobile: place waveform between left and right groups */}
+                  <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
+                    {isRecording && <SoundWave bars={60} />}
+                  </div>
                   <div className="flex items-center">
                     <button
                       onClick={() => (isRecording ? stopRecording() : startRecording())}
