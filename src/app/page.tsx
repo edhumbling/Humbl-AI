@@ -898,8 +898,6 @@ export default function Home() {
               )}
             </div>
           </div>
-          {/* Bottom fade to simulate scrolling under the bar */}
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#151514] via-[#151514]/90 to-transparent z-10" />
         </div>
       )}
 
