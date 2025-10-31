@@ -788,7 +788,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: '#151514' }}>
+    <div className="h-screen flex flex-col overflow-hidden" style={{ backgroundColor: '#151514' }}>
       {/* Header Bar with New Conversation button */}
       <div className="w-full border-b border-gray-800/60">
         <div className="max-w-6xl mx-auto px-4 py-3">
@@ -918,9 +918,9 @@ export default function Home() {
       )}
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (
-        <div className="flex flex-col items-center justify-center flex-1 px-4">
+        <div className="flex flex-col items-center justify-start flex-1 px-0 pt-0 mt-0">
           {/* Main Logo */}
-          <div className="text-center mb-6 sm:mb-12">
+          <div className="text-center mb-6 sm:mb-12 px-4 pt-4">
             <button
               onClick={() => window.location.reload()}
               className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -939,9 +939,9 @@ export default function Home() {
           {/* Desktop Title removed per request */}
 
           {/* Search Bar */}
-          <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
+          <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8 px-4">
             <div className="relative">
-              <div className="relative overflow-visible flex flex-col rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}>
+              <div className="relative overflow-visible flex flex-col rounded-t-none rounded-b-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', borderTop: 'none', borderLeft: '1px solid #f1d08c', borderRight: '1px solid #f1d08c', borderBottom: '1px solid #f1d08c', borderTopWidth: 0 }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
