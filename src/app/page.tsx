@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
@@ -22,6 +22,7 @@ export default function Home() {
   const [thinkingText, setThinkingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const responseStartRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -351,6 +352,13 @@ export default function Home() {
     }
   };
 
+  // Auto-scroll to the beginning of the streaming response when it starts
+  useEffect(() => {
+    if (isLoading && streamingResponse) {
+      responseStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isLoading, streamingResponse]);
+
   // Pendulum-style three dots animation component
   const PendulumDots = () => (
     <div className="flex items-center space-x-1">
@@ -578,24 +586,11 @@ export default function Home() {
                         </svg>
                         <span>Search</span>
                       </button>
-                      <button
-                        onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))}
-                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'study' ? 'bg-[#f1d08c] text-black border-[#f1d08c]' : 'border-gray-600 text-gray-200')}
-                        title="Study mode"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/>
-                        </svg>
-                        <span>Study</span>
-                      </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-[#f1d08c] text-black border-[#f1d08c]':'border-gray-600 text-gray-200')} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </button>
-                      <button onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='study' ? 'bg-[#f1d08c] text-black border-[#f1d08c]':'border-gray-600 text-gray-200')} title="Study mode">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/></svg>
                       </button>
                     </div>
                   </div>
@@ -608,20 +603,25 @@ export default function Home() {
                     >
                       <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
                     </button>
-                    <button
-                      onClick={handleSearch}
-                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
-                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
-                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
-                    >
-                      {isLoading ? (
-                        <Square size={18} className="text-black" />
-                      ) : (
-                        <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
+                    <div className="relative inline-block">
+                      {isLoading && (
+                        <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
-                    </button>
+                      <button
+                        onClick={handleSearch}
+                        disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
+                        onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
+                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
+                      >
+                        {isLoading ? (
+                          <Square size={18} className="text-black" />
+                        ) : (
+                          <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -714,6 +714,7 @@ export default function Home() {
               {/* Streaming Response */}
               {streamingResponse && (
                 <div className="w-full">
+                  <div ref={responseStartRef} />
                   <ResponseRenderer content={streamingResponse} />
                   {isLoading && (
                     <div className="flex items-center space-x-2 mt-2 text-gray-300">
@@ -844,24 +845,11 @@ export default function Home() {
                         </svg>
                         <span>Search</span>
                       </button>
-                      <button
-                        onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))}
-                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'study' ? 'bg-[#f1d08c] text-black border-[#f1d08c]' : 'border-gray-600 text-gray-200')}
-                        title="Study mode"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/>
-                        </svg>
-                        <span>Study</span>
-                      </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-[#f1d08c] text-black border-[#f1d08c]':'border-gray-600 text-gray-200')} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </button>
-                      <button onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='study' ? 'bg-[#f1d08c] text-black border-[#f1d08c]':'border-gray-600 text-gray-200')} title="Study mode">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/></svg>
                       </button>
                     </div>
                   </div>
@@ -874,20 +862,25 @@ export default function Home() {
                     >
                       <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
                     </button>
-                    <button
-                      onClick={handleSearch}
-                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
-                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
-                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
-                    >
-                      {isLoading ? (
-                        <Square size={18} className="text-black" />
-                      ) : (
-                        <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
+                    <div className="relative inline-block">
+                      {isLoading && (
+                        <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
-                    </button>
+                      <button
+                        onClick={handleSearch}
+                        disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
+                        onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
+                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
+                      >
+                        {isLoading ? (
+                          <Square size={18} className="text-black" />
+                        ) : (
+                          <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
