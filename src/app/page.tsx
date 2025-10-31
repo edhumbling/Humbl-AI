@@ -182,9 +182,14 @@ export default function Home() {
   const [showInfo, setShowInfo] = useState(false);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef2 = useRef<HTMLInputElement | null>(null);
 
   const handleImagePickClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleImagePickClickLower = () => {
+    if (fileInputRef2.current) fileInputRef2.current.click();
   };
 
   const handleImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -481,7 +486,7 @@ export default function Home() {
           {/* Search Bar */}
           <div className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -489,30 +494,13 @@ export default function Home() {
                     className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
                   />
                 )}
-                {/* Image Attach Button (+) */}
-                <button
-                  onClick={handleImagePickClick}
-                  className="w-8 h-8 sm:w-10 sm:h-10 mr-2 sm:mr-4 mt-0.5 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60 flex-shrink-0"
-                  title="Attach images"
-                >
-                  <Plus size={18} className="text-white" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImagesSelected}
-                  className="hidden"
-                />
-
                 {/* Input Field */}
                 <textarea
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder=""
-                  className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
                   style={{
                     height: 'auto',
@@ -553,31 +541,43 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Dictate Button */}
-                <button
-                  onClick={() => (isRecording ? stopRecording() : startRecording())}
-                  className="ml-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 flex-shrink-0"
-                  style={{ backgroundColor: '#2a2a29' }}
-                  title={isRecording ? 'Stop dictation' : 'Dictate'}
-                >
-                  <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
-                </button>
-
-                {/* Search Button */}
-                <button
-                  onClick={handleSearch}
-                  disabled={isLoading || !searchQuery.trim()}
-                  className="ml-2 sm:ml-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 flex-shrink-0"
-                  style={{ backgroundColor: '#1a1a19' }}
-                  onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
-                  onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
-                >
-                  {isLoading ? (
-                    <PendulumDots />
-                  ) : (
-                    <Send size={20} className="text-white" />
-                  )}
-                </button>
+                {/* Bottom controls row */}
+                <div className="absolute left-3 right-3 bottom-2 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <button
+                      onClick={handleImagePickClick}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60"
+                      title="Attach images"
+                    >
+                      <Plus size={18} className="text-white" />
+                    </button>
+                    <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => (isRecording ? stopRecording() : startRecording())}
+                      className="mr-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      style={{ backgroundColor: '#2a2a29' }}
+                      title={isRecording ? 'Stop dictation' : 'Dictate'}
+                    >
+                      <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
+                    </button>
+                    <button
+                      onClick={handleSearch}
+                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80"
+                      style={{ backgroundColor: '#1a1a19' }}
+                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
+                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
+                    >
+                      {isLoading ? (
+                        <PendulumDots />
+                      ) : (
+                        <Send size={20} className="text-white" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -703,7 +703,7 @@ export default function Home() {
         <div className="w-full px-4 py-4">
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-4 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -711,30 +711,13 @@ export default function Home() {
                     className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
                   />
                 )}
-                {/* Image Attach Button (+) */}
-                <button
-                  onClick={handleImagePickClick}
-                  className="w-8 h-8 sm:w-10 sm:h-10 mr-2 sm:mr-4 mt-0.5 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60 flex-shrink-0"
-                  title="Attach images"
-                >
-                  <Plus size={18} className="text-white" />
-                </button>
-                {/* separate hidden input for lower bar to avoid sharing focus issues */}
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImagesSelected}
-                  className="hidden"
-                />
-
                 {/* Input Field */}
                 <textarea
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Continue the conversation..."
-                  className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
                   style={{
                     height: 'auto',
@@ -775,37 +758,56 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Dictate Button */}
-                <button
-                  onClick={() => (isRecording ? stopRecording() : startRecording())}
-                  className="ml-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 flex-shrink-0"
-                  style={{ backgroundColor: '#2a2a29' }}
-                  title={isRecording ? 'Stop dictation' : 'Dictate'}
-                >
-                  <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
-                </button>
-
-                {/* Search Button */}
-                <button
-                  onClick={handleSearch}
-                  disabled={isLoading || !searchQuery.trim()}
-                  className="ml-2 sm:ml-4 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80 flex-shrink-0"
-                  style={{ backgroundColor: '#1a1a19' }}
-                  onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
-                  onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
-                >
-                  {isLoading ? (
-                    <PendulumDots />
-                  ) : (
-                    <Send size={20} className="text-white" />
-                  )}
-                </button>
+                {/* Bottom controls row */}
+                <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <button
+                      onClick={handleImagePickClickLower}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60"
+                      title="Attach images"
+                    >
+                      <Plus size={18} className="text-white" />
+                    </button>
+                    <input ref={fileInputRef2} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => (isRecording ? stopRecording() : startRecording())}
+                      className="mr-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      style={{ backgroundColor: '#2a2a29' }}
+                      title={isRecording ? 'Stop dictation' : 'Dictate'}
+                    >
+                      <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
+                    </button>
+                    <button
+                      onClick={handleSearch}
+                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-opacity-80"
+                      style={{ backgroundColor: '#1a1a19' }}
+                      onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#2a2a29'}
+                      onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
+                    >
+                      {isLoading ? (
+                        <PendulumDots />
+                      ) : (
+                        <Send size={20} className="text-white" />
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
+      <style jsx global>{`
+        .humbl-textarea::-webkit-scrollbar { width: 8px; }
+        .humbl-textarea::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
+        .humbl-textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 8px; }
+        .humbl-textarea::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
+        .humbl-textarea { scrollbar-color: rgba(255,255,255,0.25) rgba(0,0,0,0.2); scrollbar-width: thin; }
+      `}</style>
     </div>
   );
 }
