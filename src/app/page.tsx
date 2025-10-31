@@ -18,7 +18,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string}>>([]);
+  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string, images?: string[]}>>([]);
   const [thinkingText, setThinkingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -218,6 +218,7 @@ export default function Home() {
     const userMessage = {
       type: 'user' as const,
       content: searchQuery,
+      images: attachedImages.slice(0, 4),
       timestamp: new Date().toISOString()
     };
     setConversationHistory(prev => [...prev, userMessage]);
@@ -478,9 +479,9 @@ export default function Home() {
           </div>
 
           {/* Search Bar */}
-          <div className="w-full max-w-2xl mb-6 sm:mb-8">
+          <div className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-hidden flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-3 py-3 sm:px-6 sm:py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -592,7 +593,17 @@ export default function Home() {
               {conversationHistory.map((message, index) => (
                 <div key={index} className="w-full">
                   {message.type === 'user' ? (
-                    <div className="flex justify-end">
+                    <div className="flex flex-col items-end">
+                      {message.images && message.images.length > 0 && (
+                        <div className="mb-2 flex items-center">
+                          {message.images.map((src, idx) => (
+                            <div key={idx} className={"relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden ring-1 ring-white/20 shadow bg-black " + (idx > 0 ? "-ml-2" : "")}>
+                              <img src={src} alt={`user-attachment-${idx+1}`} className="w-full h-full object-cover" />
+                              <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/70 text-white">{idx+1}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="max-w-[80%] rounded-2xl px-4 py-3" style={{ backgroundColor: '#1f1f1f' }}>
                         <p className="text-gray-300 text-sm sm:text-base whitespace-pre-wrap">
                           {message.content}
@@ -690,9 +701,9 @@ export default function Home() {
       {/* Search Bar - Only show when conversation has started */}
       {conversationStarted && (
         <div className="w-full px-4 py-4">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
-              <div className="relative overflow-hidden flex items-start rounded-2xl px-4 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f' }}>
+              <div className="relative overflow-visible flex items-start rounded-2xl px-4 py-4 shadow-lg" style={{ backgroundColor: '#1f1f1f', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
