@@ -802,16 +802,16 @@ export default function Home() {
     };
   }, [showSuggestions, conversationStarted]);
 
-  // Auto-scroll to show the streaming response as it grows
+  // Auto-scroll to show the beginning of the conversation when streaming
   useEffect(() => {
     if (!(isLoading && streamingResponse)) return;
     
     const container = conversationScrollRef.current;
     if (!container) return;
 
-    // Scroll to show the response as it streams
+    // Scroll to show the beginning of the conversation
     requestAnimationFrame(() => {
-      // First scroll to response start if needed
+      // Scroll to response start to show the beginning of the response
       const target = responseStartRef.current;
       if (target) {
         const containerRect = container.getBoundingClientRect();
@@ -822,24 +822,14 @@ export default function Home() {
         } catch {
           container.scrollTop = Math.max(0, offset);
         }
-      }
-
-      // Then scroll to bottom to show the latest content
-      // Small delay to allow content to render
-      setTimeout(() => {
-        const maxScroll = container.scrollHeight - container.clientHeight;
-        const currentScroll = container.scrollTop;
-        // Only auto-scroll if user is near the bottom (within 200px)
-        const isNearBottom = (maxScroll - currentScroll) < 200;
-        
-        if (isNearBottom || currentScroll === 0) {
-          try {
-            container.scrollTo({ top: maxScroll, behavior: 'smooth' });
-          } catch {
-            container.scrollTop = maxScroll;
-          }
+      } else {
+        // If no target, just scroll to top
+        try {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch {
+          container.scrollTop = 0;
         }
-      }, 50);
+      }
     });
   }, [isLoading, streamingResponse]);
 
@@ -848,7 +838,7 @@ export default function Home() {
     prevIsLoadingRef.current = isLoading;
   }, [isLoading]);
 
-  // Auto-scroll to user input/search bar when response completes
+  // Auto-scroll to show the beginning of the conversation when response completes
   useEffect(() => {
     if (!conversationStarted) return;
     
@@ -857,26 +847,17 @@ export default function Home() {
     
     if (justCompleted) {
       const container = conversationScrollRef.current;
-      const searchBar = conversationBarRef.current;
       
-      if (container && searchBar) {
+      if (container) {
         // Small delay to allow DOM to update with final message
         requestAnimationFrame(() => {
           setTimeout(() => {
             try {
-              // Scroll the conversation container to show the search bar
-              const containerRect = container.getBoundingClientRect();
-              const searchBarRect = searchBar.getBoundingClientRect();
-              
-              // Calculate scroll position to bring search bar into view
-              const offset = searchBarRect.top - containerRect.top + container.scrollTop - 20;
-              const maxScroll = container.scrollHeight - container.clientHeight;
-              const scrollTarget = Math.min(offset, maxScroll);
-              
-              container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+              // Scroll to the beginning of the conversation
+              container.scrollTo({ top: 0, behavior: 'smooth' });
             } catch {
-              // Fallback: scroll to bottom which should show the search bar
-              container.scrollTop = container.scrollHeight;
+              // Fallback: scroll to top
+              container.scrollTop = 0;
             }
           }, 150);
         });
@@ -884,26 +865,19 @@ export default function Home() {
     }
   }, [conversationStarted, isLoading, streamingResponse]);
 
-  // Auto-scroll when new messages are added to conversation
+  // Auto-scroll to beginning when new messages are added to conversation
   useEffect(() => {
     if (!conversationStarted || isLoading) return;
     const container = conversationScrollRef.current;
     if (!container) return;
 
-    // When a new message is added, scroll to show it
+    // When a new message is added, scroll to show the beginning
     requestAnimationFrame(() => {
       setTimeout(() => {
-        const maxScroll = container.scrollHeight - container.clientHeight;
-        const currentScroll = container.scrollTop;
-        const isNearBottom = (maxScroll - currentScroll) < 200;
-        
-        // Auto-scroll if user is near bottom or at top
-        if (isNearBottom || currentScroll === 0) {
-          try {
-            container.scrollTo({ top: maxScroll, behavior: 'smooth' });
-          } catch {
-            container.scrollTop = maxScroll;
-          }
+        try {
+          container.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch {
+          container.scrollTop = 0;
         }
       }, 100);
     });
