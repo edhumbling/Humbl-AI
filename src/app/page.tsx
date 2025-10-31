@@ -32,7 +32,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [thinkingText, setThinkingText] = useState('');
-  const prevIsLoadingRef = useRef(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const responseStartRef = useRef<HTMLDivElement | null>(null);
@@ -802,86 +801,28 @@ export default function Home() {
     };
   }, [showSuggestions, conversationStarted]);
 
-  // Auto-scroll to show the beginning of the conversation when streaming
+  // Auto-scroll to show the beginning of the response when streaming starts (from user input)
   useEffect(() => {
-    if (!(isLoading && streamingResponse)) return;
+    // Only trigger when streaming just started (transition to loading with streaming)
+    if (!(isLoading && streamingResponse) || streamingResponse.length > 50) return;
     
     const container = conversationScrollRef.current;
-    if (!container) return;
+    const target = responseStartRef.current;
+    if (!container || !target) return;
 
-    // Scroll to show the beginning of the conversation
+    // Scroll to show the beginning of the response relative to user input
     requestAnimationFrame(() => {
-      // Scroll to response start to show the beginning of the response
-      const target = responseStartRef.current;
-      if (target) {
-        const containerRect = container.getBoundingClientRect();
-        const targetRect = target.getBoundingClientRect();
-        const offset = targetRect.top - containerRect.top + container.scrollTop - 8;
-        try {
-          container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
-        } catch {
-          container.scrollTop = Math.max(0, offset);
-        }
-      } else {
-        // If no target, just scroll to top
-        try {
-          container.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch {
-          container.scrollTop = 0;
-        }
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const offset = targetRect.top - containerRect.top + container.scrollTop - 8;
+      
+      try {
+        container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+      } catch {
+        container.scrollTop = Math.max(0, offset);
       }
     });
   }, [isLoading, streamingResponse]);
-
-  // Track loading state changes to detect when response completes
-  useEffect(() => {
-    prevIsLoadingRef.current = isLoading;
-  }, [isLoading]);
-
-  // Auto-scroll to show the beginning of the conversation when response completes
-  useEffect(() => {
-    if (!conversationStarted) return;
-    
-    // Only scroll if we just finished loading (transition from loading to not loading)
-    const justCompleted = prevIsLoadingRef.current && !isLoading && streamingResponse === '';
-    
-    if (justCompleted) {
-      const container = conversationScrollRef.current;
-      
-      if (container) {
-        // Small delay to allow DOM to update with final message
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            try {
-              // Scroll to the beginning of the conversation
-              container.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch {
-              // Fallback: scroll to top
-              container.scrollTop = 0;
-            }
-          }, 150);
-        });
-      }
-    }
-  }, [conversationStarted, isLoading, streamingResponse]);
-
-  // Auto-scroll to beginning when new messages are added to conversation
-  useEffect(() => {
-    if (!conversationStarted || isLoading) return;
-    const container = conversationScrollRef.current;
-    if (!container) return;
-
-    // When a new message is added, scroll to show the beginning
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        try {
-          container.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch {
-          container.scrollTop = 0;
-        }
-      }, 100);
-    });
-  }, [conversationHistory.length, conversationStarted, isLoading]);
 
   // Detect scroll position to show/hide scroll-to-bottom button
   useEffect(() => {
