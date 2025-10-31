@@ -29,6 +29,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-wTPIgR4zqI6oB1b1E8a0e4i3d3yD3j7b0Jp0h3jJZ2WqQ9l8lq9Rk6h6vK9xv0Hd" crossOrigin="anonymous" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$','$$'], ['\\[', '\\]']] }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };`,
+          }}
+        />
+        <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

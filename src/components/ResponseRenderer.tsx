@@ -56,6 +56,15 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
     };
 
     parseContent();
+
+    // Trigger MathJax typesetting for LaTeX after content changes
+    try {
+      // @ts-ignore
+      if (typeof window !== 'undefined' && window.MathJax && window.MathJax.typesetPromise) {
+        // @ts-ignore
+        window.MathJax.typesetPromise();
+      }
+    } catch {}
   }, [content]);
 
   const isPotentialTableStart = (line: string, nextLine?: string): boolean => {

@@ -187,6 +187,12 @@ export default function Home() {
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
 
+  // Autocomplete state
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+  const suggestTimeoutRef = useRef<number | null>(null);
+
   const handleImagePickClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
   };
@@ -346,11 +352,62 @@ export default function Home() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (showSuggestions && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+      e.preventDefault();
+      const count = suggestions.length;
+      if (count === 0) return;
+      setActiveSuggestionIndex(prev => {
+        const next = e.key === 'ArrowDown' ? prev + 1 : prev - 1;
+        const wrapped = (next + count) % count;
+        return wrapped;
+      });
+      return;
+    }
+    if (showSuggestions && e.key === 'Enter' && activeSuggestionIndex >= 0) {
+      e.preventDefault();
+      const chosen = suggestions[activeSuggestionIndex];
+      if (chosen) {
+        setSearchQuery(chosen);
+        setShowSuggestions(false);
+        setActiveSuggestionIndex(-1);
+      }
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSearch();
     }
   };
+
+  // Fetch suggestions (debounced)
+  useEffect(() => {
+    if (suggestTimeoutRef.current) {
+      window.clearTimeout(suggestTimeoutRef.current);
+      suggestTimeoutRef.current = null;
+    }
+    const q = searchQuery.trim();
+    if (!q) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+      return;
+    }
+    suggestTimeoutRef.current = window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        setSuggestions(Array.isArray(json?.suggestions) ? json.suggestions : []);
+        setShowSuggestions(true);
+        setActiveSuggestionIndex(-1);
+      } catch {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 200);
+    return () => {
+      if (suggestTimeoutRef.current) window.clearTimeout(suggestTimeoutRef.current);
+    };
+  }, [searchQuery]);
 
   // Auto-scroll to the beginning of the streaming response when it starts
   useEffect(() => {
@@ -519,6 +576,8 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                   placeholder=""
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
@@ -533,6 +592,21 @@ export default function Home() {
                     target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                   }}
                 />
+
+                {/* Suggestions dropdown (desktop top bar) */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute left-3 right-3 -bottom-2 translate-y-full mt-1 rounded-xl border border-gray-700 bg-[#1f1f1f] shadow-lg z-20 max-h-64 overflow-auto">
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        className={"w-full text-left px-3 py-2 text-sm " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
+                        onMouseDown={(e) => { e.preventDefault(); setSearchQuery(s); setShowSuggestions(false); setActiveSuggestionIndex(-1); }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Attached images preview */}
                 {attachedImages.length > 0 && (
@@ -778,6 +852,8 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
+                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                   placeholder="Continue the conversation..."
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
@@ -792,6 +868,21 @@ export default function Home() {
                     target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                   }}
                 />
+
+                {/* Suggestions dropdown (conversation bar) */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute left-4 right-4 -bottom-2 translate-y-full mt-1 rounded-xl border border-gray-700 bg-[#1f1f1f] shadow-lg z-20 max-h-64 overflow-auto">
+                    {suggestions.map((s, i) => (
+                      <button
+                        key={i}
+                        className={"w-full text-left px-3 py-2 text-sm " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
+                        onMouseDown={(e) => { e.preventDefault(); setSearchQuery(s); setShowSuggestions(false); setActiveSuggestionIndex(-1); }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {/* Attached images preview */}
                 {attachedImages.length > 0 && (
