@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -539,6 +539,40 @@ export default function Home() {
       setMode('default');
       setWebSearchMode('off');
       setShowWebSearchDropdown(false);
+    }
+  };
+
+  const handleDownloadImage = async (imageUrl: string, filename: string = 'image') => {
+    try {
+      // If it's a data URL, convert to blob
+      if (imageUrl.startsWith('data:')) {
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.includes('.') ? filename : `${filename}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        // For regular URLs, fetch and download
+        const response = await fetch(imageUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const urlParts = imageUrl.split('/');
+        const originalFilename = urlParts[urlParts.length - 1].split('?')[0];
+        a.download = originalFilename || `${filename}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Failed to download image:', error);
     }
   };
 
@@ -1159,9 +1193,19 @@ export default function Home() {
                       {message.images && message.images.length > 0 && (
                         <div className="mb-2 flex items-center">
                           {message.images.map((src, idx) => (
-                            <div key={idx} className={"relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden ring-1 ring-white/20 shadow bg-black " + (idx > 0 ? "-ml-2" : "")}>
+                            <div key={idx} className={"relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden ring-1 ring-white/20 shadow bg-black group " + (idx > 0 ? "-ml-2" : "")}>
                               <img src={src} alt={`user-attachment-${idx+1}`} className="w-full h-full object-cover" />
                               <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/70 text-white">{idx+1}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadImage(src, `attachment-${idx+1}`);
+                                }}
+                                className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/80 hover:bg-[#f1d08c] opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                title="Download image"
+                              >
+                                <Download size={12} className="text-white group-hover:text-black" />
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -1178,8 +1222,18 @@ export default function Home() {
                       {message.images && message.images.length > 0 && (
                         <div className="mb-3 flex flex-wrap gap-3">
                           {message.images.map((src, idx) => (
-                            <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full">
+                            <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
                               <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadImage(src, `generated-image-${idx+1}`);
+                                }}
+                                className="absolute bottom-2 right-2 p-2 rounded-full bg-black/80 hover:bg-[#f1d08c] opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                title="Download image"
+                              >
+                                <Download size={16} className="text-white group-hover:text-black" />
+                              </button>
                             </div>
                           ))}
                         </div>
