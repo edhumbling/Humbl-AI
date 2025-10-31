@@ -1,17 +1,91 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ResponsiveTable from './ResponsiveTable';
 import { detectTableInText, createTableColumns, createTableRows, TableData } from '../utils/tableParser';
 
 interface ResponseRendererProps {
   content: string;
   className?: string;
+  isLoading?: boolean;
 }
 
-export default function ResponseRenderer({ content, className = '' }: ResponseRendererProps) {
+export default function ResponseRenderer({ content, className = '', isLoading = false }: ResponseRendererProps) {
   const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'table' | 'thinking', content: string | TableData, thinkingIndex?: number }>>([]);
   const [revealedThinking, setRevealedThinking] = useState<Set<number>>(new Set());
+  const [displayedContent, setDisplayedContent] = useState(content);
+
+  const displayIndexRef = useRef(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastContentRef = useRef('');
+
+  // Initialize displayedContent when content changes
+  useEffect(() => {
+    if (content !== lastContentRef.current) {
+      if (!isLoading) {
+        setDisplayedContent(content);
+        displayIndexRef.current = content.length;
+      } else if (content.length === 0) {
+        setDisplayedContent('');
+        displayIndexRef.current = 0;
+      }
+      lastContentRef.current = content;
+    }
+  }, [content, isLoading]);
+
+  // Typewriter effect for streaming content
+  useEffect(() => {
+    if (!isLoading) {
+      // When loading stops, immediately show all content
+      if (displayedContent !== content) {
+        setDisplayedContent(content);
+        displayIndexRef.current = content.length;
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current!);
+    }
+
+    // When streaming, progressively reveal content word by word
+    const typewriterInterval = setInterval(() => {
+      const currentPos = displayIndexRef.current;
+      
+      if (currentPos < content.length) {
+        // Add 2-3 words at a time for smoother, book-like writing
+        const remaining = content.slice(currentPos);
+        const wordsRemaining = remaining.split(/(\s+)/);
+        const wordsToAdd = Math.min(2 + Math.floor(Math.random() * 2), Math.max(1, wordsRemaining.length - 1));
+        
+        let newPos = currentPos;
+        for (let i = 0; i < wordsToAdd && newPos < content.length && wordsRemaining[i]; i++) {
+          newPos += wordsRemaining[i].length;
+        }
+        
+        if (newPos > currentPos) {
+          displayIndexRef.current = newPos;
+          setDisplayedContent(content.slice(0, newPos));
+        }
+      } else {
+        clearInterval(typewriterInterval);
+        intervalRef.current = null;
+      }
+    }, 50); // 50ms per batch (2-3 words) = smooth reading pace
+
+    intervalRef.current = typewriterInterval;
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [content, isLoading]);
 
   useEffect(() => {
     const parseContent = () => {
@@ -23,7 +97,7 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
       // Extract thinking tags first (Qwen parse mode outputs <think>...</think>)
       const thinkTagRegex = /<think>([\s\S]*?)<\/think>/gi;
       const thinkingBlocks: string[] = [];
-      let processedContent = content.replace(thinkTagRegex, (match, thinkingContent) => {
+      let processedContent = displayedContent.replace(thinkTagRegex, (match, thinkingContent) => {
         thinkingBlocks.push(thinkingContent.trim());
         return `__THINKING_${thinkingBlocks.length - 1}__`;
       });
@@ -88,7 +162,7 @@ export default function ResponseRenderer({ content, className = '' }: ResponseRe
         window.MathJax.typesetPromise();
       }
     } catch {}
-  }, [content]);
+  }, [displayedContent]);
 
   const isPotentialTableStart = (line: string, nextLine?: string): boolean => {
     // Check for markdown table pattern

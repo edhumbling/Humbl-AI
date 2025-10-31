@@ -983,7 +983,7 @@ export default function Home() {
               {streamingResponse && (
                 <div className="w-full">
                   <div ref={responseStartRef} />
-                  <ResponseRenderer content={streamingResponse} />
+                  <ResponseRenderer content={streamingResponse} isLoading={isLoading} />
                   {isLoading && (
                     <div className="flex items-center space-x-2 mt-2 text-gray-300">
                       <PendulumDots />
