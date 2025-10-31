@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -191,6 +191,9 @@ export default function Home() {
   const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
   const [isMobile, setIsMobile] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -385,6 +388,60 @@ export default function Home() {
     }
   };
 
+  const handleTTS = async (text: string, messageId: string) => {
+    // If this audio is already playing, stop it
+    if (playingAudioId === messageId && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setPlayingAudioId(null);
+      return;
+    }
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    try {
+      // Generate TTS audio
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate audio');
+      }
+
+      // Create audio blob and play it
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      setPlayingAudioId(messageId);
+
+      audio.onended = () => {
+        setPlayingAudioId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setPlayingAudioId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+    } catch (error) {
+      console.error('Failed to play audio:', error);
+      setPlayingAudioId(null);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (showSuggestions && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
       e.preventDefault();
@@ -546,6 +603,30 @@ export default function Home() {
       }
     });
   }, [isLoading, streamingResponse]);
+
+  // Detect scroll position to show/hide scroll-to-bottom button
+  useEffect(() => {
+    if (!conversationStarted) return;
+    const container = conversationScrollRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      setShowScrollToBottom(!isNearBottom);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    handleScroll(); // Check initial state
+
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [conversationStarted, conversationHistory, streamingResponse]);
+
+  const scrollToBottom = () => {
+    const container = conversationScrollRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+    }
+  };
 
   // Pendulum-style three dots animation component
   const PendulumDots = () => (
@@ -726,7 +807,7 @@ export default function Home() {
           {/* Search Bar */}
           <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex flex-col rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -734,27 +815,48 @@ export default function Home() {
                     className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
                   />
                 )}
+                
+                {/* Attached images preview - flows at top */}
+                {attachedImages.length > 0 && (
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    {attachedImages.map((src, idx) => (
+                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0">
+                        <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeAttachedImage(idx)}
+                          className="absolute top-0 right-0 bg-black/90 hover:bg-black rounded-full p-0.5 transition-colors z-10"
+                          title="Remove"
+                        >
+                          <X size={12} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Input Field */}
-                <textarea
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
-                  placeholder={placeholderText}
-                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
-                  rows={1}
-                  style={{
-                    height: 'auto',
-                    minHeight: '1.5rem',
-                    maxHeight: '8rem'
-                  }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                  }}
-                />
+                <div className="flex items-start gap-2">
+                  <textarea
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
+                    placeholder={placeholderText}
+                    className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                    rows={1}
+                    style={{
+                      height: 'auto',
+                      minHeight: '1.5rem',
+                      maxHeight: '8rem'
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                    }}
+                  />
+                </div>
 
                 {/* Suggestions dropdown (desktop top bar) */}
                 {!conversationStarted && showSuggestions && suggestions.length > 0 && (
@@ -768,26 +870,6 @@ export default function Home() {
                         {s}
                       </button>
                     ))}
-                  </div>
-                )}
-
-                {/* Attached images preview */}
-                {attachedImages.length > 0 && (
-                  <div className="absolute left-3 sm:left-4 top-0 -translate-y-1/2 z-10">
-                    <div className="flex items-center gap-2">
-                      {attachedImages.map((src, idx) => (
-                        <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0">
-                          <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => removeAttachedImage(idx)}
-                            className="absolute top-0 right-0 bg-black/90 hover:bg-black rounded-full p-0.5 transition-colors"
-                            title="Remove"
-                          >
-                            <X size={12} className="text-white" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 )}
 
@@ -1012,6 +1094,17 @@ export default function Home() {
                       >
                         <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
+                      <button
+                        onClick={() => handleTTS(message.content, `msg-${index}`)}
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title={playingAudioId === `msg-${index}` ? "Stop audio" : "Play audio"}
+                      >
+                        {playingAudioId === `msg-${index}` ? (
+                          <VolumeX size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        ) : (
+                          <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        )}
+                      </button>
                       </div>
                       {/* Sources footer */}
                       {message.citations && message.citations.length > 0 && (
@@ -1076,6 +1169,17 @@ export default function Home() {
                     >
                       <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                     </button>
+                    <button
+                      onClick={() => handleTTS(streamingResponse, 'streaming')}
+                      className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                      title={playingAudioId === 'streaming' ? "Stop audio" : "Play audio"}
+                    >
+                      {playingAudioId === 'streaming' ? (
+                        <VolumeX size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      ) : (
+                        <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      )}
+                    </button>
                   </div>
                   )}
                 </div>
@@ -1092,12 +1196,26 @@ export default function Home() {
         </div>
       )}
 
+      {/* Scroll to bottom button - Only show when conversation has started */}
+      {conversationStarted && showScrollToBottom && (
+        <div className="w-full px-4 pb-2 flex justify-center group">
+          <button
+            onClick={scrollToBottom}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 border-2 bg-transparent hover:bg-[#f1d08c]/10"
+            style={{ borderColor: '#f1d08c' }}
+            title="Scroll to bottom"
+          >
+            <ChevronDown size={20} className="text-[#f1d08c]" strokeWidth={2} />
+          </button>
+        </div>
+      )}
+
       {/* Search Bar - Only show when conversation has started */}
       {conversationStarted && (
         <div className="w-full px-4 py-4" ref={conversationBarRef}>
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
-              <div className="relative overflow-visible flex items-start rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c', paddingTop: attachedImages.length > 0 ? 20 : undefined }}>
+              <div className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -1105,50 +1223,51 @@ export default function Home() {
                     className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
                   />
                 )}
+                
+                {/* Attached images preview - flows at top */}
+                {attachedImages.length > 0 && (
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    {attachedImages.map((src, idx) => (
+                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0">
+                        <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeAttachedImage(idx)}
+                          className="absolute top-0 right-0 bg-black/90 hover:bg-black rounded-full p-0.5 transition-colors z-10"
+                          title="Remove"
+                        >
+                          <X size={12} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Input Field */}
-                <textarea
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
-                  placeholder={placeholderText}
-                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
-                  rows={1}
-                  style={{
-                    height: 'auto',
-                    minHeight: '1.5rem',
-                    maxHeight: '8rem'
-                  }}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = 'auto';
-                    target.style.height = Math.min(target.scrollHeight, 128) + 'px';
-                  }}
-                />
+                <div className="flex items-start gap-2">
+                  <textarea
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
+                    placeholder={placeholderText}
+                    className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                    rows={1}
+                    style={{
+                      height: 'auto',
+                      minHeight: '1.5rem',
+                      maxHeight: '8rem'
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                    }}
+                  />
+                </div>
 
                 {/* Suggestions dropdown (conversation bar) */}
                 {/* No autocomplete during conversation */}
-
-                {/* Attached images preview */}
-                {attachedImages.length > 0 && (
-                  <div className="absolute left-3 sm:left-4 top-0 -translate-y-1/2 z-10">
-                    <div className="flex items-center gap-2">
-                      {attachedImages.map((src, idx) => (
-                        <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0">
-                          <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
-                          <button
-                            onClick={() => removeAttachedImage(idx)}
-                            className="absolute top-0 right-0 bg-black/90 hover:bg-black rounded-full p-0.5 transition-colors"
-                            title="Remove"
-                          >
-                            <X size={12} className="text-white" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 {/* Transcribing indicator */}
                 {(!isRecording && isTranscribing) && (
