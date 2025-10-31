@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -483,6 +483,11 @@ export default function Home() {
             </button>
           </div>
 
+          {/* Desktop Title */}
+          <div className="w-full text-center mb-4 hidden md:block">
+            <h1 className="text-white text-2xl sm:text-3xl font-semibold">What's on your mind today?</h1>
+          </div>
+
           {/* Search Bar */}
           <div className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
@@ -571,9 +576,9 @@ export default function Home() {
                       onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
                     >
                       {isLoading ? (
-                        <PendulumDots />
+                        <Square size={18} className="text-white" />
                       ) : (
-                        <Send size={20} className="text-white" />
+                        <ArrowUp size={18} className="text-white" />
                       )}
                     </button>
                   </div>
@@ -788,9 +793,9 @@ export default function Home() {
                       onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#1a1a19'}
                     >
                       {isLoading ? (
-                        <PendulumDots />
+                        <Square size={18} className="text-white" />
                       ) : (
-                        <Send size={20} className="text-white" />
+                        <ArrowUp size={18} className="text-white" />
                       )}
                     </button>
                   </div>
