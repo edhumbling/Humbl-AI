@@ -1229,10 +1229,11 @@ export default function Home() {
                                   e.stopPropagation();
                                   handleDownloadImage(src, `generated-image-${idx+1}`);
                                 }}
-                                className="absolute bottom-2 right-2 p-2 rounded-full bg-black/80 hover:bg-[#f1d08c] opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
+                                style={{ backgroundColor: '#f1d08c' }}
                                 title="Download image"
                               >
-                                <Download size={16} className="text-white group-hover:text-black" />
+                                <Download size={16} className="text-black" />
                               </button>
                             </div>
                           ))}
