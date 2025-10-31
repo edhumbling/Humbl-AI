@@ -541,10 +541,13 @@ export default function Home() {
             <div className="flex items-center space-x-2 justify-start">
               <button
                 onClick={startNewConversation}
-                className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+                className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                style={{ backgroundColor: '#f1d08c' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
                 title="New conversation"
               >
-                <Plus size={18} className="text-gray-200" />
+                <Plus size={18} className="text-black" />
               </button>
               <span className="text-sm text-gray-400 hidden sm:inline">New</span>
             </div>
@@ -758,7 +761,8 @@ export default function Home() {
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClick}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      style={{ backgroundColor: '#2a2a29' }}
                       title="Attach images"
                     >
                       <Plus size={18} className="text-white" />
@@ -1036,7 +1040,8 @@ export default function Home() {
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClickLower}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      style={{ backgroundColor: '#2a2a29' }}
                       title="Attach images"
                     >
                       <Plus size={18} className="text-white" />
