@@ -180,9 +180,38 @@ export default function Home() {
   };
 
   const [showInfo, setShowInfo] = useState(false);
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleImagePickClick = () => {
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const maxAllowed = 4 - attachedImages.length;
+    const toRead = Array.from(files).slice(0, Math.max(0, maxAllowed));
+    const readers = toRead.map(file => new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    }));
+    try {
+      const results = await Promise.all(readers);
+      setAttachedImages(prev => [...prev, ...results].slice(0, 4));
+    } catch {}
+    // reset input so selecting the same file again triggers change
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeAttachedImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim() && attachedImages.length === 0) return;
 
     // Start conversation and add user message to history
     setConversationStarted(true);
@@ -229,7 +258,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: searchQuery }),
+        body: JSON.stringify({ query: searchQuery, images: attachedImages.slice(0, 4) }),
       });
 
       if (!response.ok) {
@@ -279,6 +308,7 @@ export default function Home() {
                       setIsLoading(false);
                       setThinkingText('');
                       clearInterval((window as any).thinkingInterval);
+                      setAttachedImages([]);
                       return;
                     }
               
@@ -458,20 +488,22 @@ export default function Home() {
                     className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
                   />
                 )}
-                {/* Search Icon */}
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-4 mt-1 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                {/* Image Attach Button (+) */}
+                <button
+                  onClick={handleImagePickClick}
+                  className="w-8 h-8 sm:w-10 sm:h-10 mr-2 sm:mr-4 mt-0.5 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60 flex-shrink-0"
+                  title="Attach images"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+                  <Plus size={18} className="text-white" />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImagesSelected}
+                  className="hidden"
+                />
 
                 {/* Input Field */}
                 <textarea
@@ -492,6 +524,26 @@ export default function Home() {
                     target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                   }}
                 />
+
+                {/* Attached images preview */}
+                {attachedImages.length > 0 && (
+                  <div className="absolute left-12 right-0 -top-2 -translate-y-full px-1 sm:px-2">
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                      {attachedImages.map((src, idx) => (
+                        <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden border border-gray-800/60 flex-shrink-0">
+                          <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeAttachedImage(idx)}
+                            className="absolute -top-1 -right-1 bg-black/70 rounded-full p-0.5"
+                            title="Remove"
+                          >
+                            <X size={12} className="text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Transcribing indicator */}
                 {(!isRecording && isTranscribing) && (
@@ -648,20 +700,22 @@ export default function Home() {
                     className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
                   />
                 )}
-                {/* Search Icon */}
-                <svg
-                  className="w-5 h-5 sm:w-6 sm:h-6 text-white mr-2 sm:mr-4 mt-1 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+                {/* Image Attach Button (+) */}
+                <button
+                  onClick={handleImagePickClick}
+                  className="w-8 h-8 sm:w-10 sm:h-10 mr-2 sm:mr-4 mt-0.5 rounded-full flex items-center justify-center transition-colors hover:bg-gray-800/60 flex-shrink-0"
+                  title="Attach images"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+                  <Plus size={18} className="text-white" />
+                </button>
+                {/* separate hidden input for lower bar to avoid sharing focus issues */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImagesSelected}
+                  className="hidden"
+                />
 
                 {/* Input Field */}
                 <textarea
@@ -682,6 +736,26 @@ export default function Home() {
                     target.style.height = Math.min(target.scrollHeight, 128) + 'px';
                   }}
                 />
+
+                {/* Attached images preview */}
+                {attachedImages.length > 0 && (
+                  <div className="absolute left-12 right-0 -top-2 -translate-y-full px-1 sm:px-2">
+                    <div className="flex items-center gap-2 overflow-x-auto">
+                      {attachedImages.map((src, idx) => (
+                        <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden border border-gray-800/60 flex-shrink-0">
+                          <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeAttachedImage(idx)}
+                            className="absolute -top-1 -right-1 bg-black/70 rounded-full p-0.5"
+                            title="Remove"
+                          >
+                            <X size={12} className="text-white" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Transcribing indicator */}
                 {(!isRecording && isTranscribing) && (

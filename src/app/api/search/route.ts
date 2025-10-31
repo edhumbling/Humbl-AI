@@ -7,7 +7,7 @@ const client = new Groq({
 
 // Primary model configuration
 const PRIMARY_MODEL = {
-  model: "moonshotai/kimi-k2-instruct-0905",
+  model: "meta-llama/llama-4-maverick-17b-128e-instruct",
   temperature: 0.6,
   max_completion_tokens: 4096,
   top_p: 1,
@@ -17,7 +17,7 @@ const PRIMARY_MODEL = {
 
 // Fallback model configuration
 const FALLBACK_MODEL = {
-  model: "qwen/qwen3-32b",
+  model: "meta-llama/llama-4-scout-17b-16e-instruct",
   temperature: 0.6,
   max_completion_tokens: 4096,
   top_p: 0.95,
@@ -26,8 +26,16 @@ const FALLBACK_MODEL = {
   stop: null
 };
 
-async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController) {
+async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[]) {
   try {
+    const userContent: any[] = [];
+    if (query) {
+      userContent.push({ type: "text", text: query });
+    }
+    for (const img of (images || []).slice(0, 4)) {
+      userContent.push({ type: "input_image", image_url: img });
+    }
+
     const stream = client.chat.completions.create({
       ...modelConfig,
       messages: [
@@ -37,7 +45,7 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
         },
         {
           role: "user",
-          content: query
+          content: userContent.length > 0 ? userContent : [{ type: "text", text: query }]
         }
       ]
     });
@@ -72,7 +80,7 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
 
 export async function POST(request: NextRequest) {
   try {
-    const { query } = await request.json();
+    const { query, images } = await request.json();
 
     if (!query || query.trim() === '') {
       return new Response(
@@ -93,12 +101,12 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           // Try primary model first
-          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller);
+          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, Array.isArray(images) ? images.slice(0,4) : []);
           
           if (!primarySuccess) {
             // If primary failed with 400/429/403, try fallback model
             console.log('Attempting fallback model...');
-            await tryModel(FALLBACK_MODEL, query, controller);
+            await tryModel(FALLBACK_MODEL, query, controller, Array.isArray(images) ? images.slice(0,4) : []);
           }
         } catch (error) {
           console.error('All models failed:', error);
