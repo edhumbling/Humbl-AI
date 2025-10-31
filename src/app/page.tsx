@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -18,7 +18,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string, images?: string[], citations?: Array<{ title: string; url: string }> }>>([]);
+  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string, images?: string[], citations?: Array<{ title: string; url: string }>, originalQuery?: string, originalImages?: string[], originalMode?: 'default' | 'search' | 'study' }>>([]);
   const [thinkingText, setThinkingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -228,15 +228,17 @@ export default function Home() {
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim() && attachedImages.length === 0) return;
+  const handleSearch = async (retryQuery?: string, retryImages?: string[], retryMode?: 'default' | 'search' | 'study') => {
+    const queryToUse = retryQuery ?? searchQuery;
+    const imagesToUse = retryImages ?? attachedImages;
+    if (!queryToUse.trim() && imagesToUse.length === 0) return;
 
     // Start conversation and add user message to history
     setConversationStarted(true);
     const userMessage = {
       type: 'user' as const,
-      content: searchQuery,
-      images: attachedImages.slice(0, 4),
+      content: queryToUse,
+      images: imagesToUse.slice(0, 3),
       timestamp: new Date().toISOString()
     };
     setConversationHistory(prev => [...prev, userMessage]);
@@ -271,13 +273,14 @@ export default function Home() {
     // Store interval to clear later
     (window as any).thinkingInterval = textInterval;
 
+    const modeToUse = retryMode ?? mode;
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: searchQuery, images: attachedImages.slice(0, 4), mode }),
+        body: JSON.stringify({ query: queryToUse, images: imagesToUse.slice(0, 3), mode: modeToUse }),
       });
 
       if (!response.ok) {
@@ -319,7 +322,10 @@ export default function Home() {
                         type: 'ai' as const,
                         content: fullResponse,
                         citations: data.citations || finalCitations,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        originalQuery: queryToUse,
+                        originalImages: imagesToUse.slice(0, 3),
+                        originalMode: modeToUse
                       };
                       setConversationHistory(prev => [...prev, aiMessage]);
                       
@@ -353,6 +359,12 @@ export default function Home() {
             setThinkingText('');
             clearInterval((window as any).thinkingInterval);
           }
+  };
+
+  const handleRetry = (message: any) => {
+    if (message.originalQuery !== undefined || message.originalImages?.length) {
+      handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default');
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -887,6 +899,23 @@ export default function Home() {
                       >
                         <CopyIcon size={18} className="text-gray-400" />
                       </button>
+                      {message.originalQuery !== undefined && (
+                        <div className="relative flex flex-col items-center group">
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            <div className="bg-gray-900 text-gray-200 text-xs px-2 py-1 rounded-lg whitespace-nowrap relative">
+                              Try again
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRetry(message)}
+                            className="p-2 rounded hover:bg-gray-700 transition-colors"
+                            title="Try again"
+                          >
+                            <RefreshCw size={18} className="text-gray-400" />
+                          </button>
+                        </div>
+                      )}
                       <button
                         className="p-2 rounded-full hover:bg-gray-700 transition-colors"
                         title="Upvote"
