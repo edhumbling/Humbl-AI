@@ -801,29 +801,6 @@ export default function Home() {
     };
   }, [showSuggestions, conversationStarted]);
 
-  // Auto-scroll to show the beginning of the response when streaming starts (from user input)
-  useEffect(() => {
-    // Only trigger when streaming just started (transition to loading with streaming)
-    if (!(isLoading && streamingResponse) || streamingResponse.length > 50) return;
-    
-    const container = conversationScrollRef.current;
-    const target = responseStartRef.current;
-    if (!container || !target) return;
-
-    // Scroll to show the beginning of the response relative to user input
-    requestAnimationFrame(() => {
-      const containerRect = container.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const offset = targetRect.top - containerRect.top + container.scrollTop - 8;
-      
-      try {
-        container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
-      } catch {
-        container.scrollTop = Math.max(0, offset);
-      }
-    });
-  }, [isLoading, streamingResponse]);
-
   // Detect scroll position to show/hide scroll-to-bottom button
   useEffect(() => {
     if (!conversationStarted) return;
