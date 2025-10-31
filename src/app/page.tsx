@@ -381,6 +381,17 @@ export default function Home() {
 
   // Fetch suggestions (debounced)
   useEffect(() => {
+    // Only suggest on first queries (before conversation starts)
+    if (conversationStarted) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      setActiveSuggestionIndex(-1);
+      if (suggestTimeoutRef.current) {
+        window.clearTimeout(suggestTimeoutRef.current);
+        suggestTimeoutRef.current = null;
+      }
+      return;
+    }
     if (suggestTimeoutRef.current) {
       window.clearTimeout(suggestTimeoutRef.current);
       suggestTimeoutRef.current = null;
@@ -407,7 +418,7 @@ export default function Home() {
     return () => {
       if (suggestTimeoutRef.current) window.clearTimeout(suggestTimeoutRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, conversationStarted]);
 
   // Auto-scroll to the beginning of the streaming response when it starts
   useEffect(() => {
@@ -576,8 +587,8 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                   placeholder=""
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
@@ -594,12 +605,12 @@ export default function Home() {
                 />
 
                 {/* Suggestions dropdown (desktop top bar) */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute left-3 right-3 -bottom-2 translate-y-full mt-1 rounded-xl border border-gray-700 bg-[#1f1f1f] shadow-lg z-20 max-h-64 overflow-auto">
+                {!conversationStarted && showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute left-3 right-3 top-full mt-0 rounded-b-2xl bg-[#1f1f1f]/95 backdrop-blur-sm z-20 max-h-64 overflow-auto humbl-suggest">
                     {suggestions.map((s, i) => (
                       <button
                         key={i}
-                        className={"w-full text-left px-3 py-2 text-sm " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
+                        className={"w-full text-left px-3 py-2 text-sm border-t border-gray-800/60 " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
                         onMouseDown={(e) => { e.preventDefault(); setSearchQuery(s); setShowSuggestions(false); setActiveSuggestionIndex(-1); }}
                       >
                         {s}
@@ -852,8 +863,8 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                   placeholder="Continue the conversation..."
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
@@ -870,19 +881,7 @@ export default function Home() {
                 />
 
                 {/* Suggestions dropdown (conversation bar) */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute left-4 right-4 -bottom-2 translate-y-full mt-1 rounded-xl border border-gray-700 bg-[#1f1f1f] shadow-lg z-20 max-h-64 overflow-auto">
-                    {suggestions.map((s, i) => (
-                      <button
-                        key={i}
-                        className={"w-full text-left px-3 py-2 text-sm " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
-                        onMouseDown={(e) => { e.preventDefault(); setSearchQuery(s); setShowSuggestions(false); setActiveSuggestionIndex(-1); }}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* No autocomplete during conversation */}
 
                 {/* Attached images preview */}
                 {attachedImages.length > 0 && (
@@ -986,6 +985,9 @@ export default function Home() {
         .humbl-textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 8px; }
         .humbl-textarea::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
         .humbl-textarea { scrollbar-color: rgba(255,255,255,0.25) rgba(0,0,0,0.2); scrollbar-width: thin; }
+        /* Suggestions list: hide scrollbar but keep scroll */
+        .humbl-suggest { -ms-overflow-style: none; scrollbar-width: none; }
+        .humbl-suggest::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
