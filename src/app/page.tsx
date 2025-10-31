@@ -367,39 +367,59 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="px-5 py-5 space-y-6 md:space-y-0 md:flex md:gap-10">
-                <div className="md:flex-1">
-                  <h3 className="text-gray-200 text-sm mb-2">Features</h3>
-                  <ul className="list-disc pl-5 space-y-1 text-gray-300 text-sm">
-                    <li>Voice input and text-to-speech</li>
-                    <li>Image analysis capabilities</li>
-                    <li>Internet search integration</li>
-                    <li>Educational content filtering</li>
-                    <li>Real-time conversation</li>
-                  </ul>
+              <div className="px-5 py-5 lg:grid lg:grid-cols-2 lg:gap-10 space-y-6 lg:space-y-0">
+                {/* About - Left */}
+                <div className="space-y-3">
+                  <h3 className="text-gray-200 text-sm">About Humbl AI</h3>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                      <Image src="/applogo.png" alt="Humbl AI" width={48} height={48} />
+                    </div>
+                    <div>
+                      <div className="text-gray-200 text-base">Humbl AI</div>
+                      <div className="text-gray-400 text-sm">Your Intelligent AI Assistant</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <h4 className="text-gray-200 text-sm">About</h4>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      Humbl AI is an advanced conversational assistant designed to help you research, analyze images, and get precise answers in real time. It combines internet search, voice input, and safe educational filtering to deliver concise, helpful responses.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="md:flex-1">
+                {/* Right column: Features + Developer */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-gray-200 text-sm mb-2">Features</h3>
+                    <ul className="list-disc pl-5 space-y-1 text-gray-300 text-sm">
+                      <li>Voice input and text-to-speech</li>
+                      <li>Image analysis capabilities</li>
+                      <li>Internet search integration</li>
+                      <li>Educational content filtering</li>
+                      <li>Real-time conversation</li>
+                    </ul>
+                  </div>
+
                   <div className="space-y-2">
                     <h3 className="text-gray-200 text-sm">Developer</h3>
                     <div className="text-gray-300 text-sm">EH</div>
                     <div className="text-gray-300 text-sm">Emmanuel Humbling</div>
                     <div className="text-gray-300 text-sm">AI Developer</div>
                     <div className="text-gray-300 text-sm">Built by AIDEL - Artificial Intelligence Development Experimental Labs</div>
-                  </div>
-
-                  <div className="pt-4">
-                    <a
-                      href="https://www.linkedin.com/in/edhumbling"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                      style={{ backgroundColor: '#1a1a19', color: '#e5e7eb' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2a2a29')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1a1a19')}
-                    >
-                      Connect on LinkedIn
-                    </a>
+                    <div className="pt-2">
+                      <a
+                        href="https://www.linkedin.com/in/edhumbling"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style={{ backgroundColor: '#1a1a19', color: '#e5e7eb' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2a2a29')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1a1a19')}
+                      >
+                        Connect on LinkedIn
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
