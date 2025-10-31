@@ -572,7 +572,10 @@ export default function Home() {
                         className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'search' ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-200')}
                         title="Search the web"
                       >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" strokeWidth="2"/></svg>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
                         <span>Search</span>
                       </button>
                       <button
@@ -580,17 +583,19 @@ export default function Home() {
                         className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'study' ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-200')}
                         title="Study mode"
                       >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V6a2 2 0 0 1 2-2h0l6 2 6-2h0a2 2 0 0 1 2 2v13.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 6v13.5" strokeWidth="2" strokeLinecap="round"/></svg>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/>
+                        </svg>
                         <span>Study</span>
                       </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-white text-black border-white':'border-gray-600 text-gray-200')} title="Search the web">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" strokeWidth="2"/></svg>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
                       <button onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='study' ? 'bg-white text-black border-white':'border-gray-600 text-gray-200')} title="Study mode">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V6a2 2 0 0 1 2-2h0l6 2 6-2h0a2 2 0 0 1 2 2v13.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/></svg>
                       </button>
                     </div>
                   </div>
@@ -825,6 +830,40 @@ export default function Home() {
                       <Plus size={18} className="text-white" />
                     </button>
                     <input ref={fileInputRef2} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
+
+                    {/* Mode buttons in conversation bar */}
+                    <div className="ml-2 hidden sm:flex items-center gap-2">
+                      <button
+                        onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))}
+                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'search' ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-200')}
+                        title="Search the web"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                        <span>Search</span>
+                      </button>
+                      <button
+                        onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))}
+                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'study' ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-200')}
+                        title="Study mode"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/>
+                        </svg>
+                        <span>Study</span>
+                      </button>
+                    </div>
+                    {/* Mobile icons only */}
+                    <div className="ml-2 flex sm:hidden items-center gap-2">
+                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-white text-black border-white':'border-gray-600 text-gray-200')} title="Search the web">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </button>
+                      <button onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='study' ? 'bg-white text-black border-white':'border-gray-600 text-gray-200')} title="Study mode">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H20v14h-1.5c-2 0-3.5.5-5 2-1.5-1.5-3-2-5-2H4.5A1.5 1.5 0 0 1 3 16.5v-10z" strokeWidth="2" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center">
                     <button
