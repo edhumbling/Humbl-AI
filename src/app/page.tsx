@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -179,6 +179,8 @@ export default function Home() {
     setThinkingText('');
   };
 
+  const [showInfo, setShowInfo] = useState(false);
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
 
@@ -331,10 +333,80 @@ export default function Home() {
               </button>
               <span className="text-sm text-gray-400 hidden sm:inline">New</span>
             </div>
-            <div className="text-gray-300 text-sm">Humbl AI</div>
+            <button
+              onClick={() => setShowInfo(true)}
+              className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+              title="Info"
+            >
+              <Info size={18} className="text-gray-200" />
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Info Modal */}
+      {showInfo && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setShowInfo(false)}
+          />
+          <div className="relative h-full w-full flex items-center justify-center px-4">
+            <div className="w-full max-w-3xl rounded-2xl shadow-xl" style={{ backgroundColor: '#1f1f1f' }}>
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800/60">
+                <div className="flex items-center space-x-2">
+                  <Info size={18} className="text-gray-200" />
+                  <span className="text-sm text-gray-200">About this app</span>
+                </div>
+                <button
+                  onClick={() => setShowInfo(false)}
+                  className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+                  title="Close"
+                >
+                  <X size={16} className="text-gray-300" />
+                </button>
+              </div>
+
+              <div className="px-5 py-5 space-y-6 md:space-y-0 md:flex md:gap-10">
+                <div className="md:flex-1">
+                  <h3 className="text-gray-200 text-sm mb-2">Features</h3>
+                  <ul className="list-disc pl-5 space-y-1 text-gray-300 text-sm">
+                    <li>Voice input and text-to-speech</li>
+                    <li>Image analysis capabilities</li>
+                    <li>Internet search integration</li>
+                    <li>Educational content filtering</li>
+                    <li>Real-time conversation</li>
+                  </ul>
+                </div>
+
+                <div className="md:flex-1">
+                  <div className="space-y-2">
+                    <h3 className="text-gray-200 text-sm">Developer</h3>
+                    <div className="text-gray-300 text-sm">EH</div>
+                    <div className="text-gray-300 text-sm">Emmanuel Humbling</div>
+                    <div className="text-gray-300 text-sm">AI Developer</div>
+                    <div className="text-gray-300 text-sm">Built by AIDEL - Artificial Intelligence Development Experimental Labs</div>
+                  </div>
+
+                  <div className="pt-4">
+                    <a
+                      href="https://www.linkedin.com/in/edhumbling"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                      style={{ backgroundColor: '#1a1a19', color: '#e5e7eb' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#2a2a29')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1a1a19')}
+                    >
+                      Connect on LinkedIn
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (
         <div className="flex flex-col items-center justify-center flex-1 px-4">
