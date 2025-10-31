@@ -187,6 +187,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
+  const [isMobile, setIsMobile] = useState(false);
 
   // Autocomplete state
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -381,6 +382,16 @@ export default function Home() {
       handleSearch();
     }
   };
+
+  // Detect mobile viewport for placeholder tone
+  useEffect(() => {
+    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const placeholderText = isMobile ? 'Ask anything… everything ✨' : 'Ask Anything, I mean everything...';
 
   const scrollBarAboveKeyboard = (el: HTMLElement | null) => {
     if (!el) return;
@@ -678,10 +689,7 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Desktop Title */}
-          <div className="w-full text-center mb-3 hidden md:block">
-            <h2 className="text-gray-300 text-sm sm:text-base font-normal">What's on your mind today?</h2>
-          </div>
+          {/* Desktop Title removed per request */}
 
           {/* Search Bar */}
           <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
@@ -701,7 +709,7 @@ export default function Home() {
                   onKeyPress={handleKeyPress}
                   onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
-                  placeholder=""
+                  placeholder={placeholderText}
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
                   style={{
@@ -993,7 +1001,7 @@ export default function Home() {
                   onKeyPress={handleKeyPress}
                   onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
                   onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
-                  placeholder="Continue the conversation..."
+                  placeholder={placeholderText}
                   className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
                   rows={1}
                   style={{
