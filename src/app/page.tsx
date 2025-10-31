@@ -775,7 +775,7 @@ export default function Home() {
       {conversationStarted && (
         <div ref={conversationScrollRef} className="flex-1 relative overflow-y-auto py-4 humbl-scroll">
           <div className="w-full px-4">
-            <div className="max-w-xl lg:max-w-3xl mx-auto space-y-6 pb-32">
+            <div className="max-w-xl lg:max-w-3xl mx-auto space-y-6 pb-52">
               {/* Conversation History */}
               {conversationHistory.map((message, index) => (
                 <div key={index} className="w-full">
@@ -899,7 +899,7 @@ export default function Home() {
             </div>
           </div>
           {/* Bottom fade to simulate scrolling under the bar */}
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#151514] via-[#151514]/90 to-transparent z-10" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#151514] via-[#151514]/90 to-transparent z-10" />
         </div>
       )}
 
