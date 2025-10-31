@@ -80,7 +80,7 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, images } = await request.json();
+    const { query, images, mode } = await request.json();
 
     if (!query || query.trim() === '') {
       return new Response(
@@ -100,7 +100,52 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Try primary model first
+          // Web search mode: use Compound systems and include citations (non-stream for metadata)
+          if (mode === 'search') {
+            try {
+              const completion = await client.chat.completions.create({
+                model: 'groq/compound',
+                messages: [
+                  { role: 'system', content: 'You are Humbl AI. Use web search when helpful and include concise citations.' },
+                  { role: 'user', content: query }
+                ],
+                stream: false
+              });
+              const choice: any = (completion as any).choices?.[0]?.message;
+              const content = choice?.content || '';
+              const executed = choice?.executed_tools?.[0]?.search_results || [];
+              const citations = executed.map((r: any) => ({ title: r.title, url: r.url })).slice(0, 10);
+              if (content) controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
+              controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ citations, done: true })}\n\n`));
+              controller.close();
+              return;
+            } catch (primaryErr) {
+              try {
+                const completion = await client.chat.completions.create({
+                  model: 'groq/compound-mini',
+                  messages: [
+                    { role: 'system', content: 'You are Humbl AI. Use web search when helpful and include concise citations.' },
+                    { role: 'user', content: query }
+                  ],
+                  stream: false
+                });
+                const choice: any = (completion as any).choices?.[0]?.message;
+                const content = choice?.content || '';
+                const executed = choice?.executed_tools?.[0]?.search_results || [];
+                const citations = executed.map((r: any) => ({ title: r.title, url: r.url })).slice(0, 10);
+                if (content) controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ citations, done: true })}\n\n`));
+                controller.close();
+                return;
+              } catch (fallbackErr) {
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Web search failed. Please try again.' })}\n\n`));
+                controller.close();
+                return;
+              }
+            }
+          }
+
+          // Default streaming flow (images supported)
           const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, Array.isArray(images) ? images.slice(0,4) : []);
           
           if (!primarySuccess) {

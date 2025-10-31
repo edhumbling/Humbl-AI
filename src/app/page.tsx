@@ -180,6 +180,7 @@ export default function Home() {
   };
 
   const [showInfo, setShowInfo] = useState(false);
+  const [mode, setMode] = useState<'default' | 'search' | 'study'>('default');
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
@@ -265,7 +266,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: searchQuery, images: attachedImages.slice(0, 4) }),
+        body: JSON.stringify({ query: searchQuery, images: attachedImages.slice(0, 4), mode }),
       });
 
       if (!response.ok) {
@@ -280,6 +281,7 @@ export default function Home() {
       }
 
       let fullResponse = '';
+      let finalCitations: Array<{ title: string; url: string }> | undefined = undefined;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -305,6 +307,7 @@ export default function Home() {
                       const aiMessage = {
                         type: 'ai' as const,
                         content: fullResponse,
+                        citations: data.citations || finalCitations,
                         timestamp: new Date().toISOString()
                       };
                       setConversationHistory(prev => [...prev, aiMessage]);
@@ -322,6 +325,9 @@ export default function Home() {
               if (data.content) {
                 fullResponse += data.content;
                 setStreamingResponse(fullResponse);
+              }
+              if (data.citations) {
+                finalCitations = data.citations;
               }
             } catch (e) {
               // Skip invalid JSON lines
@@ -558,6 +564,35 @@ export default function Home() {
                       <Plus size={18} className="text-white" />
                     </button>
                     <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
+
+                    {/* Mode buttons */}
+                    <div className="ml-2 hidden sm:flex items-center gap-2">
+                      <button
+                        onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))}
+                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'search' ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-200')}
+                        title="Search the web"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" strokeWidth="2"/></svg>
+                        <span>Search</span>
+                      </button>
+                      <button
+                        onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))}
+                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'study' ? 'bg-white text-black border-white' : 'border-gray-600 text-gray-200')}
+                        title="Study mode"
+                      >
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V6a2 2 0 0 1 2-2h0l6 2 6-2h0a2 2 0 0 1 2 2v13.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 6v13.5" strokeWidth="2" strokeLinecap="round"/></svg>
+                        <span>Study</span>
+                      </button>
+                    </div>
+                    {/* Mobile icons only */}
+                    <div className="ml-2 flex sm:hidden items-center gap-2">
+                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-white text-black border-white':'border-gray-600 text-gray-200')} title="Search the web">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="10" cy="10" r="7" strokeWidth="2"/></svg>
+                      </button>
+                      <button onClick={() => setMode(prev => (prev === 'study' ? 'default' : 'study'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='study' ? 'bg-white text-black border-white':'border-gray-600 text-gray-200')} title="Study mode">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5V6a2 2 0 0 1 2-2h0l6 2 6-2h0a2 2 0 0 1 2 2v13.5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center">
                     <button
@@ -641,6 +676,21 @@ export default function Home() {
                         <ThumbsDown size={18} className="text-gray-400" />
                       </button>
                       </div>
+                      {/* Sources footer */}
+                      {message.citations && message.citations.length > 0 && (
+                        <div className="mt-3 border-t border-gray-800/60 pt-2">
+                          <details>
+                            <summary className="text-xs text-gray-400 cursor-pointer">Sources</summary>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {message.citations.map((c:any, i:number) => (
+                                <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-full border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
+                                  {c.title || c.url}
+                                </a>
+                              ))}
+                            </div>
+                          </details>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
