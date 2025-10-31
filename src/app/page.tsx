@@ -23,6 +23,7 @@ export default function Home() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const responseStartRef = useRef<HTMLDivElement | null>(null);
+  const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -422,9 +423,24 @@ export default function Home() {
 
   // Auto-scroll to the beginning of the streaming response when it starts
   useEffect(() => {
-    if (isLoading && streamingResponse) {
-      responseStartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    if (!(isLoading && streamingResponse)) return;
+    // Wait for DOM to paint the marker
+    requestAnimationFrame(() => {
+      const container = conversationScrollRef.current;
+      const target = responseStartRef.current;
+      if (container && target) {
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const offset = targetRect.top - containerRect.top + container.scrollTop - 8;
+        try {
+          container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+        } catch {
+          container.scrollTop = Math.max(0, offset);
+        }
+      } else {
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
   }, [isLoading, streamingResponse]);
 
   // Pendulum-style three dots animation component
@@ -717,7 +733,7 @@ export default function Home() {
 
       {/* Conversation Area - Only show when conversation has started */}
       {conversationStarted && (
-        <div className="flex-1 overflow-y-auto py-4">
+        <div ref={conversationScrollRef} className="flex-1 overflow-y-auto py-4">
           <div className="w-full px-4">
             <div className="max-w-6xl mx-auto space-y-6">
               {/* Conversation History */}
