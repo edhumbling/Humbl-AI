@@ -536,8 +536,9 @@ export default function Home() {
       {/* Header Bar with New Conversation button */}
       <div className="w-full border-b border-gray-800/60">
         <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+          <div className="grid grid-cols-3 items-center">
+            {/* Left: New conversation */}
+            <div className="flex items-center space-x-2 justify-start">
               <button
                 onClick={startNewConversation}
                 className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
@@ -547,13 +548,24 @@ export default function Home() {
               </button>
               <span className="text-sm text-gray-400 hidden sm:inline">New</span>
             </div>
-            <button
-              onClick={() => setShowInfo(true)}
-              className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
-              title="Info"
-            >
-              <Info size={18} className="text-gray-200" />
-            </button>
+
+            {/* Center: Logo when conversation is active */}
+            <div className="flex items-center justify-center">
+              {conversationStarted && (
+                <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-6 w-auto opacity-90" />
+              )}
+            </div>
+
+            {/* Right: Info */}
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => setShowInfo(true)}
+                className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+                title="Info"
+              >
+                <Info size={18} className="text-gray-200" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
