@@ -1234,10 +1234,10 @@ export default function Home() {
 
       {/* Scroll to bottom button - Only show when conversation has started */}
       {conversationStarted && showScrollToBottom && (
-        <div className="w-full px-4 pb-2 flex justify-center group">
+        <div className="w-full px-4 pb-2 flex justify-center">
           <button
             onClick={scrollToBottom}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 border-2 bg-transparent hover:bg-[#f1d08c]/10"
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-all opacity-100 border-2 bg-transparent hover:bg-[#f1d08c]/10 hover:scale-110"
             style={{ borderColor: '#f1d08c' }}
             title="Scroll to bottom"
           >
