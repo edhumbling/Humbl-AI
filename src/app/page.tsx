@@ -775,7 +775,7 @@ export default function Home() {
       {conversationStarted && (
         <div ref={conversationScrollRef} className="flex-1 overflow-y-auto py-4">
           <div className="w-full px-4">
-            <div className="max-w-6xl mx-auto space-y-6">
+            <div className="max-w-xl lg:max-w-3xl mx-auto space-y-6">
               {/* Conversation History */}
               {conversationHistory.map((message, index) => (
                 <div key={index} className="w-full">
