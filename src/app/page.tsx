@@ -527,14 +527,14 @@ export default function Home() {
 
                 {/* Attached images preview */}
                 {attachedImages.length > 0 && (
-                  <div className="absolute left-12 right-0 -top-2 -translate-y-full px-1 sm:px-2">
-                    <div className="flex items-center gap-2 overflow-x-auto">
+                  <div className="absolute left-12 right-4 top-0 -translate-y-1/2 z-10">
+                    <div className="flex items-center overflow-x-auto pr-2">
                       {attachedImages.map((src, idx) => (
-                        <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden border border-gray-800/60 flex-shrink-0">
+                        <div key={idx} className={"relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden ring-1 ring-white/20 shadow-md bg-black flex-shrink-0 " + (idx > 0 ? "-ml-2" : "") }>
                           <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeAttachedImage(idx)}
-                            className="absolute -top-1 -right-1 bg-black/70 rounded-full p-0.5"
+                            className="absolute -top-1 -right-1 bg-black/80 rounded-full p-0.5"
                             title="Remove"
                           >
                             <X size={12} className="text-white" />
@@ -739,14 +739,14 @@ export default function Home() {
 
                 {/* Attached images preview */}
                 {attachedImages.length > 0 && (
-                  <div className="absolute left-12 right-0 -top-2 -translate-y-full px-1 sm:px-2">
-                    <div className="flex items-center gap-2 overflow-x-auto">
+                  <div className="absolute left-12 right-4 top-0 -translate-y-1/2 z-10">
+                    <div className="flex items-center overflow-x-auto pr-2">
                       {attachedImages.map((src, idx) => (
-                        <div key={idx} className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-md overflow-hidden border border-gray-800/60 flex-shrink-0">
+                        <div key={idx} className={"relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden ring-1 ring-white/20 shadow-md bg-black flex-shrink-0 " + (idx > 0 ? "-ml-2" : "") }>
                           <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
                           <button
                             onClick={() => removeAttachedImage(idx)}
-                            className="absolute -top-1 -right-1 bg-black/70 rounded-full p-0.5"
+                            className="absolute -top-1 -right-1 bg-black/80 rounded-full p-0.5"
                             title="Remove"
                           >
                             <X size={12} className="text-white" />
