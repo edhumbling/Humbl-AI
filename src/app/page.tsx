@@ -887,14 +887,6 @@ export default function Home() {
                           </>
                         )}
                       </div>
-                      {/* Status indicator */}
-                      <div className="hidden lg:flex items-center gap-2 text-xs text-gray-400">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
-                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                        <span>Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}</span>
-                      </div>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
@@ -1253,14 +1245,6 @@ export default function Home() {
                             </div>
                           </>
                         )}
-                      </div>
-                      {/* Status indicator */}
-                      <div className="hidden lg:flex items-center gap-2 text-xs text-gray-400">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
-                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                        <span>Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}</span>
                       </div>
                     </div>
                     {/* Mobile icons only */}
