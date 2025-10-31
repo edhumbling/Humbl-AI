@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 
@@ -183,6 +183,8 @@ export default function Home() {
 
   const [showInfo, setShowInfo] = useState(false);
   const [mode, setMode] = useState<'default' | 'search' | 'study'>('default');
+  const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
+  const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
@@ -811,18 +813,88 @@ export default function Home() {
                     <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
 
                     {/* Mode buttons */}
-                    <div className="ml-2 hidden sm:flex items-center gap-2">
-                      <button
-                        onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))}
-                        className={"w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors " + (mode === 'search' ? '' : 'hover:bg-opacity-80')}
-                        style={{ backgroundColor: mode === 'search' ? '#f1d08c' : '#2a2a29', color: mode === 'search' ? '#000000' : '#ffffff' }}
-                        title="Search the web"
-                      >
+                    <div className="ml-2 hidden sm:flex items-center gap-2 relative">
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowWebSearchDropdown(!showWebSearchDropdown);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors hover:bg-opacity-80"
+                          style={{ backgroundColor: webSearchMode !== 'off' ? '#f1d08c' : '#2a2a29', color: webSearchMode !== 'off' ? '#000000' : '#ffffff' }}
+                          title="Search the web"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                            <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          <span className="text-xs font-medium hidden lg:inline">
+                            Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}
+                          </span>
+                        </button>
+                        {showWebSearchDropdown && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => setShowWebSearchDropdown(false)}
+                            />
+                            <div className="absolute bottom-full left-0 mb-2 z-50 w-72 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+                              <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('auto');
+                                    setMode('default');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">Auto</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Automatically determine whether to search the web to answer your question.</div>
+                                  </div>
+                                  {webSearchMode === 'auto' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('on');
+                                    setMode('search');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">On</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Always search the web before answering your question.</div>
+                                  </div>
+                                  {webSearchMode === 'on' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('off');
+                                    setMode('default');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">Off</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Never search the web before answering your question.</div>
+                                  </div>
+                                  {webSearchMode === 'off' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {/* Status indicator */}
+                      <div className="hidden lg:flex items-center gap-2 text-xs text-gray-400">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="9" strokeWidth="2"/>
                           <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
-                      </button>
+                        <span>Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}</span>
+                      </div>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
@@ -1108,18 +1180,88 @@ export default function Home() {
                     <input ref={fileInputRef2} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
 
                     {/* Mode buttons in conversation bar */}
-                    <div className="ml-2 hidden sm:flex items-center gap-2">
-                      <button
-                        onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))}
-                        className={"w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors " + (mode === 'search' ? '' : 'hover:bg-opacity-80')}
-                        style={{ backgroundColor: mode === 'search' ? '#f1d08c' : '#2a2a29', color: mode === 'search' ? '#000000' : '#ffffff' }}
-                        title="Search the web"
-                      >
+                    <div className="ml-2 hidden sm:flex items-center gap-2 relative">
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowWebSearchDropdown(!showWebSearchDropdown);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors hover:bg-opacity-80"
+                          style={{ backgroundColor: webSearchMode !== 'off' ? '#f1d08c' : '#2a2a29', color: webSearchMode !== 'off' ? '#000000' : '#ffffff' }}
+                          title="Search the web"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                            <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          <span className="text-xs font-medium hidden lg:inline">
+                            Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}
+                          </span>
+                        </button>
+                        {showWebSearchDropdown && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => setShowWebSearchDropdown(false)}
+                            />
+                            <div className="absolute bottom-full left-0 mb-2 z-50 w-72 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+                              <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('auto');
+                                    setMode('default');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">Auto</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Automatically determine whether to search the web to answer your question.</div>
+                                  </div>
+                                  {webSearchMode === 'auto' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('on');
+                                    setMode('search');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">On</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Always search the web before answering your question.</div>
+                                  </div>
+                                  {webSearchMode === 'on' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('off');
+                                    setMode('default');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">Off</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Never search the web before answering your question.</div>
+                                  </div>
+                                  {webSearchMode === 'off' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {/* Status indicator */}
+                      <div className="hidden lg:flex items-center gap-2 text-xs text-gray-400">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="9" strokeWidth="2"/>
                           <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
-                      </button>
+                        <span>Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}</span>
+                      </div>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
