@@ -5,7 +5,26 @@ const client = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
-// Primary model configuration (Qwen)
+// Vision models for image analysis
+const VISION_SCOUT = {
+  model: "meta-llama/llama-4-scout-17b-16e-instruct",
+  temperature: 1,
+  max_completion_tokens: 4096,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+const VISION_MAVERICK = {
+  model: "meta-llama/llama-4-maverick-17b-128e-instruct",
+  temperature: 1,
+  max_completion_tokens: 4096,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+// Primary model configuration (Qwen) - for text-only queries
 const PRIMARY_MODEL = {
   model: "qwen/qwen3-32b",
   temperature: 0.6,
@@ -138,8 +157,7 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
     if (query) {
       userContent.push({ type: "text", text: query });
     }
-    const hasImages = (images || []).length > 0;
-    for (const img of (images || []).slice(0, 4)) {
+    for (const img of (images || []).slice(0, 5)) {
       userContent.push({ type: "image_url", image_url: { url: img } });
     }
 
@@ -154,13 +172,8 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
       }
     ];
 
-    // Remove parse option when images are present to avoid structured/decimal outputs
-    const modelConfigToUse = hasImages && modelConfig.parse 
-      ? { ...modelConfig, parse: undefined } 
-      : modelConfig;
-
     const stream = client.chat.completions.create({
-      ...modelConfigToUse,
+      ...modelConfig,
       messages: messages as any
     });
 
@@ -208,18 +221,12 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
     if (query) {
       userContent.push({ type: "text", text: query });
     }
-    const hasImages = (images || []).length > 0;
-    for (const img of (images || []).slice(0, 4)) {
+    for (const img of (images || []).slice(0, 5)) {
       userContent.push({ type: "image_url", image_url: { url: img } });
     }
 
-    // Remove parse option when images are present to avoid structured/decimal outputs
-    const modelConfigToUse = hasImages && modelConfig.parse 
-      ? { ...modelConfig, parse: undefined } 
-      : modelConfig;
-
     const stream = client.chat.completions.create({
-      ...modelConfigToUse,
+      ...modelConfig,
       messages: [
         {
           role: "system",
@@ -344,9 +351,26 @@ export async function POST(request: NextRequest) {
           }
 
           // Default streaming flow (images supported)
-          const imgs = Array.isArray(images) ? images.slice(0,4) : [];
+          const imgs = Array.isArray(images) ? images.slice(0, 5) : []; // Vision models support up to 5 images
+          const hasImages = imgs.length > 0;
           
-          // Check if query is code/calculation related and use code execution models
+          // Use vision models when images are present
+          if (hasImages) {
+            console.log('Images detected, using vision models...');
+            const visionScoutSuccess = await tryModel(VISION_SCOUT, query, controller, imgs);
+            if (!visionScoutSuccess) {
+              console.log('Vision Scout failed, trying Vision Maverick...');
+              const visionMaverickSuccess = await tryModel(VISION_MAVERICK, query, controller, imgs);
+              if (!visionMaverickSuccess) {
+                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Vision models failed. Please try again.' })}\n\n`));
+                controller.close();
+                return;
+              }
+            }
+            return; // Vision model succeeded
+          }
+          
+          // Text-only queries: Check if query is code/calculation related and use code execution models
           if (isCodeRelatedQuery(query)) {
             console.log('Detected code-related query, using code execution models...');
             const codeMiniSuccess = await tryCodeExecutionModel(CODE_COMPOUND_MINI, query, controller, imgs);
@@ -370,6 +394,7 @@ export async function POST(request: NextRequest) {
             }
           }
           
+          // Text-only queries: Use regular models
           const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, imgs);
           if (!primarySuccess) {
             console.log('Attempting moonshot fallback model...');
