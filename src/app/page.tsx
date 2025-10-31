@@ -18,7 +18,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationStarted, setConversationStarted] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string, images?: string[], citations?: Array<{ title: string; url: string }>, originalQuery?: string, originalImages?: string[], originalMode?: 'default' | 'search' | 'study' }>>([]);
+  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string, images?: string[], citations?: Array<{ title: string; url: string }>, originalQuery?: string, originalImages?: string[], originalMode?: 'default' | 'search' | 'study' | 'image' }>>([]);
   const [thinkingText, setThinkingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -235,7 +235,7 @@ export default function Home() {
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSearch = async (retryQuery?: string, retryImages?: string[], retryMode?: 'default' | 'search' | 'study', isRetry?: boolean) => {
+  const handleSearch = async (retryQuery?: string, retryImages?: string[], retryMode?: 'default' | 'search' | 'study' | 'image', isRetry?: boolean) => {
     const queryToUse = retryQuery ?? searchQuery;
     const imagesToUse = retryImages ?? attachedImages;
     if (!queryToUse.trim() && imagesToUse.length === 0) return;
