@@ -102,45 +102,61 @@ export async function POST(request: NextRequest) {
         try {
           // Web search mode: use Compound systems and include citations (non-stream for metadata)
           if (mode === 'search') {
-            try {
+            const runCompound = async (modelId: string) => {
               const completion = await client.chat.completions.create({
-                model: 'groq/compound',
+                model: modelId,
                 messages: [
                   { role: 'system', content: 'You are Humbl AI. Use web search when helpful and include concise citations.' },
                   { role: 'user', content: query }
                 ],
-                stream: false
+                stream: false,
+                // widen search scope explicitly using include_domains wildcards per Groq docs
+                // ref: https://console.groq.com/docs/web-search
+                search_settings: {
+                  include_domains: [
+                    '*.com','*.org','*.net','*.edu','*.gov','*.io','*.ai','*.co','*.news','*.info','*.dev'
+                  ]
+                } as any
               });
-              const choice: any = (completion as any).choices?.[0]?.message;
-              const content = choice?.content || '';
-              const executed = choice?.executed_tools?.[0]?.search_results || [];
-              const citations = executed.map((r: any) => ({ title: r.title, url: r.url })).slice(0, 10);
+              const choice: any = (completion as any).choices?.[0]?.message || {};
+              const content = choice.content || '';
+              const executed = choice.executed_tools?.[0]?.search_results || [];
+              const citations = Array.isArray(executed)
+                ? executed.map((r: any) => ({ title: r?.title ?? 'Source', url: r?.url ?? '#' })).slice(0, 10)
+                : [];
               if (content) controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
               controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ citations, done: true })}\n\n`));
               controller.close();
+            };
+            try {
+              await runCompound('groq/compound');
               return;
             } catch (primaryErr) {
               try {
-                const completion = await client.chat.completions.create({
-                  model: 'groq/compound-mini',
-                  messages: [
-                    { role: 'system', content: 'You are Humbl AI. Use web search when helpful and include concise citations.' },
-                    { role: 'user', content: query }
-                  ],
-                  stream: false
-                });
-                const choice: any = (completion as any).choices?.[0]?.message;
-                const content = choice?.content || '';
-                const executed = choice?.executed_tools?.[0]?.search_results || [];
-                const citations = executed.map((r: any) => ({ title: r.title, url: r.url })).slice(0, 10);
-                if (content) controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ citations, done: true })}\n\n`));
-                controller.close();
+                await runCompound('groq/compound-mini');
                 return;
               } catch (fallbackErr) {
-                controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Web search failed. Please try again.' })}\n\n`));
-                controller.close();
-                return;
+                // Graceful degradation: answer without browsing using our default model
+                try {
+                  const completion = await client.chat.completions.create({
+                    ...PRIMARY_MODEL,
+                    messages: [
+                      { role: 'system', content: 'You are Humbl AI. Provide your best answer without web search due to a temporary issue.' },
+                      { role: 'user', content: query }
+                    ],
+                    stream: false
+                  } as any);
+                  const choice: any = (completion as any).choices?.[0]?.message || {};
+                  const content = choice.content || 'I couldn\'t run web search just now, but here\'s my best answer based on existing knowledge.';
+                  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ content })}\n\n`));
+                  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ citations: [], done: true })}\n\n`));
+                  controller.close();
+                  return;
+                } catch (finalErr) {
+                  controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Web search failed. Please try again.' })}\n\n`));
+                  controller.close();
+                  return;
+                }
               }
             }
           }
