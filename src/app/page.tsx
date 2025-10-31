@@ -364,8 +364,11 @@ export default function Home() {
           }
   };
 
-  const handleRetry = (message: any) => {
+  const handleRetry = (message: any, messageIndex: number) => {
     if (message.originalQuery !== undefined || message.originalImages?.length) {
+      // Remove the old AI response from conversation history
+      setConversationHistory(prev => prev.filter((_, idx) => idx !== messageIndex));
+      // Then generate new response
       handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default', true);
     }
   };
@@ -925,7 +928,7 @@ export default function Home() {
                             </div>
                           </div>
                           <button
-                            onClick={() => handleRetry(message)}
+                            onClick={() => handleRetry(message, index)}
                             className="p-2 rounded hover:bg-gray-700 transition-colors"
                             title="Try again"
                           >
