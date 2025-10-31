@@ -662,19 +662,19 @@ export default function Home() {
                     <div className="ml-2 hidden sm:flex items-center gap-2">
                       <button
                         onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))}
-                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'search' ? 'bg-[#f1d08c] text-black border-[#f1d08c]' : 'border-gray-600 text-gray-200')}
+                        className={"w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors " + (mode === 'search' ? '' : 'hover:bg-opacity-80')}
+                        style={{ backgroundColor: mode === 'search' ? '#f1d08c' : '#2a2a29', color: mode === 'search' ? '#000000' : '#ffffff' }}
                         title="Search the web"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="9" strokeWidth="2"/>
                           <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
-                        <span>Search</span>
                       </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
-                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-[#f1d08c] text-black border-[#f1d08c]':'border-gray-600 text-gray-200')} title="Search the web">
+                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
                     </div>
@@ -926,19 +926,19 @@ export default function Home() {
                     <div className="ml-2 hidden sm:flex items-center gap-2">
                       <button
                         onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))}
-                        className={"px-3 h-8 rounded-full border text-xs flex items-center gap-2 " + (mode === 'search' ? 'bg-[#f1d08c] text-black border-[#f1d08c]' : 'border-gray-600 text-gray-200')}
+                        className={"w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors " + (mode === 'search' ? '' : 'hover:bg-opacity-80')}
+                        style={{ backgroundColor: mode === 'search' ? '#f1d08c' : '#2a2a29', color: mode === 'search' ? '#000000' : '#ffffff' }}
                         title="Search the web"
                       >
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                           <circle cx="12" cy="12" r="9" strokeWidth="2"/>
                           <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
                         </svg>
-                        <span>Search</span>
                       </button>
                     </div>
                     {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
-                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center border " + (mode==='search' ? 'bg-[#f1d08c] text-black border-[#f1d08c]':'border-gray-600 text-gray-200')} title="Search the web">
+                      <button onClick={() => setMode(prev => (prev === 'search' ? 'default' : 'search'))} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
                     </div>
