@@ -975,17 +975,17 @@ export default function Home() {
                     <div className="w-full">
                       <ResponseRenderer content={message.content} />
                       {/* Action buttons for AI responses */}
-                      <div className="flex items-center space-x-2 mt-3">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       <button
                         onClick={() => handleCopy(message.content)}
-                        className="p-2 rounded hover:bg-gray-700 transition-colors"
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Copy response"
                       >
-                        <CopyIcon size={18} className="text-gray-400" />
+                        <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       {message.originalQuery !== undefined && (
                         <div className="relative flex flex-col items-center group">
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
                             <div className="bg-gray-900 text-gray-200 text-xs px-2 py-1 rounded-lg whitespace-nowrap relative">
                               Try again
                               <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
@@ -993,24 +993,24 @@ export default function Home() {
                           </div>
                           <button
                             onClick={() => handleRetry(message, index)}
-                            className="p-2 rounded hover:bg-gray-700 transition-colors"
+                            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                             title="Try again"
                           >
-                            <RefreshCw size={18} className="text-gray-400" />
+                            <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                           </button>
                         </div>
                       )}
                       <button
-                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Upvote"
                       >
-                        <ThumbsUp size={18} className="text-gray-400" />
+                        <ThumbsUp size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       <button
-                        className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Downvote"
                       >
-                        <ThumbsDown size={18} className="text-gray-400" />
+                        <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       </div>
                       {/* Sources footer */}
@@ -1056,25 +1056,25 @@ export default function Home() {
                   )}
                   {/* Action buttons for streaming response */}
                   {!isLoading && (
-                  <div className="flex items-center space-x-2 mt-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                     <button
                       onClick={() => handleCopy(streamingResponse)}
-                      className="p-2 rounded hover:bg-gray-700 transition-colors"
+                      className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                       title="Copy response"
                     >
-                      <CopyIcon size={18} className="text-gray-400" />
+                      <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                     </button>
                     <button
-                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                      className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                       title="Upvote"
                     >
-                      <ThumbsUp size={18} className="text-gray-400" />
+                      <ThumbsUp size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                     </button>
                     <button
-                      className="p-2 rounded-full hover:bg-gray-700 transition-colors"
+                      className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                       title="Downvote"
-            >
-                      <ThumbsDown size={18} className="text-gray-400" />
+                    >
+                      <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                     </button>
                   </div>
                   )}
