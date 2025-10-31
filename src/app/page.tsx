@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2 } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
+import { useConversation } from '@/contexts/ConversationContext';
 
 interface SearchResult {
   query: string;
@@ -12,13 +13,24 @@ interface SearchResult {
 }
 
 export default function Home() {
+  const {
+    conversationHistory,
+    conversationStarted,
+    addUserMessage,
+    addAIMessage,
+    updateLastAIMessage,
+    updateMessageAt,
+    removeMessage,
+    clearConversation,
+    startConversation,
+    endConversation,
+  } = useConversation();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [streamingResponse, setStreamingResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [conversationStarted, setConversationStarted] = useState(false);
-  const [conversationHistory, setConversationHistory] = useState<Array<{type: 'user' | 'ai', content: string, timestamp: string, images?: string[], citations?: Array<{ title: string; url: string }>, originalQuery?: string, originalImages?: string[], originalMode?: 'default' | 'search' | 'study' | 'image' }>>([]);
   const [thinkingText, setThinkingText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -172,8 +184,8 @@ export default function Home() {
       }
     } catch {}
 
-    setConversationStarted(false);
-    setConversationHistory([]);
+    endConversation();
+    clearConversation();
     setSearchQuery('');
     setSearchResult(null);
     setStreamingResponse('');
@@ -244,15 +256,9 @@ export default function Home() {
     if (!queryToUse.trim() && imagesToUse.length === 0) return;
 
     // Start conversation and add user message to history (skip if retry)
-    setConversationStarted(true);
+    startConversation();
     if (!isRetry) {
-    const userMessage = {
-      type: 'user' as const,
-        content: queryToUse,
-        images: imagesToUse.slice(0, 3),
-      timestamp: new Date().toISOString()
-    };
-    setConversationHistory(prev => [...prev, userMessage]);
+      addUserMessage(queryToUse, imagesToUse.slice(0, 3));
     }
 
     setIsLoading(true);
@@ -307,16 +313,14 @@ export default function Home() {
         
         if (imageData.imageUrl) {
           // Add generated image to conversation
-          const aiMessage = {
-            type: 'ai' as const,
-            content: '',
-            timestamp: new Date().toISOString(),
-            images: [imageData.imageUrl],
-            originalQuery: queryToUse,
-            originalImages: imagesToUse.slice(0, 3),
-            originalMode: modeToUse
-          };
-          setConversationHistory(prev => [...prev, aiMessage]);
+          addAIMessage(
+            'Image generated successfully!',
+            [imageData.imageUrl],
+            undefined,
+            queryToUse,
+            imagesToUse.slice(0, 3),
+            modeToUse
+          );
           setSearchQuery('');
           setAttachedImages([]);
           setIsLoading(false);
@@ -334,7 +338,7 @@ export default function Home() {
         return;
       }
     }
-    
+
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
@@ -357,6 +361,10 @@ export default function Home() {
 
       let fullResponse = '';
       let finalCitations: Array<{ title: string; url: string }> | undefined = undefined;
+      let aiMessageInitialized = false;
+
+      // Initialize AI message placeholder for streaming
+      updateLastAIMessage('', undefined);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -378,17 +386,30 @@ export default function Home() {
               }
               
                     if (data.done) {
-                      // Add AI response to conversation history
-                      const aiMessage = {
-                        type: 'ai' as const,
-                        content: fullResponse,
-                        citations: data.citations || finalCitations,
-                        timestamp: new Date().toISOString(),
-                        originalQuery: queryToUse,
-                        originalImages: imagesToUse.slice(0, 3),
-                        originalMode: modeToUse
-                      };
-                      setConversationHistory(prev => [...prev, aiMessage]);
+                      // Finalize AI response - update with metadata if streaming happened, or add new if not
+                      if (aiMessageInitialized && fullResponse) {
+                        // Update the existing streaming message with final metadata
+                        // The content is already set via updateLastAIMessage
+                        const lastIndex = conversationHistory.length - 1;
+                        if (lastIndex >= 0) {
+                          updateMessageAt(lastIndex, {
+                            citations: data.citations || finalCitations,
+                            originalQuery: queryToUse,
+                            originalImages: imagesToUse.slice(0, 3),
+                            originalMode: modeToUse,
+                          });
+                        }
+                      } else {
+                        // No streaming happened, add new message
+                        addAIMessage(
+                          fullResponse,
+                          undefined,
+                          data.citations || finalCitations,
+                          queryToUse,
+                          imagesToUse.slice(0, 3),
+                          modeToUse
+                        );
+                      }
                       
                       // Clear streaming response and search query
                       setStreamingResponse('');
@@ -403,6 +424,9 @@ export default function Home() {
               if (data.content) {
                 fullResponse += data.content;
                 setStreamingResponse(fullResponse);
+                // Update last AI message for streaming
+                updateLastAIMessage(fullResponse);
+                aiMessageInitialized = true;
               }
               if (data.citations) {
                 finalCitations = data.citations;
@@ -425,7 +449,7 @@ export default function Home() {
   const handleRetry = (message: any, messageIndex: number) => {
     if (message.originalQuery !== undefined || message.originalImages?.length) {
       // Remove the old AI response from conversation history
-      setConversationHistory(prev => prev.filter((_, idx) => idx !== messageIndex));
+      removeMessage(messageIndex);
       // Then generate new response
       handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default', true);
     }
@@ -634,7 +658,7 @@ export default function Home() {
       setError(err.message || 'Failed to edit image');
     } finally {
       setIsEditingImage(false);
-    }
+          }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
