@@ -1367,6 +1367,10 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            {/* Disclaimer */}
+            <p className="text-center mt-2 text-xs text-gray-500/60">
+              Disclaimer: AI can make mistakes, kindly fact check if possible.
+            </p>
           </div>
         </div>
       )}
@@ -1821,6 +1825,10 @@ export default function Home() {
                 </div>
               </div>
             </div>
+            {/* Disclaimer */}
+            <p className="text-center mt-2 text-xs text-gray-500/60">
+              Disclaimer: AI can make mistakes, kindly fact check if possible.
+            </p>
           </div>
         </div>
       )}
