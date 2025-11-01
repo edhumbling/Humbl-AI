@@ -5,6 +5,7 @@ import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, Arrow
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
+import GlassmorphicImageGeneratorOverlay from '../components/GlassmorphicImageGeneratorOverlay';
 
 interface SearchResult {
   query: string;
@@ -211,6 +212,8 @@ export default function Home() {
   const [isRemixingImage, setIsRemixingImage] = useState(false);
   const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -269,7 +272,79 @@ export default function Home() {
     setSearchResult(null);
     setStreamingResponse('');
     
-    // Start thinking text rotation
+    const modeToUse = retryMode ?? (imageGenerationMode ? 'image' : mode);
+    
+    // Handle image generation mode
+    if (modeToUse === 'image') {
+      // Set thinking text for image generation
+      setThinkingText('Generating image, Pls wait..');
+      setIsGeneratingImage(true);
+      setImageGenerationProgress(0);
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setImageGenerationProgress(prev => {
+          if (prev >= 90) return prev; // Stop at 90% until actual completion
+          return prev + Math.random() * 15;
+        });
+      }, 500);
+      
+      try {
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt: queryToUse }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to generate image' }));
+          throw new Error(errorData.error || 'Failed to generate image');
+        }
+
+        const imageData = await response.json();
+        
+        // Complete progress
+        setImageGenerationProgress(100);
+        
+        if (imageData.imageUrl) {
+          // Add generated image to conversation
+          addAIMessage(
+            'Image generated successfully!',
+            [imageData.imageUrl],
+            undefined,
+            queryToUse,
+            imagesToUse.slice(0, 3),
+            modeToUse
+          );
+          setSearchQuery('');
+          setAttachedImages([]);
+          
+          // Small delay to show completion
+          setTimeout(() => {
+            setIsLoading(false);
+            setIsGeneratingImage(false);
+            setImageGenerationProgress(0);
+            setThinkingText('');
+            clearInterval(progressInterval);
+            setImageGenerationMode(false); // Reset mode after generation
+          }, 500);
+          return;
+        }
+      } catch (err: any) {
+        console.error('Failed to generate image:', err);
+        setError(err.message || 'Failed to generate image');
+        setIsLoading(false);
+        setIsGeneratingImage(false);
+        setImageGenerationProgress(0);
+        setThinkingText('');
+        clearInterval(progressInterval);
+        return;
+      }
+    }
+
+    // Start thinking text rotation for non-image queries
     const thinkingTexts = [
       "Analyzing your query...",
       "Processing information...",
@@ -293,54 +368,6 @@ export default function Home() {
     
     // Store interval to clear later
     (window as any).thinkingInterval = textInterval;
-
-    const modeToUse = retryMode ?? (imageGenerationMode ? 'image' : mode);
-    
-    // Handle image generation mode
-    if (modeToUse === 'image') {
-      try {
-        const response = await fetch('/api/generate-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ prompt: queryToUse }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Failed to generate image' }));
-          throw new Error(errorData.error || 'Failed to generate image');
-        }
-
-        const imageData = await response.json();
-        
-        if (imageData.imageUrl) {
-          // Add generated image to conversation
-          addAIMessage(
-            'Image generated successfully!',
-            [imageData.imageUrl],
-            undefined,
-            queryToUse,
-            imagesToUse.slice(0, 3),
-            modeToUse
-          );
-          setSearchQuery('');
-          setAttachedImages([]);
-          setIsLoading(false);
-          setThinkingText('');
-          clearInterval((window as any).thinkingInterval);
-          setImageGenerationMode(false); // Reset mode after generation
-          return;
-        }
-      } catch (err: any) {
-        console.error('Failed to generate image:', err);
-        setError(err.message || 'Failed to generate image');
-        setIsLoading(false);
-        setThinkingText('');
-        clearInterval((window as any).thinkingInterval);
-        return;
-      }
-    }
 
     try {
       // Build conversation history for API context
@@ -1215,6 +1242,14 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      {/* Glassmorphic Image Generator Overlay */}
+      <GlassmorphicImageGeneratorOverlay
+        isGenerating={isGeneratingImage}
+        progress={imageGenerationProgress}
+        message="Generating image, Pls wait.."
+        imagePreviewUrl={null}
+      />
 
       {/* Remix Image Modal */}
       {remixingImageIndex !== null && (
