@@ -385,7 +385,7 @@ export async function POST(request: NextRequest) {
               
               // Add conversation history
               const recentHistory = conversationHistory.slice(-20);
-              const validHistory = recentHistory.filter(msg => msg && msg.content && msg.content.trim() !== '');
+              const validHistory = recentHistory.filter((msg: any) => msg && msg.content && msg.content.trim() !== '');
               for (const msg of validHistory) {
                 if (msg.role === 'user') {
                   messages.push({ role: 'user', content: msg.content || '' });
@@ -436,7 +436,7 @@ export async function POST(request: NextRequest) {
                   
                   // Add conversation history
                   const recentHistory = conversationHistory.slice(-20);
-                  const validHistory = recentHistory.filter(msg => msg && msg.content && msg.content.trim() !== '');
+                  const validHistory = recentHistory.filter((msg: any) => msg && msg.content && msg.content.trim() !== '');
                   for (const msg of validHistory) {
                     if (msg.role === 'user') {
                       fallbackMessages.push({ role: 'user', content: msg.content || '' });
