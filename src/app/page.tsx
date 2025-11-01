@@ -714,6 +714,97 @@ export default function Home() {
     setSearchQuery('');
   };
 
+  const handleImageEditRemix = async (instruction: string) => {
+    if (!imageEditRemixMode || selectedImageIndex === null || !instruction.trim()) return;
+
+    const imageToProcess = attachedImages[selectedImageIndex];
+    if (!imageToProcess) {
+      setError('Image not found');
+      return;
+    }
+
+    // Capture index and mode before clearing state
+    const imageIndex = selectedImageIndex;
+    const mode = imageEditRemixMode;
+    const trimmedInstruction = instruction.trim();
+
+    // Add user message with instruction
+    const userMessage = `${mode === 'edit' ? 'Edit' : 'Remix'} image: ${trimmedInstruction}`;
+    addUserMessage(userMessage, [imageToProcess]);
+
+    // Clear edit/remix mode
+    setImageEditRemixMode(null);
+    setSelectedImageIndex(null);
+    setSearchQuery('');
+
+    // Set generating state and progress
+    setIsGeneratingImage(true);
+    setImageGenerationProgress(0);
+
+    // Add a placeholder AI message for the generation status
+    addAIMessage('', [], undefined, userMessage, [imageToProcess], 'image');
+
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setImageGenerationProgress(prev => {
+        if (prev >= 90) return prev; // Stop at 90% until actual completion
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+
+    try {
+      const endpoint = mode === 'edit' ? '/api/edit-image' : '/api/remix-image';
+      const body = mode === 'edit' 
+        ? { editInstruction: trimmedInstruction, referenceImage: imageToProcess }
+        : { prompt: trimmedInstruction, referenceImages: [imageToProcess] };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${mode} image`);
+      }
+
+      const data = await response.json();
+      
+      // Complete progress
+      setImageGenerationProgress(100);
+
+      if (data.imageUrl) {
+        // Update the last AI message with the generated image
+        setTimeout(() => {
+          updateLastAIMessage(`Image ${mode === 'edit' ? 'edited' : 'remixed'} successfully!`, [data.imageUrl]);
+          setIsGeneratingImage(false);
+          setImageGenerationProgress(0);
+          clearInterval(progressInterval);
+          
+          // Remove the original image from attached images (only for edit)
+          if (mode === 'edit') {
+            setAttachedImages(prev => {
+              const newImages = [...prev];
+              newImages.splice(imageIndex, 1);
+              return newImages;
+            });
+          }
+        }, 300);
+      }
+    } catch (err: any) {
+      console.error(`Failed to ${mode} image:`, err);
+      setError(err.message || `Failed to ${mode} image`);
+      setIsGeneratingImage(false);
+      setImageGenerationProgress(0);
+      clearInterval(progressInterval);
+      // Remove the placeholder AI message on error
+      removeMessage(conversationHistory.length - 1);
+    }
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
