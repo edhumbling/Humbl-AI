@@ -16,6 +16,7 @@ export default function Home() {
   const {
     conversationHistory,
     conversationStarted,
+    getConversationHistory,
     addUserMessage,
     addAIMessage,
     updateLastAIMessage,
@@ -341,24 +342,30 @@ export default function Home() {
 
     try {
       // Build conversation history for API context
-      // Include all previous messages (NOT the current query - API adds it separately)
-      // If retry, exclude the last AI message we're retrying
-      let historyToUse = conversationHistory;
+      // Use getConversationHistory to get the latest state synchronously (via ref)
+      // This ensures we get the most up-to-date history including any recent additions
+      let historyToUse = getConversationHistory();
+      
       if (isRetry) {
-        historyToUse = conversationHistory.filter((msg, idx) => {
-          return !(idx === conversationHistory.length - 1 && msg.type === 'ai');
+        // For retry, exclude the last AI message we're retrying
+        historyToUse = historyToUse.filter((msg, idx) => {
+          return !(idx === historyToUse.length - 1 && msg.type === 'ai');
         });
       }
       
       // Convert to API format - includes all previous conversation history
-      // The current query will be added separately by the API
-      const historyForAPI = historyToUse.map(msg => ({
-        role: msg.type === 'user' ? 'user' : 'assistant',
-        content: msg.content,
-        images: msg.images,
-      }));
+      // The current query will be added by the API, so we send all previous messages
+      // Filter out empty messages to avoid sending placeholders
+      const historyForAPI = historyToUse
+        .filter(msg => msg.content && msg.content.trim() !== '')
+        .map(msg => ({
+          role: msg.type === 'user' ? 'user' : 'assistant',
+          content: msg.content || '',
+          images: msg.images,
+        }));
 
       // Add user message to conversation history for UI (after building API history)
+      // This ensures historyForAPI has all previous messages before the current one
       if (!isRetry) {
         addUserMessage(queryToUse, imagesToUse.slice(0, 3));
       }

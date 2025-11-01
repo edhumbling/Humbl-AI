@@ -171,26 +171,39 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
 
     // Add conversation history (limit to last 20 messages to avoid token limits)
     const recentHistory = conversationHistory.slice(-20);
-    for (const msg of recentHistory) {
+    // Filter out empty or invalid messages
+    const validHistory = recentHistory.filter(msg => 
+      msg && 
+      msg.role && 
+      msg.content && 
+      typeof msg.content === 'string' && 
+      msg.content.trim() !== ''
+    );
+    
+    for (const msg of validHistory) {
       if (msg.role === 'user') {
         const msgContent: any[] = [];
         if (msg.content) {
           msgContent.push({ type: "text", text: msg.content });
         }
         // Add images if present
-        if (msg.images && Array.isArray(msg.images)) {
+        if (msg.images && Array.isArray(msg.images) && msg.images.length > 0) {
           for (const img of msg.images.slice(0, 5)) {
-            msgContent.push({ type: "image_url", image_url: { url: img } });
+            if (img) {
+              msgContent.push({ type: "image_url", image_url: { url: img } });
+            }
           }
         }
-        messages.push({
-          role: "user",
-          content: msgContent.length > 0 ? msgContent : [{ type: "text", text: msg.content || "" }]
-        });
+        if (msgContent.length > 0) {
+          messages.push({
+            role: "user",
+            content: msgContent
+          });
+        }
       } else if (msg.role === 'assistant') {
         messages.push({
           role: "assistant",
-          content: msg.content || ""
+          content: msg.content
         });
       }
     }
@@ -264,26 +277,39 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
 
     // Add conversation history (limit to last 20 messages to avoid token limits)
     const recentHistory = conversationHistory.slice(-20);
-    for (const msg of recentHistory) {
+    // Filter out empty or invalid messages
+    const validHistory = recentHistory.filter(msg => 
+      msg && 
+      msg.role && 
+      msg.content && 
+      typeof msg.content === 'string' && 
+      msg.content.trim() !== ''
+    );
+    
+    for (const msg of validHistory) {
       if (msg.role === 'user') {
         const msgContent: any[] = [];
         if (msg.content) {
           msgContent.push({ type: "text", text: msg.content });
         }
         // Add images if present
-        if (msg.images && Array.isArray(msg.images)) {
+        if (msg.images && Array.isArray(msg.images) && msg.images.length > 0) {
           for (const img of msg.images.slice(0, 5)) {
-            msgContent.push({ type: "image_url", image_url: { url: img } });
+            if (img) {
+              msgContent.push({ type: "image_url", image_url: { url: img } });
+            }
           }
         }
-        messages.push({
-          role: "user",
-          content: msgContent.length > 0 ? msgContent : [{ type: "text", text: msg.content || "" }]
-        });
+        if (msgContent.length > 0) {
+          messages.push({
+            role: "user",
+            content: msgContent
+          });
+        }
       } else if (msg.role === 'assistant') {
         messages.push({
           role: "assistant",
-          content: msg.content || ""
+          content: msg.content
         });
       }
     }
@@ -359,7 +385,8 @@ export async function POST(request: NextRequest) {
               
               // Add conversation history
               const recentHistory = conversationHistory.slice(-20);
-              for (const msg of recentHistory) {
+              const validHistory = recentHistory.filter(msg => msg && msg.content && msg.content.trim() !== '');
+              for (const msg of validHistory) {
                 if (msg.role === 'user') {
                   messages.push({ role: 'user', content: msg.content || '' });
                 } else if (msg.role === 'assistant') {
@@ -409,7 +436,8 @@ export async function POST(request: NextRequest) {
                   
                   // Add conversation history
                   const recentHistory = conversationHistory.slice(-20);
-                  for (const msg of recentHistory) {
+                  const validHistory = recentHistory.filter(msg => msg && msg.content && msg.content.trim() !== '');
+                  for (const msg of validHistory) {
                     if (msg.role === 'user') {
                       fallbackMessages.push({ role: 'user', content: msg.content || '' });
                     } else if (msg.role === 'assistant') {

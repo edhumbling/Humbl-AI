@@ -16,6 +16,7 @@ export interface ConversationMessage {
 interface ConversationContextType {
   conversationHistory: ConversationMessage[];
   conversationStarted: boolean;
+  getConversationHistory: () => ConversationMessage[]; // Get current history synchronously via ref
   addMessage: (message: ConversationMessage) => void;
   addUserMessage: (content: string, images?: string[]) => void;
   addAIMessage: (
@@ -158,9 +159,15 @@ export function ConversationProvider({ children }: { children: React.ReactNode }
     setConversationStarted(false);
   }, []);
 
+  // Get current conversation history synchronously (via ref to avoid async state issues)
+  const getConversationHistory = useCallback(() => {
+    return historyRef.current;
+  }, []);
+
   const value: ConversationContextType = {
     conversationHistory,
     conversationStarted,
+    getConversationHistory,
     addMessage,
     addUserMessage,
     addAIMessage,
