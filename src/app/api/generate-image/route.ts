@@ -71,7 +71,7 @@ async function tryGemini(prompt: string): Promise<{ imageUrl: string } | null> {
 }
 
 // Try Reve API with a specific API key
-async function tryReveWithKey(prompt: string, apiKey: string): Promise<{ imageUrl: string } | null> {
+async function tryReveWithKey(prompt: string, apiKey: string): Promise<{ imageUrl: string } | { error: string, statusCode?: number } | null> {
   try {
     const response = await fetch('https://api.reve.com/v1/image/create', {
       method: 'POST',
@@ -89,8 +89,15 @@ async function tryReveWithKey(prompt: string, apiKey: string): Promise<{ imageUr
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+      
+      // Check for 402 (budget exhausted) or credit-related errors
+      if (response.status === 402 || errorData.message?.toLowerCase().includes('budget') || errorData.message?.toLowerCase().includes('funds')) {
+        console.error(`Reve API key budget exhausted (402): ${errorData.message}`);
+        return { error: 'BUDGET_EXHAUSTED', statusCode: 402 };
+      }
+      
       console.error('Reve API error:', errorData);
-      return null;
+      return { error: errorData.message || 'Unknown error', statusCode: response.status };
     }
 
     const data = await response.json();
@@ -122,9 +129,21 @@ async function tryReve(prompt: string): Promise<{ imageUrl: string } | null> {
   for (let i = 0; i < reveApiKeys.length; i++) {
     const apiKey = reveApiKeys[i];
     const result = await tryReveWithKey(prompt, apiKey);
-    if (result) {
+    
+    // Check if result is success (has imageUrl)
+    if (result && 'imageUrl' in result) {
       return result;
     }
+    
+    // Check if it's a budget error (402) - should try next key
+    if (result && 'error' in result && result.statusCode === 402) {
+      if (i < reveApiKeys.length - 1) {
+        console.log(`Reve API key ${i + 1} budget exhausted (402), trying next fallback key...`);
+        continue; // Try next key
+      }
+    }
+    
+    // Other errors or no result - try next key if available
     if (i < reveApiKeys.length - 1) {
       console.log(`Reve API key ${i + 1} failed, trying next fallback key...`);
     }
