@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       process.env.REVE_API_KEY,
       process.env.REVE_API_KEY_FALLBACK,
       process.env.REVE_API_KEY_FALLBACK_2,
+      process.env.REVE_API_KEY_FALLBACK_3,
     ].filter((key): key is string => !!key);
 
     if (reveApiKeys.length === 0) {

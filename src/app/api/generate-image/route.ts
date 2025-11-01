@@ -123,6 +123,7 @@ async function tryReve(prompt: string): Promise<{ imageUrl: string } | null> {
     process.env.REVE_API_KEY,
     process.env.REVE_API_KEY_FALLBACK,
     process.env.REVE_API_KEY_FALLBACK_2,
+    process.env.REVE_API_KEY_FALLBACK_3,
   ].filter((key): key is string => !!key);
 
   // Try each key in order until one succeeds
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // Both APIs failed
     const hasGemini = !!process.env.GEMINI_API_KEY;
-    const hasReve = !!process.env.REVE_API_KEY || !!process.env.REVE_API_KEY_FALLBACK || !!process.env.REVE_API_KEY_FALLBACK_2;
+    const hasReve = !!process.env.REVE_API_KEY || !!process.env.REVE_API_KEY_FALLBACK || !!process.env.REVE_API_KEY_FALLBACK_2 || !!process.env.REVE_API_KEY_FALLBACK_3;
     
     let errorMessage = 'Failed to generate image';
     if (!hasGemini && !hasReve) {
