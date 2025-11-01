@@ -569,8 +569,15 @@ export default function Home() {
     }
   };
 
-  const handleDownloadImage = async (imageUrl: string, filename: string = 'image') => {
+  const handleDownloadImage = async (imageUrl: string, filename?: string) => {
     try {
+      // Generate unique filename with timestamp and random string
+      const generateUniqueFilename = (prefix: string = 'image') => {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+        const randomStr = Math.random().toString(36).substring(2, 8);
+        return `${prefix}-${timestamp}-${randomStr}`;
+      };
+
       // If it's a data URL, convert to blob
       if (imageUrl.startsWith('data:')) {
         const response = await fetch(imageUrl);
@@ -578,7 +585,10 @@ export default function Home() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename.includes('.') ? filename : `${filename}.png`;
+        const uniqueFilename = filename 
+          ? (filename.includes('.') ? filename : `${generateUniqueFilename(filename)}.png`)
+          : `${generateUniqueFilename()}.png`;
+        a.download = uniqueFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -592,7 +602,13 @@ export default function Home() {
         a.href = url;
         const urlParts = imageUrl.split('/');
         const originalFilename = urlParts[urlParts.length - 1].split('?')[0];
-        a.download = originalFilename || `${filename}.png`;
+        // Use original filename if it exists and has extension, otherwise generate unique name
+        const uniqueFilename = (originalFilename && originalFilename.includes('.'))
+          ? originalFilename
+          : (filename 
+              ? `${generateUniqueFilename(filename)}.png`
+              : `${generateUniqueFilename()}.png`);
+        a.download = uniqueFilename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -800,6 +816,42 @@ export default function Home() {
       }
     };
   }, [showSuggestions, conversationStarted]);
+
+  // Smoothly scroll to beginning of response immediately after user sends query
+  useEffect(() => {
+    if (!conversationStarted || !isLoading) return;
+    
+    const container = conversationScrollRef.current;
+    if (!container) return;
+
+    // Wait for response start marker to appear, then scroll
+    const scrollToResponseStart = () => {
+      const target = responseStartRef.current;
+      if (target) {
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = target.getBoundingClientRect();
+        const offset = targetRect.top - containerRect.top + container.scrollTop - 8;
+        
+        try {
+          container.scrollTo({ top: Math.max(0, offset), behavior: 'smooth' });
+        } catch {
+          container.scrollTop = Math.max(0, offset);
+        }
+        return true;
+      }
+      return false;
+    };
+
+    // Try immediately
+    requestAnimationFrame(() => {
+      if (!scrollToResponseStart()) {
+        // If marker not ready, try again after a short delay
+        setTimeout(() => {
+          scrollToResponseStart();
+        }, 150);
+      }
+    });
+  }, [conversationHistory.length, isLoading, conversationStarted]);
 
   // Detect scroll position to show/hide scroll-to-bottom button
   useEffect(() => {
@@ -1338,7 +1390,7 @@ export default function Home() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDownloadImage(src, `attachment-${idx+1}`);
+                                  handleDownloadImage(src, 'attachment');
                                 }}
                                 className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/80 hover:bg-[#f1d08c] opacity-0 group-hover:opacity-100 transition-opacity z-10"
                                 title="Download image"
@@ -1366,7 +1418,7 @@ export default function Home() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDownloadImage(src, `generated-image-${idx+1}`);
+                                  handleDownloadImage(src, 'generated');
                                 }}
                                 className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
                                 style={{ backgroundColor: '#f1d08c' }}
