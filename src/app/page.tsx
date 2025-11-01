@@ -340,12 +340,40 @@ export default function Home() {
     }
 
     try {
+      // Build conversation history for API context
+      // Include all previous messages (NOT the current query - API adds it separately)
+      // If retry, exclude the last AI message we're retrying
+      let historyToUse = conversationHistory;
+      if (isRetry) {
+        historyToUse = conversationHistory.filter((msg, idx) => {
+          return !(idx === conversationHistory.length - 1 && msg.type === 'ai');
+        });
+      }
+      
+      // Convert to API format - includes all previous conversation history
+      // The current query will be added separately by the API
+      const historyForAPI = historyToUse.map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content,
+        images: msg.images,
+      }));
+
+      // Add user message to conversation history for UI (after building API history)
+      if (!isRetry) {
+        addUserMessage(queryToUse, imagesToUse.slice(0, 3));
+      }
+
       const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query: queryToUse, images: imagesToUse.slice(0, 3), mode: modeToUse }),
+        body: JSON.stringify({ 
+          query: queryToUse, 
+          images: imagesToUse.slice(0, 3), 
+          mode: modeToUse,
+          conversationHistory: historyForAPI,
+        }),
       });
 
       if (!response.ok) {

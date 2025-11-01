@@ -151,7 +151,7 @@ const CODE_OSS_20B = {
 };
 
 // Try code execution model with special handling
-async function tryCodeExecutionModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[]) {
+async function tryCodeExecutionModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[], conversationHistory: any[] = []) {
   try {
     const userContent: any[] = [];
     if (query) {
@@ -161,16 +161,45 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
       userContent.push({ type: "image_url", image_url: { url: img } });
     }
 
-    const messages = [
+    // Build messages array with conversation history
+    const messages: any[] = [
       {
         role: "system",
-        content: "You are Humbl AI, a powerful assistant with code execution capabilities. When computational problems or code-related queries arise, use code execution to provide accurate results. Show both the code you used and the final answer."
-      },
-      {
-        role: "user",
-        content: userContent.length > 0 ? userContent : [{ type: "text", text: query }]
+        content: "You are Humbl AI, a powerful assistant with code execution capabilities. When computational problems or code-related queries arise, use code execution to provide accurate results. Show both the code you used and the final answer. Remember previous messages in the conversation to maintain context and flow."
       }
     ];
+
+    // Add conversation history (limit to last 20 messages to avoid token limits)
+    const recentHistory = conversationHistory.slice(-20);
+    for (const msg of recentHistory) {
+      if (msg.role === 'user') {
+        const msgContent: any[] = [];
+        if (msg.content) {
+          msgContent.push({ type: "text", text: msg.content });
+        }
+        // Add images if present
+        if (msg.images && Array.isArray(msg.images)) {
+          for (const img of msg.images.slice(0, 5)) {
+            msgContent.push({ type: "image_url", image_url: { url: img } });
+          }
+        }
+        messages.push({
+          role: "user",
+          content: msgContent.length > 0 ? msgContent : [{ type: "text", text: msg.content || "" }]
+        });
+      } else if (msg.role === 'assistant') {
+        messages.push({
+          role: "assistant",
+          content: msg.content || ""
+        });
+      }
+    }
+
+    // Add current user message
+    messages.push({
+      role: "user",
+      content: userContent.length > 0 ? userContent : [{ type: "text", text: query }]
+    });
 
     const stream = client.chat.completions.create({
       ...modelConfig,
@@ -215,7 +244,7 @@ async function tryGuardModel(query: string, controller: ReadableStreamDefaultCon
   }
 }
 
-async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[]) {
+async function tryModel(modelConfig: any, query: string, controller: ReadableStreamDefaultController, images: string[], conversationHistory: any[] = []) {
   try {
     const userContent: any[] = [];
     if (query) {
@@ -225,18 +254,49 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
       userContent.push({ type: "image_url", image_url: { url: img } });
     }
 
+    // Build messages array with conversation history
+    const messages: any[] = [
+      {
+        role: "system",
+        content: "You are Humbl AI, a powerful search engine assistant. Help users find relevant information and provide comprehensive, accurate answers to their queries. Be concise but thorough in your responses. Remember previous messages in the conversation to maintain context and flow."
+      }
+    ];
+
+    // Add conversation history (limit to last 20 messages to avoid token limits)
+    const recentHistory = conversationHistory.slice(-20);
+    for (const msg of recentHistory) {
+      if (msg.role === 'user') {
+        const msgContent: any[] = [];
+        if (msg.content) {
+          msgContent.push({ type: "text", text: msg.content });
+        }
+        // Add images if present
+        if (msg.images && Array.isArray(msg.images)) {
+          for (const img of msg.images.slice(0, 5)) {
+            msgContent.push({ type: "image_url", image_url: { url: img } });
+          }
+        }
+        messages.push({
+          role: "user",
+          content: msgContent.length > 0 ? msgContent : [{ type: "text", text: msg.content || "" }]
+        });
+      } else if (msg.role === 'assistant') {
+        messages.push({
+          role: "assistant",
+          content: msg.content || ""
+        });
+      }
+    }
+
+    // Add current user message
+    messages.push({
+      role: "user",
+      content: userContent.length > 0 ? userContent : [{ type: "text", text: query }]
+    });
+
     const stream = client.chat.completions.create({
       ...modelConfig,
-      messages: [
-        {
-          role: "system",
-          content: "You are Humbl AI, a powerful search engine assistant. Help users find relevant information and provide comprehensive, accurate answers to their queries. Be concise but thorough in your responses."
-        },
-        {
-          role: "user",
-          content: userContent.length > 0 ? userContent : [{ type: "text", text: query }]
-        }
-      ]
+      messages: messages as any
     });
 
     // Handle streaming response according to Groq documentation
@@ -269,7 +329,7 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
 
 export async function POST(request: NextRequest) {
   try {
-    const { query, images, mode } = await request.json();
+    const { query, images, mode, conversationHistory = [] } = await request.json();
 
     if (!query || query.trim() === '') {
       return new Response(
@@ -292,12 +352,27 @@ export async function POST(request: NextRequest) {
           // Web search mode: use Compound systems and include citations (non-stream for metadata)
           if (mode === 'search') {
             const runCompound = async (modelId: string) => {
+              // Build messages with conversation history for web search mode
+              const messages: any[] = [
+                { role: 'system', content: 'You are Humbl AI. Use web search when helpful and include concise citations. Remember previous messages in the conversation to maintain context and flow.' }
+              ];
+              
+              // Add conversation history
+              const recentHistory = conversationHistory.slice(-20);
+              for (const msg of recentHistory) {
+                if (msg.role === 'user') {
+                  messages.push({ role: 'user', content: msg.content || '' });
+                } else if (msg.role === 'assistant') {
+                  messages.push({ role: 'assistant', content: msg.content || '' });
+                }
+              }
+              
+              // Add current query
+              messages.push({ role: 'user', content: query });
+              
               const completion = await client.chat.completions.create({
                 model: modelId,
-                messages: [
-                  { role: 'system', content: 'You are Humbl AI. Use web search when helpful and include concise citations.' },
-                  { role: 'user', content: query }
-                ],
+                messages: messages,
                 stream: false,
                 // widen search scope explicitly using include_domains wildcards per Groq docs
                 // ref: https://console.groq.com/docs/web-search
@@ -327,12 +402,27 @@ export async function POST(request: NextRequest) {
               } catch (fallbackErr) {
                 // Graceful degradation: answer without browsing using our default model
                 try {
+                  // Build messages with conversation history for fallback
+                  const fallbackMessages: any[] = [
+                    { role: 'system', content: 'You are Humbl AI. Provide your best answer without web search due to a temporary issue. Remember previous messages in the conversation to maintain context and flow.' }
+                  ];
+                  
+                  // Add conversation history
+                  const recentHistory = conversationHistory.slice(-20);
+                  for (const msg of recentHistory) {
+                    if (msg.role === 'user') {
+                      fallbackMessages.push({ role: 'user', content: msg.content || '' });
+                    } else if (msg.role === 'assistant') {
+                      fallbackMessages.push({ role: 'assistant', content: msg.content || '' });
+                    }
+                  }
+                  
+                  // Add current query
+                  fallbackMessages.push({ role: 'user', content: query });
+                  
                   const completion = await client.chat.completions.create({
                     ...PRIMARY_MODEL,
-                    messages: [
-                      { role: 'system', content: 'You are Humbl AI. Provide your best answer without web search due to a temporary issue.' },
-                      { role: 'user', content: query }
-                    ],
+                    messages: fallbackMessages,
                     stream: false
                   } as any);
                   const choice: any = (completion as any).choices?.[0]?.message || {};
@@ -357,10 +447,10 @@ export async function POST(request: NextRequest) {
           // Use vision models when images are present
           if (hasImages) {
             console.log('Images detected, using vision models...');
-            const visionScoutSuccess = await tryModel(VISION_SCOUT, query, controller, imgs);
+            const visionScoutSuccess = await tryModel(VISION_SCOUT, query, controller, imgs, conversationHistory);
             if (!visionScoutSuccess) {
               console.log('Vision Scout failed, trying Vision Maverick...');
-              const visionMaverickSuccess = await tryModel(VISION_MAVERICK, query, controller, imgs);
+              const visionMaverickSuccess = await tryModel(VISION_MAVERICK, query, controller, imgs, conversationHistory);
               if (!visionMaverickSuccess) {
                 controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ error: 'Vision models failed. Please try again.' })}\n\n`));
                 controller.close();
@@ -373,13 +463,13 @@ export async function POST(request: NextRequest) {
           // Text-only queries: Check if query is code/calculation related and use code execution models
           if (isCodeRelatedQuery(query)) {
             console.log('Detected code-related query, using code execution models...');
-            const codeMiniSuccess = await tryCodeExecutionModel(CODE_COMPOUND_MINI, query, controller, imgs);
+            const codeMiniSuccess = await tryCodeExecutionModel(CODE_COMPOUND_MINI, query, controller, imgs, conversationHistory);
             if (!codeMiniSuccess) {
               console.log('Attempting Compound for code execution...');
-              const codeCompoundSuccess = await tryCodeExecutionModel(CODE_COMPOUND, query, controller, imgs);
+              const codeCompoundSuccess = await tryCodeExecutionModel(CODE_COMPOUND, query, controller, imgs, conversationHistory);
               if (!codeCompoundSuccess) {
                 console.log('Attempting GPT-OSS 20B with code interpreter...');
-                const codeOssSuccess = await tryCodeExecutionModel(CODE_OSS_20B, query, controller, imgs);
+                const codeOssSuccess = await tryCodeExecutionModel(CODE_OSS_20B, query, controller, imgs, conversationHistory);
                 if (!codeOssSuccess) {
                   console.log('Code execution models failed, falling back to regular models...');
                   // Fall through to regular model flow
@@ -395,23 +485,23 @@ export async function POST(request: NextRequest) {
           }
           
           // Text-only queries: Use regular models
-          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, imgs);
+          const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, imgs, conversationHistory);
           if (!primarySuccess) {
             console.log('Attempting moonshot fallback model...');
-            const moonshotSuccess = await tryModel(MOONSHOT_FALLBACK as any, query, controller, imgs);
-            const fallbackSuccess = moonshotSuccess ? true : await tryModel(FALLBACK_MODEL, query, controller, imgs);
+            const moonshotSuccess = await tryModel(MOONSHOT_FALLBACK as any, query, controller, imgs, conversationHistory);
+            const fallbackSuccess = moonshotSuccess ? true : await tryModel(FALLBACK_MODEL, query, controller, imgs, conversationHistory);
             if (!fallbackSuccess) {
               console.log('Attempting versatile 70B fallback model...');
-              const versatileSuccess = await tryModel(VERSATILE_FALLBACK as any, query, controller, imgs);
+              const versatileSuccess = await tryModel(VERSATILE_FALLBACK as any, query, controller, imgs, conversationHistory);
               if (!versatileSuccess) {
                 console.log('Attempting instant 8B fallback model...');
-                const instantSuccess = await tryModel(INSTANT_FALLBACK as any, query, controller, imgs);
+                const instantSuccess = await tryModel(INSTANT_FALLBACK as any, query, controller, imgs, conversationHistory);
                 if (!instantSuccess) {
                   console.log('Attempting OSS 20B fallback model...');
-                  const oss20bSuccess = await tryModel(OSS20B_FALLBACK as any, query, controller, imgs);
+                  const oss20bSuccess = await tryModel(OSS20B_FALLBACK as any, query, controller, imgs, conversationHistory);
                   if (!oss20bSuccess) {
                     console.log('Attempting safeguard fallback model...');
-                    const safeguardSuccess = await tryModel(SAFEGUARD_FALLBACK, query, controller, imgs);
+                    const safeguardSuccess = await tryModel(SAFEGUARD_FALLBACK, query, controller, imgs, conversationHistory);
                     if (!safeguardSuccess) {
                       console.log('Attempting prompt guard final fallback...');
                       await tryGuardModel(query, controller);
