@@ -724,6 +724,9 @@ export default function Home() {
       return;
     }
 
+    // Start conversation to ensure UI is visible
+    startConversation();
+
     // Capture index and mode before clearing state
     const imageIndex = selectedImageIndex;
     const mode = imageEditRemixMode;
