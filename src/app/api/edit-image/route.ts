@@ -19,6 +19,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate edit instruction length (max 2560 characters)
+    const trimmedInstruction = editInstruction.trim();
+    if (trimmedInstruction.length === 0) {
+      return NextResponse.json(
+        { error: 'edit_instruction cannot be empty' },
+        { status: 400 }
+      );
+    }
+    
+    if (trimmedInstruction.length > 2560) {
+      return NextResponse.json(
+        { error: 'edit_instruction cannot exceed 2560 characters' },
+        { status: 400 }
+      );
+    }
+
     // Extract base64 data if it's a data URL
     let base64Image = referenceImage;
     if (referenceImage.startsWith('data:')) {
@@ -41,7 +57,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        edit_instruction: editInstruction,
+        edit_instruction: trimmedInstruction,
         reference_image: base64Image,
         version: 'latest',
       }),
