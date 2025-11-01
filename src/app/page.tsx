@@ -5,7 +5,6 @@ import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, Arrow
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
-import GlassmorphicImageGeneratorOverlay from '../components/GlassmorphicImageGeneratorOverlay';
 
 interface SearchResult {
   query: string;
@@ -274,12 +273,20 @@ export default function Home() {
     
     const modeToUse = retryMode ?? (imageGenerationMode ? 'image' : mode);
     
+    // Add user message to conversation history for UI (before processing)
+    // This ensures the user's query is displayed normally
+    if (!isRetry) {
+      addUserMessage(queryToUse, imagesToUse.slice(0, 3));
+    }
+    
     // Handle image generation mode
     if (modeToUse === 'image') {
-      // Set thinking text for image generation
-      setThinkingText('Generating image, Pls wait..');
+      // Set generating state and progress
       setIsGeneratingImage(true);
       setImageGenerationProgress(0);
+      
+      // Add a placeholder AI message for the generation status
+      addAIMessage('', [], undefined, queryToUse, imagesToUse.slice(0, 3), modeToUse);
       
       // Simulate progress updates
       const progressInterval = setInterval(() => {
@@ -309,27 +316,17 @@ export default function Home() {
         setImageGenerationProgress(100);
         
         if (imageData.imageUrl) {
-          // Add generated image to conversation
-          addAIMessage(
-            'Image generated successfully!',
-            [imageData.imageUrl],
-            undefined,
-            queryToUse,
-            imagesToUse.slice(0, 3),
-            modeToUse
-          );
-          setSearchQuery('');
-          setAttachedImages([]);
-          
-          // Small delay to show completion
+          // Update the last AI message with the generated image
           setTimeout(() => {
+            updateLastAIMessage('Image generated successfully!', [imageData.imageUrl]);
+            setSearchQuery('');
+            setAttachedImages([]);
             setIsLoading(false);
             setIsGeneratingImage(false);
             setImageGenerationProgress(0);
-            setThinkingText('');
             clearInterval(progressInterval);
             setImageGenerationMode(false); // Reset mode after generation
-          }, 500);
+          }, 300);
           return;
         }
       } catch (err: any) {
@@ -338,8 +335,9 @@ export default function Home() {
         setIsLoading(false);
         setIsGeneratingImage(false);
         setImageGenerationProgress(0);
-        setThinkingText('');
         clearInterval(progressInterval);
+        // Remove the placeholder AI message on error
+        removeMessage(conversationHistory.length - 1);
         return;
       }
     }
@@ -393,11 +391,8 @@ export default function Home() {
           images: msg.images,
         }));
 
-      // Add user message to conversation history for UI (after building API history)
-      // This ensures historyForAPI has all previous messages before the current one
-      if (!isRetry) {
-        addUserMessage(queryToUse, imagesToUse.slice(0, 3));
-      }
+      // User message already added above for all modes
+      // Skip duplicate addition for non-image modes
 
       const response = await fetch('/api/search', {
         method: 'POST',
@@ -708,15 +703,39 @@ export default function Home() {
   const handleEditImage = async () => {
     if (editingImageIndex === null || !editInstruction.trim()) return;
 
-    setIsEditingImage(true);
-    setError(null);
+    const imageToEdit = attachedImages[editingImageIndex];
+    if (!imageToEdit) {
+      setError('Image not found');
+      return;
+    }
+
+    // Capture index before closing modal
+    const imageIndex = editingImageIndex;
+
+    // Add user message with edit instruction
+    const userMessage = `Edit image: ${editInstruction.trim()}`;
+    addUserMessage(userMessage, [imageToEdit]);
+
+    // Close modal
+    setEditingImageIndex(null);
+    setEditInstruction('');
+
+    // Set generating state and progress
+    setIsGeneratingImage(true);
+    setImageGenerationProgress(0);
+
+    // Add a placeholder AI message for the generation status
+    addAIMessage('', [], undefined, userMessage, [imageToEdit], 'image');
+
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setImageGenerationProgress(prev => {
+        if (prev >= 90) return prev; // Stop at 90% until actual completion
+        return prev + Math.random() * 15;
+      });
+    }, 500);
 
     try {
-      const imageToEdit = attachedImages[editingImageIndex];
-      if (!imageToEdit) {
-        throw new Error('Image not found');
-      }
-
       const response = await fetch('/api/edit-image', {
         method: 'POST',
         headers: {
@@ -735,36 +754,69 @@ export default function Home() {
 
       const data = await response.json();
       
-      // Replace the original image with the edited one
-      setAttachedImages(prev => {
-        const newImages = [...prev];
-        newImages[editingImageIndex] = data.imageUrl;
-        return newImages;
-      });
+      // Complete progress
+      setImageGenerationProgress(100);
 
-      // Reset editing state
-      setEditingImageIndex(null);
-      setEditInstruction('');
+      if (data.imageUrl) {
+        // Update the last AI message with the generated image
+        setTimeout(() => {
+          updateLastAIMessage('Image edited successfully!', [data.imageUrl]);
+          setIsGeneratingImage(false);
+          setImageGenerationProgress(0);
+          clearInterval(progressInterval);
+          
+          // Remove the edited image from attached images
+          setAttachedImages(prev => {
+            const newImages = [...prev];
+            newImages.splice(imageIndex, 1);
+            return newImages;
+          });
+        }, 300);
+      }
     } catch (err: any) {
       console.error('Failed to edit image:', err);
       setError(err.message || 'Failed to edit image');
-    } finally {
-      setIsEditingImage(false);
+      setIsGeneratingImage(false);
+      setImageGenerationProgress(0);
+      clearInterval(progressInterval);
+      // Remove the placeholder AI message on error
+      removeMessage(conversationHistory.length - 1);
     }
   };
 
   const handleRemixImage = async () => {
     if (remixingImageIndex === null || !remixPrompt.trim()) return;
 
-    setIsRemixingImage(true);
-    setError(null);
+    const imageToRemix = attachedImages[remixingImageIndex];
+    if (!imageToRemix) {
+      setError('Image not found');
+      return;
+    }
+
+    // Add user message with remix prompt
+    const userMessage = `Remix image: ${remixPrompt.trim()}`;
+    addUserMessage(userMessage, [imageToRemix]);
+
+    // Close modal
+    setRemixingImageIndex(null);
+    setRemixPrompt('');
+
+    // Set generating state and progress
+    setIsGeneratingImage(true);
+    setImageGenerationProgress(0);
+
+    // Add a placeholder AI message for the generation status
+    addAIMessage('', [], undefined, userMessage, [imageToRemix], 'image');
+
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setImageGenerationProgress(prev => {
+        if (prev >= 90) return prev; // Stop at 90% until actual completion
+        return prev + Math.random() * 15;
+      });
+    }, 500);
 
     try {
-      const imageToRemix = attachedImages[remixingImageIndex];
-      if (!imageToRemix) {
-        throw new Error('Image not found');
-      }
-
       const response = await fetch('/api/remix-image', {
         method: 'POST',
         headers: {
@@ -782,18 +834,27 @@ export default function Home() {
       }
 
       const data = await response.json();
-      
-      // Add the remixed image to the attached images
-      setAttachedImages(prev => [...prev, data.imageUrl]);
 
-      // Reset remixing state
-      setRemixingImageIndex(null);
-      setRemixPrompt('');
+      // Complete progress
+      setImageGenerationProgress(100);
+
+      if (data.imageUrl) {
+        // Update the last AI message with the generated image
+        setTimeout(() => {
+          updateLastAIMessage('Image remixed successfully!', [data.imageUrl]);
+          setIsGeneratingImage(false);
+          setImageGenerationProgress(0);
+          clearInterval(progressInterval);
+        }, 300);
+      }
     } catch (err: any) {
       console.error('Failed to remix image:', err);
       setError(err.message || 'Failed to remix image');
-    } finally {
-      setIsRemixingImage(false);
+      setIsGeneratingImage(false);
+      setImageGenerationProgress(0);
+      clearInterval(progressInterval);
+      // Remove the placeholder AI message on error
+      removeMessage(conversationHistory.length - 1);
     }
   };
 
@@ -1220,7 +1281,7 @@ export default function Home() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={handleCancelEditImage}
-                  disabled={isEditingImage}
+                  disabled={isGeneratingImage}
                   className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   style={{ backgroundColor: '#2a2a29', color: '#ffffff' }}
                 >
@@ -1228,28 +1289,20 @@ export default function Home() {
                 </button>
                 <button
                   onClick={handleEditImage}
-                  disabled={isEditingImage || !editInstruction.trim()}
+                  disabled={isGeneratingImage || !editInstruction.trim()}
                   className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   style={{ 
-                    backgroundColor: isEditingImage || !editInstruction.trim() ? '#2a2a29' : '#f1d08c', 
-                    color: isEditingImage || !editInstruction.trim() ? '#ffffff' : '#000000' 
+                    backgroundColor: isGeneratingImage || !editInstruction.trim() ? '#2a2a29' : '#f1d08c', 
+                    color: isGeneratingImage || !editInstruction.trim() ? '#ffffff' : '#000000' 
                   }}
                 >
-                  {isEditingImage ? 'Editing...' : 'Apply Edit'}
+                  {isGeneratingImage ? 'Editing...' : 'Apply Edit'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Glassmorphic Image Generator Overlay */}
-      <GlassmorphicImageGeneratorOverlay
-        isGenerating={isGeneratingImage}
-        progress={imageGenerationProgress}
-        message="Generating image, Pls wait.."
-        imagePreviewUrl={null}
-      />
 
       {/* Remix Image Modal */}
       {remixingImageIndex !== null && (
@@ -1295,7 +1348,7 @@ export default function Home() {
               <div className="flex gap-3 justify-end">
                 <button
                   onClick={handleCancelRemixImage}
-                  disabled={isRemixingImage}
+                  disabled={isGeneratingImage}
                   className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   style={{ backgroundColor: '#2a2a29', color: '#ffffff' }}
                 >
@@ -1303,14 +1356,14 @@ export default function Home() {
                 </button>
                 <button
                   onClick={handleRemixImage}
-                  disabled={isRemixingImage || !remixPrompt.trim()}
+                  disabled={isGeneratingImage || !remixPrompt.trim()}
                   className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                   style={{ 
-                    backgroundColor: isRemixingImage || !remixPrompt.trim() ? '#2a2a29' : '#f1d08c', 
-                    color: isRemixingImage || !remixPrompt.trim() ? '#ffffff' : '#000000' 
+                    backgroundColor: isGeneratingImage || !remixPrompt.trim() ? '#2a2a29' : '#f1d08c', 
+                    color: isGeneratingImage || !remixPrompt.trim() ? '#ffffff' : '#000000' 
                   }}
                 >
-                  {isRemixingImage ? 'Remixing...' : 'Create Remix'}
+                  {isGeneratingImage ? 'Remixing...' : 'Create Remix'}
                 </button>
               </div>
             </div>
@@ -1753,29 +1806,50 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="w-full">
-                      {/* Generated images for AI */}
-                      {message.images && message.images.length > 0 && (
-                        <div className="mb-3 flex flex-wrap gap-3">
-                          {message.images.map((src, idx) => (
-                            <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
-                              <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadImage(src, 'generated');
-                                }}
-                                className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
-                                style={{ backgroundColor: '#f1d08c' }}
-                                title="Download image"
-                              >
-                                <Download size={16} className="text-black" />
-                              </button>
-                            </div>
-                          ))}
+                      {/* Image Generation Status */}
+                      {isGeneratingImage && index === conversationHistory.length - 1 && !message.content && message.images?.length === 0 ? (
+                        <div className="max-w-[85%] rounded-2xl px-4 py-3"
+                          style={{ backgroundColor: '#2a2a29', border: '1px solid #3a3a39' }}>
+                          <div className="text-white mb-3">Generating an image please wait</div>
+                          <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
+                            <div
+                              className="h-2 rounded-full transition-all duration-300"
+                              style={{ 
+                                width: `${Math.max(2, Math.min(100, imageGenerationProgress))}%`, 
+                                background: 'linear-gradient(90deg, #f1d08c, #d4b86a)' 
+                              }}
+                            />
+                          </div>
+                          <div className="mt-2 text-xs text-gray-400">{Math.round(imageGenerationProgress)}% complete</div>
                         </div>
+                      ) : (
+                        <>
+                          {/* Generated images for AI */}
+                          {message.images && message.images.length > 0 && (
+                            <div className="mb-3 flex flex-wrap gap-3">
+                              {message.images.map((src, idx) => (
+                                <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
+                                  <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDownloadImage(src, 'generated');
+                                    }}
+                                    className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
+                                    style={{ backgroundColor: '#f1d08c' }}
+                                    title="Download image"
+                                  >
+                                    <Download size={16} className="text-black" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {message.content && <ResponseRenderer content={message.content} />}
+                        </>
                       )}
-                      {message.content && <ResponseRenderer content={message.content} />}
-                      {/* Action buttons for AI responses */}
+                      {/* Action buttons for AI responses - Hide during image generation */}
+                      {!(isGeneratingImage && index === conversationHistory.length - 1 && !message.content && message.images?.length === 0) && (
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       <button
                         onClick={() => handleCopy(message.content)}
@@ -1825,6 +1899,7 @@ export default function Home() {
                         )}
                       </button>
                       </div>
+                      )}
                       {/* Sources footer */}
                       {message.citations && message.citations.length > 0 && (
                         <div className="mt-3 border-t border-gray-800/60 pt-2">
