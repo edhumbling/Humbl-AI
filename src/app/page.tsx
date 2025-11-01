@@ -202,13 +202,9 @@ export default function Home() {
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
-  const canSend = (!!searchQuery.trim() || attachedImages.length > 0) && !isLoading;
-  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
-  const [editInstruction, setEditInstruction] = useState('');
-  const [isEditingImage, setIsEditingImage] = useState(false);
-  const [remixingImageIndex, setRemixingImageIndex] = useState<number | null>(null);
-  const [remixPrompt, setRemixPrompt] = useState('');
-  const [isRemixingImage, setIsRemixingImage] = useState(false);
+  const [imageEditRemixMode, setImageEditRemixMode] = useState<'edit' | 'remix' | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const canSend = (!!searchQuery.trim() || attachedImages.length > 0 || (imageEditRemixMode && selectedImageIndex !== null)) && !isLoading;
   const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -259,6 +255,16 @@ export default function Home() {
   };
 
   const handleSearch = async (retryQuery?: string, retryImages?: string[], retryMode?: 'default' | 'search' | 'study' | 'image', isRetry?: boolean) => {
+    // Handle image edit/remix mode
+    if (imageEditRemixMode && selectedImageIndex !== null) {
+      const instruction = retryQuery ?? searchQuery;
+      if (instruction.trim()) {
+        await handleImageEditRemix(instruction);
+        return;
+      }
+      return;
+    }
+
     const queryToUse = retryQuery ?? searchQuery;
     const imagesToUse = retryImages ?? attachedImages;
     if (!queryToUse.trim() && imagesToUse.length === 0) return;
@@ -679,183 +685,33 @@ export default function Home() {
   };
 
   const handleStartEditImage = (index: number) => {
-    setEditingImageIndex(index);
-    setEditInstruction('');
+    setImageEditRemixMode('edit');
+    setSelectedImageIndex(index);
     setImageMenuOpen(null);
+    setImageIconDropdownOpen(false);
+    // Focus search bar
+    setTimeout(() => {
+      const textarea = document.querySelector('.humbl-textarea') as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    }, 100);
   };
 
   const handleStartRemixImage = (index: number) => {
-    setRemixingImageIndex(index);
-    setRemixPrompt('');
+    setImageEditRemixMode('remix');
+    setSelectedImageIndex(index);
     setImageMenuOpen(null);
+    setImageIconDropdownOpen(false);
+    // Focus search bar
+    setTimeout(() => {
+      const textarea = document.querySelector('.humbl-textarea') as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    }, 100);
   };
 
-  const handleCancelEditImage = () => {
-    setEditingImageIndex(null);
-    setEditInstruction('');
-  };
-
-  const handleCancelRemixImage = () => {
-    setRemixingImageIndex(null);
-    setRemixPrompt('');
-  };
-
-  const handleEditImage = async () => {
-    if (editingImageIndex === null || !editInstruction.trim()) return;
-
-    const imageToEdit = attachedImages[editingImageIndex];
-    if (!imageToEdit) {
-      setError('Image not found');
-      return;
-    }
-
-    // Capture index before closing modal
-    const imageIndex = editingImageIndex;
-
-    // Add user message with edit instruction
-    const userMessage = `Edit image: ${editInstruction.trim()}`;
-    addUserMessage(userMessage, [imageToEdit]);
-
-    // Close modal
-    setEditingImageIndex(null);
-    setEditInstruction('');
-
-    // Set generating state and progress
-    setIsGeneratingImage(true);
-    setImageGenerationProgress(0);
-
-    // Add a placeholder AI message for the generation status
-    addAIMessage('', [], undefined, userMessage, [imageToEdit], 'image');
-
-    // Simulate progress updates
-    const progressInterval = setInterval(() => {
-      setImageGenerationProgress(prev => {
-        if (prev >= 90) return prev; // Stop at 90% until actual completion
-        return prev + Math.random() * 15;
-      });
-    }, 500);
-
-    try {
-      const response = await fetch('/api/edit-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          editInstruction: editInstruction.trim(),
-          referenceImage: imageToEdit,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to edit image');
-      }
-
-      const data = await response.json();
-      
-      // Complete progress
-      setImageGenerationProgress(100);
-
-      if (data.imageUrl) {
-        // Update the last AI message with the generated image
-        setTimeout(() => {
-          updateLastAIMessage('Image edited successfully!', [data.imageUrl]);
-          setIsGeneratingImage(false);
-          setImageGenerationProgress(0);
-          clearInterval(progressInterval);
-          
-          // Remove the edited image from attached images
-          setAttachedImages(prev => {
-            const newImages = [...prev];
-            newImages.splice(imageIndex, 1);
-            return newImages;
-          });
-        }, 300);
-      }
-    } catch (err: any) {
-      console.error('Failed to edit image:', err);
-      setError(err.message || 'Failed to edit image');
-      setIsGeneratingImage(false);
-      setImageGenerationProgress(0);
-      clearInterval(progressInterval);
-      // Remove the placeholder AI message on error
-      removeMessage(conversationHistory.length - 1);
-    }
-  };
-
-  const handleRemixImage = async () => {
-    if (remixingImageIndex === null || !remixPrompt.trim()) return;
-
-    const imageToRemix = attachedImages[remixingImageIndex];
-    if (!imageToRemix) {
-      setError('Image not found');
-      return;
-    }
-
-    // Add user message with remix prompt
-    const userMessage = `Remix image: ${remixPrompt.trim()}`;
-    addUserMessage(userMessage, [imageToRemix]);
-
-    // Close modal
-    setRemixingImageIndex(null);
-    setRemixPrompt('');
-
-    // Set generating state and progress
-    setIsGeneratingImage(true);
-    setImageGenerationProgress(0);
-
-    // Add a placeholder AI message for the generation status
-    addAIMessage('', [], undefined, userMessage, [imageToRemix], 'image');
-
-    // Simulate progress updates
-    const progressInterval = setInterval(() => {
-      setImageGenerationProgress(prev => {
-        if (prev >= 90) return prev; // Stop at 90% until actual completion
-        return prev + Math.random() * 15;
-      });
-    }, 500);
-
-    try {
-      const response = await fetch('/api/remix-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: remixPrompt.trim(),
-          referenceImages: [imageToRemix],
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to remix image');
-      }
-
-      const data = await response.json();
-
-      // Complete progress
-      setImageGenerationProgress(100);
-
-      if (data.imageUrl) {
-        // Update the last AI message with the generated image
-        setTimeout(() => {
-          updateLastAIMessage('Image remixed successfully!', [data.imageUrl]);
-          setIsGeneratingImage(false);
-          setImageGenerationProgress(0);
-          clearInterval(progressInterval);
-        }, 300);
-      }
-    } catch (err: any) {
-      console.error('Failed to remix image:', err);
-      setError(err.message || 'Failed to remix image');
-      setIsGeneratingImage(false);
-      setImageGenerationProgress(0);
-      clearInterval(progressInterval);
-      // Remove the placeholder AI message on error
-      removeMessage(conversationHistory.length - 1);
-    }
+  const handleCancelImageEditRemix = () => {
+    setImageEditRemixMode(null);
+    setSelectedImageIndex(null);
+    setSearchQuery('');
   };
 
   // Close dropdown when clicking outside
@@ -918,7 +774,11 @@ export default function Home() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
-  const placeholderText = isMobile ? 'Ask anything… everything ✨' : 'Ask Anything, I mean everything...';
+  const placeholderText = imageEditRemixMode === 'edit' 
+    ? 'Describe how to edit the image (e.g., "Remove all people from the background")'
+    : imageEditRemixMode === 'remix'
+    ? 'Describe how to remix the image (e.g., "Create a fantasy version with magical elements")'
+    : (isMobile ? 'Ask anything… everything ✨' : 'Ask Anything, I mean everything...');
 
   const scrollBarAboveKeyboard = (el: HTMLElement | null) => {
     if (!el) return;
@@ -1237,139 +1097,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Edit Image Modal */}
-      {editingImageIndex !== null && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={handleCancelEditImage}
-          />
-          <div className="relative h-full w-full flex items-center justify-center px-4">
-            <div 
-              className="w-full max-w-md rounded-2xl shadow-xl p-6" 
-              style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-4">
-                <h3 className="text-white text-lg font-semibold mb-2">Edit Image</h3>
-                {attachedImages[editingImageIndex] && (
-                  <div className="mb-4 rounded-lg overflow-hidden">
-                    <img 
-                      src={attachedImages[editingImageIndex]} 
-                      alt="Preview" 
-                      className="w-full max-h-48 object-contain bg-black rounded-lg"
-                    />
-                  </div>
-                )}
-                <label className="block text-gray-300 text-sm mb-2">
-                  Edit Instruction
-                </label>
-                <textarea
-                  value={editInstruction}
-                  onChange={(e) => setEditInstruction(e.target.value)}
-                  placeholder="Describe how to edit the image (e.g., 'Remove all people from the background')"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 outline-none resize-none"
-                  rows={4}
-                  style={{ border: '1px solid #3a3a39' }}
-                  autoFocus
-                  maxLength={2560}
-                />
-                <p className="text-gray-400 text-xs mt-1">
-                  {editInstruction.length}/2560 characters
-                </p>
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={handleCancelEditImage}
-                  disabled={isGeneratingImage}
-                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: '#2a2a29', color: '#ffffff' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleEditImage}
-                  disabled={isGeneratingImage || !editInstruction.trim()}
-                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                  style={{ 
-                    backgroundColor: isGeneratingImage || !editInstruction.trim() ? '#2a2a29' : '#f1d08c', 
-                    color: isGeneratingImage || !editInstruction.trim() ? '#ffffff' : '#000000' 
-                  }}
-                >
-                  {isGeneratingImage ? 'Editing...' : 'Apply Edit'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Remix Image Modal */}
-      {remixingImageIndex !== null && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={handleCancelRemixImage}
-          />
-          <div className="relative h-full w-full flex items-center justify-center px-4">
-            <div 
-              className="w-full max-w-md rounded-2xl shadow-xl p-6" 
-              style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-4">
-                <h3 className="text-white text-lg font-semibold mb-2">Remix Image</h3>
-                {attachedImages[remixingImageIndex] && (
-                  <div className="mb-4 rounded-lg overflow-hidden">
-                    <img 
-                      src={attachedImages[remixingImageIndex]} 
-                      alt="Preview" 
-                      className="w-full max-h-48 object-contain bg-black rounded-lg"
-                    />
-                  </div>
-                )}
-                <label className="block text-gray-300 text-sm mb-2">
-                  Remix Prompt
-                </label>
-                <textarea
-                  value={remixPrompt}
-                  onChange={(e) => setRemixPrompt(e.target.value)}
-                  placeholder="Describe how to remix the image (e.g., 'Create a fantasy version with magical elements')"
-                  className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 outline-none resize-none"
-                  rows={4}
-                  style={{ border: '1px solid #3a3a39' }}
-                  autoFocus
-                  maxLength={2560}
-                />
-                <p className="text-gray-400 text-xs mt-1">
-                  {remixPrompt.length}/2560 characters
-                </p>
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={handleCancelRemixImage}
-                  disabled={isGeneratingImage}
-                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: '#2a2a29', color: '#ffffff' }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleRemixImage}
-                  disabled={isGeneratingImage || !remixPrompt.trim()}
-                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
-                  style={{ 
-                    backgroundColor: isGeneratingImage || !remixPrompt.trim() ? '#2a2a29' : '#f1d08c', 
-                    color: isGeneratingImage || !remixPrompt.trim() ? '#ffffff' : '#000000' 
-                  }}
-                >
-                  {isGeneratingImage ? 'Remixing...' : 'Create Remix'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (
@@ -1464,6 +1191,21 @@ export default function Home() {
 
                 {/* Input Field */}
                 <div className="flex items-start gap-2">
+                {/* Edit/Remix Mode Indicator */}
+                {imageEditRemixMode && selectedImageIndex !== null && attachedImages[selectedImageIndex] && (
+                  <div className="flex items-center gap-2 mr-2">
+                    <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#f1d08c', color: '#000000' }}>
+                      {imageEditRemixMode === 'edit' ? 'Edit' : 'Remix'} Image
+                    </div>
+                    <button
+                      onClick={handleCancelImageEditRemix}
+                      className="p-1.5 rounded-full hover:bg-gray-700/50 transition-colors"
+                      title="Cancel"
+                    >
+                      <X size={14} className="text-gray-400" />
+                    </button>
+                  </div>
+                )}
                 <textarea
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
