@@ -24,8 +24,18 @@ const VISION_MAVERICK = {
   stop: null
 };
 
-// Primary model configuration (Qwen) - for text-only queries
+// Primary model configuration (Kimi Instruct)
 const PRIMARY_MODEL = {
+  model: "moonshotai/kimi-k2-instruct-0905",
+  temperature: 0.6,
+  max_completion_tokens: 4096,
+  top_p: 1,
+  stream: true,
+  stop: null
+};
+
+// Fallback model configuration (Qwen - previously primary)
+const QWEN_FALLBACK = {
   model: "qwen/qwen3-32b",
   temperature: 0.6,
   max_completion_tokens: 4096,
@@ -36,23 +46,13 @@ const PRIMARY_MODEL = {
   stop: null
 };
 
-// Fallback model configuration
+// Secondary fallback model configuration
 const FALLBACK_MODEL = {
   model: "meta-llama/llama-4-scout-17b-16e-instruct",
   temperature: 0.6,
   max_completion_tokens: 4096,
   top_p: 0.95,
   reasoning_effort: "default",
-  stream: true,
-  stop: null
-};
-
-// Secondary fallback (after primary): Moonshot Kimi
-const MOONSHOT_FALLBACK = {
-  model: "moonshotai/kimi-k2-instruct-0905",
-  temperature: 0.6,
-  max_completion_tokens: 4096,
-  top_p: 1,
   stream: true,
   stop: null
 };
@@ -71,6 +71,17 @@ const SAFEGUARD_FALLBACK = {
 // Additional OSS 20B fallback (non-safeguard)
 const OSS20B_FALLBACK = {
   model: "openai/gpt-oss-20b",
+  temperature: 1,
+  max_completion_tokens: 8192,
+  top_p: 1,
+  reasoning_effort: "medium" as any,
+  stream: true,
+  stop: null
+};
+
+// GPT OSS 120B fallback
+const OSS120B_FALLBACK = {
+  model: "openai/gpt-oss-120b",
   temperature: 1,
   max_completion_tokens: 8192,
   top_p: 1,
@@ -449,7 +460,7 @@ export async function POST(request: NextRequest) {
                   fallbackMessages.push({ role: 'user', content: query });
                   
                   const completion = await client.chat.completions.create({
-                    ...PRIMARY_MODEL,
+                    ...QWEN_FALLBACK,
                     messages: fallbackMessages,
                     stream: false
                   } as any);
@@ -515,22 +526,22 @@ export async function POST(request: NextRequest) {
           // Text-only queries: Use regular models
           const primarySuccess = await tryModel(PRIMARY_MODEL, query, controller, imgs, conversationHistory);
           if (!primarySuccess) {
-            console.log('Attempting moonshot fallback model...');
-            const moonshotSuccess = await tryModel(MOONSHOT_FALLBACK as any, query, controller, imgs, conversationHistory);
-            const fallbackSuccess = moonshotSuccess ? true : await tryModel(FALLBACK_MODEL, query, controller, imgs, conversationHistory);
-            if (!fallbackSuccess) {
-              console.log('Attempting versatile 70B fallback model...');
-              const versatileSuccess = await tryModel(VERSATILE_FALLBACK as any, query, controller, imgs, conversationHistory);
-              if (!versatileSuccess) {
-                console.log('Attempting instant 8B fallback model...');
-                const instantSuccess = await tryModel(INSTANT_FALLBACK as any, query, controller, imgs, conversationHistory);
-                if (!instantSuccess) {
-                  console.log('Attempting OSS 20B fallback model...');
-                  const oss20bSuccess = await tryModel(OSS20B_FALLBACK as any, query, controller, imgs, conversationHistory);
-                  if (!oss20bSuccess) {
-                    console.log('Attempting safeguard fallback model...');
-                    const safeguardSuccess = await tryModel(SAFEGUARD_FALLBACK, query, controller, imgs, conversationHistory);
-                    if (!safeguardSuccess) {
+            console.log('Attempting GPT OSS 20B fallback model...');
+            const gpt20bSuccess = await tryModel(OSS20B_FALLBACK as any, query, controller, imgs, conversationHistory);
+            if (!gpt20bSuccess) {
+              console.log('Attempting GPT OSS 120B fallback model...');
+              const gpt120bSuccess = await tryModel(OSS120B_FALLBACK as any, query, controller, imgs, conversationHistory);
+              if (!gpt120bSuccess) {
+                console.log('Attempting Qwen fallback model...');
+                const qwenSuccess = await tryModel(QWEN_FALLBACK as any, query, controller, imgs, conversationHistory);
+                const fallbackSuccess = qwenSuccess ? true : await tryModel(FALLBACK_MODEL, query, controller, imgs, conversationHistory);
+                if (!fallbackSuccess) {
+                  console.log('Attempting versatile 70B fallback model...');
+                  const versatileSuccess = await tryModel(VERSATILE_FALLBACK as any, query, controller, imgs, conversationHistory);
+                  if (!versatileSuccess) {
+                    console.log('Attempting instant 8B fallback model...');
+                    const instantSuccess = await tryModel(INSTANT_FALLBACK as any, query, controller, imgs, conversationHistory);
+                    if (!instantSuccess) {
                       console.log('Attempting prompt guard final fallback...');
                       await tryGuardModel(query, controller);
                     }
