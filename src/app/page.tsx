@@ -256,11 +256,8 @@ export default function Home() {
     const imagesToUse = retryImages ?? attachedImages;
     if (!queryToUse.trim() && imagesToUse.length === 0) return;
 
-    // Start conversation and add user message to history (skip if retry)
+    // Start conversation
     startConversation();
-    if (!isRetry) {
-      addUserMessage(queryToUse, imagesToUse.slice(0, 3));
-    }
 
     setIsLoading(true);
     setError(null);
