@@ -220,6 +220,7 @@ export default function Home() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   const suggestTimeoutRef = useRef<number | null>(null);
+  const suggestionSelectedRef = useRef<boolean>(false);
   const initialSearchRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
 
@@ -845,9 +846,13 @@ export default function Home() {
       e.preventDefault();
       const chosen = suggestions[activeSuggestionIndex];
       if (chosen) {
+        suggestionSelectedRef.current = true;
         setSearchQuery(chosen);
         setShowSuggestions(false);
         setActiveSuggestionIndex(-1);
+        setSuggestions([]); // Clear suggestions after selection
+        // Reset flag after a short delay to allow new typing to fetch suggestions
+        setTimeout(() => { suggestionSelectedRef.current = false; }, 300);
       }
       return;
     }
@@ -904,6 +909,10 @@ export default function Home() {
         window.clearTimeout(suggestTimeoutRef.current);
         suggestTimeoutRef.current = null;
       }
+      return;
+    }
+    // Don't fetch if a suggestion was just selected
+    if (suggestionSelectedRef.current) {
       return;
     }
     if (suggestTimeoutRef.current) {
@@ -1326,7 +1335,16 @@ export default function Home() {
                           <button
                         key={i}
                         className={"w-full text-left px-3 py-2 text-sm border-t border-gray-800/60 " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
-                        onMouseDown={(e) => { e.preventDefault(); setSearchQuery(s); setShowSuggestions(false); setActiveSuggestionIndex(-1); }}
+                        onMouseDown={(e) => { 
+                          e.preventDefault(); 
+                          suggestionSelectedRef.current = true;
+                          setSearchQuery(s); 
+                          setShowSuggestions(false); 
+                          setActiveSuggestionIndex(-1); 
+                          setSuggestions([]);
+                          // Reset flag after a short delay to allow new typing to fetch suggestions
+                          setTimeout(() => { suggestionSelectedRef.current = false; }, 300);
+                        }}
                       >
                         {s}
                           </button>

@@ -41,7 +41,6 @@ const QWEN_FALLBACK = {
   max_completion_tokens: 4096,
   top_p: 0.95,
   reasoning_effort: "default" as any,
-  parse: true as any,
   stream: true,
   stop: null
 };
