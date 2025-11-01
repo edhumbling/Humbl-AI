@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2 } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
@@ -206,6 +206,10 @@ export default function Home() {
   const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [editInstruction, setEditInstruction] = useState('');
   const [isEditingImage, setIsEditingImage] = useState(false);
+  const [remixingImageIndex, setRemixingImageIndex] = useState<number | null>(null);
+  const [remixPrompt, setRemixPrompt] = useState('');
+  const [isRemixingImage, setIsRemixingImage] = useState(false);
+  const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
@@ -654,11 +658,23 @@ export default function Home() {
   const handleStartEditImage = (index: number) => {
     setEditingImageIndex(index);
     setEditInstruction('');
+    setImageMenuOpen(null);
+  };
+
+  const handleStartRemixImage = (index: number) => {
+    setRemixingImageIndex(index);
+    setRemixPrompt('');
+    setImageMenuOpen(null);
   };
 
   const handleCancelEditImage = () => {
     setEditingImageIndex(null);
     setEditInstruction('');
+  };
+
+  const handleCancelRemixImage = () => {
+    setRemixingImageIndex(null);
+    setRemixPrompt('');
   };
 
   const handleEditImage = async () => {
@@ -706,8 +722,69 @@ export default function Home() {
       setError(err.message || 'Failed to edit image');
     } finally {
       setIsEditingImage(false);
-          }
+    }
   };
+
+  const handleRemixImage = async () => {
+    if (remixingImageIndex === null || !remixPrompt.trim()) return;
+
+    setIsRemixingImage(true);
+    setError(null);
+
+    try {
+      const imageToRemix = attachedImages[remixingImageIndex];
+      if (!imageToRemix) {
+        throw new Error('Image not found');
+      }
+
+      const response = await fetch('/api/remix-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: remixPrompt.trim(),
+          referenceImages: [imageToRemix],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remix image');
+      }
+
+      const data = await response.json();
+      
+      // Add the remixed image to the attached images
+      setAttachedImages(prev => [...prev, data.imageUrl]);
+
+      // Reset remixing state
+      setRemixingImageIndex(null);
+      setRemixPrompt('');
+    } catch (err: any) {
+      console.error('Failed to remix image:', err);
+      setError(err.message || 'Failed to remix image');
+    } finally {
+      setIsRemixingImage(false);
+    }
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (imageMenuOpen !== null) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.image-menu-container')) {
+          setImageMenuOpen(null);
+        }
+      }
+    };
+
+    if (imageMenuOpen !== null) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [imageMenuOpen]);
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (showSuggestions && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
@@ -1131,6 +1208,73 @@ export default function Home() {
         </div>
       )}
 
+      {/* Remix Image Modal */}
+      {remixingImageIndex !== null && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={handleCancelRemixImage}
+          />
+          <div className="relative h-full w-full flex items-center justify-center px-4">
+            <div 
+              className="w-full max-w-md rounded-2xl shadow-xl p-6" 
+              style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-4">
+                <h3 className="text-white text-lg font-semibold mb-2">Remix Image</h3>
+                {attachedImages[remixingImageIndex] && (
+                  <div className="mb-4 rounded-lg overflow-hidden">
+                    <img 
+                      src={attachedImages[remixingImageIndex]} 
+                      alt="Preview" 
+                      className="w-full max-h-48 object-contain bg-black rounded-lg"
+                    />
+                  </div>
+                )}
+                <label className="block text-gray-300 text-sm mb-2">
+                  Remix Prompt
+                </label>
+                <textarea
+                  value={remixPrompt}
+                  onChange={(e) => setRemixPrompt(e.target.value)}
+                  placeholder="Describe how to remix the image (e.g., 'Create a fantasy version with magical elements')"
+                  className="w-full px-4 py-3 rounded-lg bg-gray-800 text-white placeholder-gray-400 outline-none resize-none"
+                  rows={4}
+                  style={{ border: '1px solid #3a3a39' }}
+                  autoFocus
+                  maxLength={2560}
+                />
+                <p className="text-gray-400 text-xs mt-1">
+                  {remixPrompt.length}/2560 characters
+                </p>
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={handleCancelRemixImage}
+                  disabled={isRemixingImage}
+                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: '#2a2a29', color: '#ffffff' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRemixImage}
+                  disabled={isRemixingImage || !remixPrompt.trim()}
+                  className="px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
+                  style={{ 
+                    backgroundColor: isRemixingImage || !remixPrompt.trim() ? '#2a2a29' : '#f1d08c', 
+                    color: isRemixingImage || !remixPrompt.trim() ? '#ffffff' : '#000000' 
+                  }}
+                >
+                  {isRemixingImage ? 'Remixing...' : 'Create Remix'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (
         <div className="flex flex-col items-center justify-center flex-1 px-4">
@@ -1178,14 +1322,45 @@ export default function Home() {
                         >
                           <X size={12} className="text-white" />
                         </button>
-                        <button
-                          onClick={() => handleStartEditImage(idx)}
-                          className="absolute bottom-0 left-0 p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
-                          style={{ backgroundColor: '#f1d08c' }}
-                          title="Edit image"
-                        >
-                          <Edit2 size={10} className="text-black" />
-                        </button>
+                        {imageGenerationMode && (
+                          <div className="absolute bottom-0 left-0 image-menu-container">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImageMenuOpen(imageMenuOpen === idx ? null : idx);
+                              }}
+                              className="p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
+                              style={{ backgroundColor: '#f1d08c' }}
+                              title="Image options"
+                            >
+                              <MoreVertical size={10} className="text-black" />
+                            </button>
+                            {imageMenuOpen === idx && (
+                              <div className="absolute bottom-full left-0 mb-1 rounded-lg shadow-lg overflow-hidden z-20" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditImage(idx);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <Edit2 size={12} />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartRemixImage(idx);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <ImageIcon size={12} />
+                                  Remix
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1648,14 +1823,45 @@ export default function Home() {
                         >
                           <X size={12} className="text-white" />
                         </button>
-                        <button
-                          onClick={() => handleStartEditImage(idx)}
-                          className="absolute bottom-0 left-0 p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
-                          style={{ backgroundColor: '#f1d08c' }}
-                          title="Edit image"
-                        >
-                          <Edit2 size={10} className="text-black" />
-                        </button>
+                        {imageGenerationMode && (
+                          <div className="absolute bottom-0 left-0 image-menu-container">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImageMenuOpen(imageMenuOpen === idx ? null : idx);
+                              }}
+                              className="p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
+                              style={{ backgroundColor: '#f1d08c' }}
+                              title="Image options"
+                            >
+                              <MoreVertical size={10} className="text-black" />
+                            </button>
+                            {imageMenuOpen === idx && (
+                              <div className="absolute bottom-full left-0 mb-1 rounded-lg shadow-lg overflow-hidden z-20" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditImage(idx);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <Edit2 size={12} />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartRemixImage(idx);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <ImageIcon size={12} />
+                                  Remix
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
