@@ -70,17 +70,13 @@ async function tryGemini(prompt: string): Promise<{ imageUrl: string } | null> {
   }
 }
 
-// Fallback to Reve API
-async function tryReve(prompt: string): Promise<{ imageUrl: string } | null> {
-  if (!process.env.REVE_API_KEY) {
-    return null;
-  }
-
+// Try Reve API with a specific API key
+async function tryReveWithKey(prompt: string, apiKey: string): Promise<{ imageUrl: string } | null> {
   try {
     const response = await fetch('https://api.reve.com/v1/image/create', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.REVE_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
@@ -113,6 +109,30 @@ async function tryReve(prompt: string): Promise<{ imageUrl: string } | null> {
   }
 }
 
+// Fallback to Reve API (tries primary key first, then all fallback keys in order)
+async function tryReve(prompt: string): Promise<{ imageUrl: string } | null> {
+  // Array of Reve API keys to try in order
+  const reveApiKeys = [
+    process.env.REVE_API_KEY,
+    process.env.REVE_API_KEY_FALLBACK,
+    process.env.REVE_API_KEY_FALLBACK_2,
+  ].filter((key): key is string => !!key);
+
+  // Try each key in order until one succeeds
+  for (let i = 0; i < reveApiKeys.length; i++) {
+    const apiKey = reveApiKeys[i];
+    const result = await tryReveWithKey(prompt, apiKey);
+    if (result) {
+      return result;
+    }
+    if (i < reveApiKeys.length - 1) {
+      console.log(`Reve API key ${i + 1} failed, trying next fallback key...`);
+    }
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { prompt } = await request.json();
@@ -142,7 +162,7 @@ export async function POST(request: NextRequest) {
 
     // Both APIs failed
     const hasGemini = !!process.env.GEMINI_API_KEY;
-    const hasReve = !!process.env.REVE_API_KEY;
+    const hasReve = !!process.env.REVE_API_KEY || !!process.env.REVE_API_KEY_FALLBACK || !!process.env.REVE_API_KEY_FALLBACK_2;
     
     let errorMessage = 'Failed to generate image';
     if (!hasGemini && !hasReve) {

@@ -459,7 +459,7 @@ export default function Home() {
                         const lastIndex = conversationHistory.length - 1;
                         if (lastIndex >= 0) {
                           updateMessageAt(lastIndex, {
-                            citations: data.citations || finalCitations,
+                        citations: data.citations || finalCitations,
                             originalQuery: queryToUse,
                             originalImages: imagesToUse.slice(0, 3),
                             originalMode: modeToUse,
@@ -1559,8 +1559,8 @@ export default function Home() {
                                   >
                                     <ImageIcon size={12} />
                                     Remix
-                                  </button>
-                                </div>
+                      </button>
+                    </div>
                               )}
                             </>
                           )}
@@ -1609,10 +1609,10 @@ export default function Home() {
                           <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
                       )}
                     </button>
-                    </div>
                   </div>
                 </div>
               </div>
+            </div>
             </div>
             {/* Disclaimer */}
             <p className="text-center mt-2 text-xs text-gray-500/60">
@@ -1684,7 +1684,7 @@ export default function Home() {
                               {message.images.map((src, idx) => (
                                 <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
                                   <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
-                                  <button
+                      <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleDownloadImage(src, 'generated');
@@ -2160,8 +2160,8 @@ export default function Home() {
                                   >
                                     <ImageIcon size={12} />
                                     Remix
-                                  </button>
-                                </div>
+                      </button>
+                    </div>
                               )}
                             </>
                           )}
@@ -2210,10 +2210,10 @@ export default function Home() {
                           <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
                       )}
                     </button>
-                    </div>
                   </div>
                 </div>
               </div>
+            </div>
             </div>
             {/* Disclaimer */}
             <p className="text-center mt-2 text-xs text-gray-500/60">
