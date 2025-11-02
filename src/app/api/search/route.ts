@@ -27,9 +27,9 @@ const VISION_MAVERICK = {
 // Primary model configuration (Kimi Instruct)
 const PRIMARY_MODEL = {
   model: "moonshotai/kimi-k2-instruct-0905",
-  temperature: 0.6,
+  temperature: 0.7,
   max_completion_tokens: 4096,
-  top_p: 1,
+  top_p: 0.95,
   stream: true,
   stop: null
 };
@@ -177,13 +177,15 @@ async function tryCodeExecutionModel(modelConfig: any, query: string, controller
         role: "system",
         content: `You are Humbl AI, a powerful assistant with code execution capabilities. When computational problems or code-related queries arise, use code execution to provide accurate results.
 
-IMPORTANT FORMATTING RULES:
+CRITICAL OUTPUT FORMATTING RULES:
+- NEVER repeat the same word, phrase, or sentence multiple times in a row
+- NEVER concatenate text without proper spacing (e.g., no "wordwordword" or "texttexttext")
 - Use proper spacing and line breaks to separate different sections of your response
 - Format code blocks clearly with proper indentation
 - Use clear line breaks between the code, explanation, and results
 - For lists or multiple items, use clear numbering or bullet points with proper spacing between items
-- Avoid concatenating repeated text without spacing
 - Use markdown formatting when appropriate (headings, lists, code blocks)
+- Each item, fact, or piece of information should appear exactly ONCE in your response
 
 Show both the code you used and the final answer. Remember previous messages in the conversation to maintain context and flow.`
       }
@@ -293,14 +295,16 @@ async function tryModel(modelConfig: any, query: string, controller: ReadableStr
         role: "system",
         content: `You are Humbl AI, a powerful search engine assistant. Help users find relevant information and provide comprehensive, accurate answers to their queries.
 
-IMPORTANT FORMATTING RULES:
+CRITICAL OUTPUT FORMATTING RULES:
+- NEVER repeat the same word, phrase, or sentence multiple times in a row
+- NEVER concatenate text without proper spacing (e.g., no "wordwordword" or "texttexttext")
 - Use proper spacing and line breaks to separate different sections of your response
 - For lists, use clear numbering or bullet points with proper spacing between items
 - When providing citations or references, format them clearly with proper spacing
-- Avoid concatenating repeated text without spacing
 - Use markdown formatting when appropriate (headings, lists, code blocks)
 - Maintain consistent formatting throughout your response
 - Separate multiple items with line breaks, not by concatenating them
+- Each item, fact, or piece of information should appear exactly ONCE in your response
 
 Be concise but thorough in your responses. Remember previous messages in the conversation to maintain context and flow.`
       }
@@ -413,13 +417,15 @@ export async function POST(request: NextRequest) {
               const messages: any[] = [
                 { role: 'system', content: `You are Humbl AI. Use web search when helpful and include concise citations.
 
-IMPORTANT FORMATTING RULES:
+CRITICAL OUTPUT FORMATTING RULES:
+- NEVER repeat the same word, phrase, or sentence multiple times in a row
+- NEVER concatenate text without proper spacing (e.g., no "wordwordword" or "texttexttext")
 - Use proper spacing and line breaks to separate different sections of your response
 - Format citations clearly at the end or inline with proper spacing
 - For lists, use clear numbering or bullet points with proper spacing between items
-- Avoid concatenating repeated citations without spacing
 - Use markdown formatting when appropriate (headings, lists, code blocks)
 - Maintain consistent formatting throughout your response
+- Each item, fact, or citation should appear exactly ONCE in your response
 
 Remember previous messages in the conversation to maintain context and flow.` }
               ];

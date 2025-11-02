@@ -8,9 +8,10 @@ interface ResponseRendererProps {
   content: string;
   className?: string;
   isLoading?: boolean;
+  theme?: 'dark' | 'light';
 }
 
-export default function ResponseRenderer({ content, className = '', isLoading = false }: ResponseRendererProps) {
+export default function ResponseRenderer({ content, className = '', isLoading = false, theme = 'dark' }: ResponseRendererProps) {
   const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'table' | 'thinking', content: string | TableData, thinkingIndex?: number }>>([]);
   const [revealedThinking, setRevealedThinking] = useState<Set<number>>(new Set());
   const [displayedContent, setDisplayedContent] = useState(content);
@@ -179,6 +180,11 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
   };
 
   const renderText = (text: string) => {
+    // Theme-aware color classes
+    const headingColorClass = theme === 'dark' ? 'text-white' : 'text-black';
+    const textColorClass = theme === 'dark' ? 'text-gray-300' : 'text-black';
+    const italicColorClass = theme === 'dark' ? 'text-gray-200' : 'text-black';
+    
     // Process markdown with better structure and formatting
     let formattedText = text;
     const codeBlockPlaceholders: string[] = [];
@@ -191,9 +197,9 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     });
     
     // Headings (h1-h6)
-    formattedText = formattedText.replace(/^### (.*$)/gm, '<h3 class="text-white font-semibold text-lg mt-6 mb-3">$1</h3>');
-    formattedText = formattedText.replace(/^## (.*$)/gm, '<h2 class="text-white font-semibold text-xl mt-6 mb-4">$1</h2>');
-    formattedText = formattedText.replace(/^# (.*$)/gm, '<h1 class="text-white font-bold text-2xl mt-6 mb-4">$1</h1>');
+    formattedText = formattedText.replace(/^### (.*$)/gm, `<h3 class="${headingColorClass} font-semibold text-lg mt-6 mb-3">$1</h3>`);
+    formattedText = formattedText.replace(/^## (.*$)/gm, `<h2 class="${headingColorClass} font-semibold text-xl mt-6 mb-4">$1</h2>`);
+    formattedText = formattedText.replace(/^# (.*$)/gm, `<h1 class="${headingColorClass} font-bold text-2xl mt-6 mb-4">$1</h1>`);
     
     // Inline code (single backticks)
     formattedText = formattedText.replace(/`([^`\n]+)`/g, '<code class="bg-gray-800 px-1.5 py-0.5 rounded text-sm text-gray-200 font-mono">$1</code>');
@@ -228,7 +234,7 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
       if (orderedMatch || unorderedMatch) {
         const isOrdered = !!orderedMatch;
         const content = orderedMatch ? orderedMatch[2] : unorderedMatch![1];
-        const item = `<li class="mb-1.5 text-gray-300 leading-relaxed">${content}</li>`;
+        const item = `<li class="mb-1.5 ${textColorClass} leading-relaxed">${content}</li>`;
         
         if (currentList && currentList.isOrdered === isOrdered) {
           currentList.items.push(item);
@@ -254,14 +260,14 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     formattedText = processedLines.join('\n');
     
     // Bold text
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, `<strong class="${headingColorClass} font-semibold">$1</strong>`);
+    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, `<strong class="${headingColorClass} font-semibold">$1</strong>`);
     
     // Italic text
     formattedText = formattedText.replace(/\*(.*?)\*/g, (match, content) => {
       // Skip if it's part of **bold**
       if (match.includes('**')) return match;
-      return `<em class="text-gray-200 italic">${content}</em>`;
+      return `<em class="${italicColorClass} italic">${content}</em>`;
     });
     
     // Horizontal rules
@@ -282,12 +288,12 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
       }
       
       // Regular paragraphs with proper spacing
-      return `<p class="text-gray-300 leading-relaxed mb-4">${trimmed}</p>`;
+      return `<p class="${textColorClass} leading-relaxed mb-4">${trimmed}</p>`;
     }).filter(p => p).join('\n');
-
+    
     return (
       <div 
-        className="text-gray-300 leading-relaxed text-sm sm:text-base"
+        className={`${textColorClass} leading-relaxed text-sm sm:text-base transition-colors duration-300`}
         dangerouslySetInnerHTML={{ __html: htmlParagraphs }}
       />
     );

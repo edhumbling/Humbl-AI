@@ -1727,7 +1727,7 @@ export default function Home() {
                               ))}
                             </div>
                           )}
-                          {message.content && <ResponseRenderer content={message.content} />}
+                          {message.content && <ResponseRenderer content={message.content} theme={theme} />}
                         </>
                       )}
                       {/* Action buttons for AI responses - Hide during image generation */}
@@ -1816,7 +1816,7 @@ export default function Home() {
               {streamingResponse && (
                 <div className="w-full">
                   <div ref={responseStartRef} />
-                  <ResponseRenderer content={streamingResponse} isLoading={isLoading} />
+                  <ResponseRenderer content={streamingResponse} isLoading={isLoading} theme={theme} />
                   {isLoading && (
                     <div className="flex items-center space-x-2 mt-2 text-gray-300">
                       <PendulumDots />
