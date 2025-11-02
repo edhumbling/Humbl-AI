@@ -1085,7 +1085,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
+    <div className="h-screen flex flex-col transition-colors duration-300" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
       {/* Header Bar with New Conversation button */}
       <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
         <div className="max-w-6xl mx-auto px-4 py-3">
@@ -2283,6 +2283,11 @@ export default function Home() {
         @keyframes wave-sm { 0% { opacity: 0.35; height: 10px; } 100% { opacity: 1; height: 18px; } }
         @keyframes wave-md { 0% { opacity: 0.35; height: 14px; } 100% { opacity: 1; height: 34px; } }
         @keyframes wave-lg { 0% { opacity: 0.35; height: 16px; } 100% { opacity: 1; height: 44px; } }
+        /* Table row striping - dark mode default */
+        table tbody tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.3); }
+        /* Light mode striping */
+        html[data-theme="light"] table tbody tr:nth-child(even),
+        div[data-theme="light"] table tbody tr:nth-child(even) { background-color: rgba(249, 250, 251, 0.5); }
       `}</style>
     </div>
   );

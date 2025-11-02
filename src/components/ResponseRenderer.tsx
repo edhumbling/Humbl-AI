@@ -224,17 +224,34 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
             li: ({ children }) => <li className="mb-1.5 leading-relaxed">{children}</li>,
             hr: () => <hr className={`${borderColorClass} border my-6`} />,
             table: ({ children }) => (
-              <div className="my-4 overflow-x-auto">
-                <table className={`min-w-full border-collapse ${borderColorClass} border`}>
+              <div className="my-6 overflow-x-auto rounded-lg border" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+                <table className="min-w-full border-collapse">
                   {children}
                 </table>
               </div>
             ),
-            thead: ({ children }) => <thead className={bgCodeClass}>{children}</thead>,
+            thead: ({ children }) => <thead style={{ backgroundColor: theme === 'dark' ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 1)' }}>{children}</thead>,
             tbody: ({ children }) => <tbody>{children}</tbody>,
-            tr: ({ children }) => <tr className={`${borderColorClass} border-b`}>{children}</tr>,
-            th: ({ children }) => <th className={`${headingColorClass} font-semibold px-4 py-2 text-left ${borderColorClass} border-r last:border-r-0`}>{children}</th>,
-            td: ({ children }) => <td className="px-4 py-2 border-r last:border-r-0">{children}</td>,
+            tr: ({ children }) => (
+              <tr style={{ borderBottom: `1px solid ${theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.5)'}` }}>
+                {children}
+              </tr>
+            ),
+            th: ({ children }) => (
+              <th className={`font-semibold px-4 py-3 text-left first:rounded-tl-lg last:rounded-tr-lg`} style={{ 
+                color: theme === 'dark' ? '#ffffff' : '#111827',
+                borderRight: `1px solid ${theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.5)'}`
+              }}>
+                {children}
+              </th>
+            ),
+            td: ({ children }) => (
+              <td className="px-4 py-3" style={{ 
+                borderRight: `1px solid ${theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.5)'}`
+              }}>
+                {children}
+              </td>
+            ),
           }}
         >
           {text}
