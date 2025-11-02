@@ -266,8 +266,8 @@ export default function Sidebar({
                         : theme === 'dark'
                         ? '#1a1a19'
                         : '#f9fafb',
-                    ringColor: currentConversationId === conversation.id ? '#f1d08c' : 'transparent',
-                  }}
+                    '--tw-ring-color': currentConversationId === conversation.id ? '#f1d08c' : 'transparent',
+                  } as React.CSSProperties}
                 >
                   {editingId === conversation.id ? (
                     <div className="p-3">
