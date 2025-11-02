@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@stackframe/stack": "^2.8.48",
     "@tanstack/react-table": "^8.21.3",
     "framer-motion": "^12.23.24",
     "groq-sdk": "^0.34.0",

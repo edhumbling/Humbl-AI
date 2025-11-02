@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, LogIn, UserPlus } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
@@ -196,6 +196,7 @@ export default function Home() {
 
   const [showInfo, setShowInfo] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [showSidebar, setShowSidebar] = useState(false);
   const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
@@ -1090,8 +1091,18 @@ export default function Home() {
       <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="grid grid-cols-3 items-center">
-            {/* Left: New conversation */}
+            {/* Left: Hamburger menu and New conversation */}
             <div className="flex items-center space-x-2 justify-start">
+              <button
+                onClick={() => setShowSidebar(true)}
+                className="p-2 rounded-lg transition-colors duration-300"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
+                title="Menu"
+              >
+                <Menu size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+              </button>
               <button
                 onClick={startNewConversation}
                 className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
@@ -1222,6 +1233,59 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar */}
+      {showSidebar && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowSidebar(false)}
+          />
+          <div className="relative h-full w-full flex items-start justify-start px-4 pt-20">
+            <div 
+              className="w-80 rounded-2xl shadow-xl transition-colors duration-300" 
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`flex items-center justify-between px-5 py-4 transition-colors duration-300 ${theme === 'dark' ? 'border-b border-gray-800/60' : 'border-b border-gray-200'}`}>
+                <span className={`text-lg font-semibold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Menu</span>
+                <button
+                  onClick={() => setShowSidebar(false)}
+                  className={`p-2 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-200'}`}
+                  title="Close"
+                >
+                  <X size={20} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3">
+                <button
+                  onClick={() => {
+                    window.location.href = '/handler/login';
+                    setShowSidebar(false);
+                  }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-100'}`}
+                >
+                  <LogIn size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                  <span className={`text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Login</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    window.location.href = '/handler/signup';
+                    setShowSidebar(false);
+                  }}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-100'}`}
+                >
+                  <UserPlus size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                  <span className={`text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Signup</span>
+                </button>
               </div>
             </div>
           </div>
