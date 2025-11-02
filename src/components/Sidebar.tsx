@@ -114,9 +114,8 @@ export default function Sidebar({
 
   const handleLogout = async () => {
     try {
-      // Call Stack Auth logout
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/';
+      // @ts-ignore - signOut method exists on user object
+      await user?.signOut({ redirectUrl: '/' });
     } catch (error) {
       console.error('Logout failed:', error);
     }
