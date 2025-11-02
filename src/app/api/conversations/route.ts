@@ -1,18 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { stackServerApp } from '@/stack/server';
 import { conversationDb, userDb } from '@/lib/db';
 
 // GET /api/conversations - Get all conversations for the current user
 export async function GET(request: NextRequest) {
   try {
-    // TODO: Get user from Stack Auth session
-    // For now, return empty array if no auth
-    const userId = request.headers.get('x-user-id'); // Placeholder
+    // Get user from Stack Auth session
+    const user = await stackServerApp.getUser();
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ conversations: [] }, { status: 200 });
     }
 
-    const conversations = await conversationDb.getUserConversations(userId);
+    // Get or create user in our database
+    const dbUser = await userDb.upsertUser(
+      user.id,
+      user.primaryEmail || '',
+      user.displayName || undefined,
+      user.profileImageUrl || undefined
+    );
+
+    const conversations = await conversationDb.getUserConversations(dbUser.id);
     return NextResponse.json({ conversations }, { status: 200 });
   } catch (error) {
     console.error('Error fetching conversations:', error);
@@ -26,21 +34,29 @@ export async function GET(request: NextRequest) {
 // POST /api/conversations - Create a new conversation
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Get user from Stack Auth session
-    const userId = request.headers.get('x-user-id'); // Placeholder
+    // Get user from Stack Auth session
+    const user = await stackServerApp.getUser();
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    // Get or create user in our database
+    const dbUser = await userDb.upsertUser(
+      user.id,
+      user.primaryEmail || '',
+      user.displayName || undefined,
+      user.profileImageUrl || undefined
+    );
+
     const body = await request.json();
     const { title } = body;
 
     const conversation = await conversationDb.createConversation(
-      userId,
+      dbUser.id,
       title || 'New Conversation'
     );
 

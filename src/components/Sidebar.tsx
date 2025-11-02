@@ -158,6 +158,40 @@ export default function Sidebar({
     }
   };
 
+  // Group conversations by time period
+  const groupConversationsByTime = (convs: Conversation[]) => {
+    const now = new Date();
+    const groups: { [key: string]: Conversation[] } = {
+      Today: [],
+      Yesterday: [],
+      'This Week': [],
+      'This Month': [],
+      'Earlier': []
+    };
+
+    convs.forEach(conv => {
+      const date = new Date(conv.updated_at);
+      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      const diffInDays = diffInHours / 24;
+      const diffInWeeks = diffInDays / 7;
+      const diffInMonths = diffInDays / 30;
+
+      if (diffInHours < 24) {
+        groups['Today'].push(conv);
+      } else if (diffInHours < 48) {
+        groups['Yesterday'].push(conv);
+      } else if (diffInDays < 7) {
+        groups['This Week'].push(conv);
+      } else if (diffInMonths < 1) {
+        groups['This Month'].push(conv);
+      } else {
+        groups['Earlier'].push(conv);
+      }
+    });
+
+    return groups;
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -248,7 +282,23 @@ export default function Sidebar({
                 No conversations yet. Start a new one!
               </div>
             ) : (
-              conversations.map((conversation) => (
+              (() => {
+                const grouped = groupConversationsByTime(conversations);
+                const timePeriods = ['Today', 'Yesterday', 'This Week', 'This Month', 'Earlier'];
+                
+                return timePeriods.map((period) => {
+                  const periodConversations = grouped[period];
+                  if (periodConversations.length === 0) return null;
+                  
+                  return (
+                    <div key={period} className="mt-4">
+                      <h3
+                        className="text-xs font-semibold mb-2 px-2 uppercase tracking-wide"
+                        style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
+                      >
+                        {period}
+                      </h3>
+                      {periodConversations.map((conversation) => (
                 <div
                   key={conversation.id}
                   className={`group relative rounded-lg transition-all duration-200 ${
@@ -396,7 +446,11 @@ export default function Sidebar({
                     </div>
                   )}
                 </div>
-              ))
+                      ))}
+                    </div>
+                  );
+                });
+              })()
             )
           ) : (
             /* Not logged in - show login/signup buttons */

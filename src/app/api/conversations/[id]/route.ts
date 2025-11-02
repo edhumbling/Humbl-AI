@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { conversationDb } from '@/lib/db';
+import { stackServerApp } from '@/stack/server';
+import { conversationDb, userDb } from '@/lib/db';
 
 // GET /api/conversations/[id] - Get a single conversation with messages
 export async function GET(
@@ -8,13 +9,20 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const userId = request.headers.get('x-user-id'); // Placeholder
+    const user = await stackServerApp.getUser();
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const conversation = await conversationDb.getConversation(id, userId);
+    const dbUser = await userDb.upsertUser(
+      user.id,
+      user.primaryEmail || '',
+      user.displayName || undefined,
+      user.profileImageUrl || undefined
+    );
+
+    const conversation = await conversationDb.getConversation(id, dbUser.id);
     
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -37,11 +45,18 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const userId = request.headers.get('x-user-id'); // Placeholder
+    const user = await stackServerApp.getUser();
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const dbUser = await userDb.upsertUser(
+      user.id,
+      user.primaryEmail || '',
+      user.displayName || undefined,
+      user.profileImageUrl || undefined
+    );
 
     const body = await request.json();
     const { title } = body;
@@ -52,7 +67,7 @@ export async function PATCH(
 
     const conversation = await conversationDb.updateConversationTitle(
       id,
-      userId,
+      dbUser.id,
       title
     );
 
@@ -77,13 +92,20 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const userId = request.headers.get('x-user-id'); // Placeholder
+    const user = await stackServerApp.getUser();
     
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await conversationDb.deleteConversation(id, userId);
+    const dbUser = await userDb.upsertUser(
+      user.id,
+      user.primaryEmail || '',
+      user.displayName || undefined,
+      user.profileImageUrl || undefined
+    );
+
+    await conversationDb.deleteConversation(id, dbUser.id);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
