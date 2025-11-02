@@ -33,7 +33,7 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     }
   }, [content, isLoading]);
 
-  // Typewriter effect for streaming content
+  // Direct streaming without typewriter effect
   useEffect(() => {
     if (!isLoading) {
       // When loading stops, immediately show all content
@@ -53,32 +53,10 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
       clearInterval(intervalRef.current!);
     }
 
-    // When streaming, progressively reveal content word by word
-    const typewriterInterval = setInterval(() => {
-      const currentPos = displayIndexRef.current;
-      
-      if (currentPos < content.length) {
-        // Add 2-3 words at a time for smoother, book-like writing
-        const remaining = content.slice(currentPos);
-        const wordsRemaining = remaining.split(/(\s+)/);
-        const wordsToAdd = Math.min(2 + Math.floor(Math.random() * 2), Math.max(1, wordsRemaining.length - 1));
-        
-        let newPos = currentPos;
-        for (let i = 0; i < wordsToAdd && newPos < content.length && wordsRemaining[i]; i++) {
-          newPos += wordsRemaining[i].length;
-        }
-        
-        if (newPos > currentPos) {
-          displayIndexRef.current = newPos;
-          setDisplayedContent(content.slice(0, newPos));
-        }
-      } else {
-        clearInterval(typewriterInterval);
-        intervalRef.current = null;
-      }
-    }, 50); // 50ms per batch (2-3 words) = smooth reading pace
+    // Show content immediately as it streams in - no artificial delay
+    setDisplayedContent(content);
+    displayIndexRef.current = content.length;
 
-    intervalRef.current = typewriterInterval;
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
