@@ -266,7 +266,7 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
 
     return (
       <div className="my-4">
-        <ResponsiveTable data={rows} columns={columns} />
+        <ResponsiveTable data={rows} columns={columns} theme={theme} />
       </div>
     );
   };
