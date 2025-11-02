@@ -191,11 +191,38 @@ export default function Home() {
 
     endConversation();
     clearConversation();
+    setCurrentConversationId(undefined); // Clear conversation ID
     setSearchQuery('');
     setSearchResult(null);
     setStreamingResponse('');
     setError(null);
     setThinkingText('');
+  };
+
+  // Helper function to ensure conversation exists in database
+  const ensureConversation = async () => {
+    if (currentConversationId || !user) {
+      return currentConversationId;
+    }
+
+    try {
+      const response = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: 'New Conversation' }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentConversationId(data.conversation.id);
+        return data.conversation.id;
+      }
+    } catch (error) {
+      console.error('Failed to create conversation:', error);
+    }
+    return null;
   };
 
   const [showInfo, setShowInfo] = useState(false);
@@ -279,6 +306,9 @@ export default function Home() {
     // Start conversation
     startConversation();
 
+    // Ensure conversation exists in database
+    const convId = await ensureConversation();
+
     setIsLoading(true);
     setError(null);
     setSearchResult(null);
@@ -290,6 +320,23 @@ export default function Home() {
     // This ensures the user's query is displayed normally
     if (!isRetry) {
       addUserMessage(queryToUse, imagesToUse.slice(0, 3));
+      // Save user message to database if conversation exists
+      if (convId && user) {
+        try {
+          await fetch(`/api/conversations/${convId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              role: 'user',
+              content: queryToUse,
+              images: imagesToUse.slice(0, 3),
+              mode: modeToUse
+            })
+          });
+        } catch (err) {
+          console.error('Failed to save user message:', err);
+        }
+      }
     }
     
     // Handle image generation mode
@@ -330,8 +377,36 @@ export default function Home() {
         
         if (imageData.imageUrl) {
           // Update the last AI message with the generated image
-          setTimeout(() => {
+          setTimeout(async () => {
             updateLastAIMessage('Image generated successfully!', [imageData.imageUrl]);
+            
+            // Save AI message with image to database
+            if (convId && user) {
+              try {
+                await fetch(`/api/conversations/${convId}/messages`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    role: 'assistant',
+                    content: 'Image generated successfully!',
+                    images: [imageData.imageUrl],
+                    mode: modeToUse
+                  })
+                });
+                // Update conversation title from first message
+                const history = getConversationHistory();
+                if (history.length === 2) {
+                  await fetch(`/api/conversations/${convId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                  });
+                }
+              } catch (err) {
+                console.error('Failed to save image message:', err);
+              }
+            }
+            
             setSearchQuery('');
             setAttachedImages([]);
             setIsLoading(false);
@@ -481,6 +556,32 @@ export default function Home() {
                           imagesToUse.slice(0, 3),
                           modeToUse
                         );
+                      }
+                      
+                      // Save AI message to database
+                      if (convId && user && fullResponse) {
+                        try {
+                          await fetch(`/api/conversations/${convId}/messages`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              role: 'assistant',
+                              content: fullResponse,
+                              citations: data.citations || finalCitations,
+                              mode: modeToUse
+                            })
+                          });
+                          // Update conversation title from first message
+                          if (conversationHistory.length === 2) { // First user + first AI message
+                            await fetch(`/api/conversations/${convId}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                            });
+                          }
+                        } catch (err) {
+                          console.error('Failed to save AI message:', err);
+                        }
                       }
                       
                       // Clear streaming response and search query
