@@ -1,0 +1,93 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { conversationDb } from '@/lib/db';
+
+// GET /api/conversations/[id] - Get a single conversation with messages
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = request.headers.get('x-user-id'); // Placeholder
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const conversation = await conversationDb.getConversation(params.id, userId);
+    
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ conversation }, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching conversation:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch conversation' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/conversations/[id] - Update conversation (rename)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = request.headers.get('x-user-id'); // Placeholder
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { title } = body;
+
+    if (!title || !title.trim()) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+
+    const conversation = await conversationDb.updateConversationTitle(
+      params.id,
+      userId,
+      title
+    );
+
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ conversation }, { status: 200 });
+  } catch (error) {
+    console.error('Error updating conversation:', error);
+    return NextResponse.json(
+      { error: 'Failed to update conversation' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/conversations/[id] - Delete a conversation
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = request.headers.get('x-user-id'); // Placeholder
+    
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await conversationDb.deleteConversation(params.id, userId);
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error('Error deleting conversation:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete conversation' },
+      { status: 500 }
+    );
+  }
+}
