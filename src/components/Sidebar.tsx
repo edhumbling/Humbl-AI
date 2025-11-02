@@ -141,21 +141,13 @@ export default function Sidebar({
     };
   }, [isOpen, onClose]);
 
-  // Format date for display
+  // Format date for display - simplified format like "Oct 23", "Oct 19", etc.
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 24) {
-      return 'Today';
-    } else if (diffInHours < 48) {
-      return 'Yesterday';
-    } else if (diffInHours < 168) {
-      return `${Math.floor(diffInHours / 24)} days ago`;
-    } else {
-      return date.toLocaleDateString();
-    }
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    return `${month} ${day}`;
   };
 
   // Group conversations by time period
@@ -299,153 +291,129 @@ export default function Sidebar({
                         {period}
                       </h3>
                       {periodConversations.map((conversation) => (
-                <div
-                  key={conversation.id}
-                  className={`group relative rounded-lg transition-all duration-200 ${
-                    currentConversationId === conversation.id
-                      ? 'ring-2'
-                      : ''
-                  }`}
-                  style={{
-                    backgroundColor:
-                      currentConversationId === conversation.id
-                        ? theme === 'dark'
-                          ? '#1f1f1f'
-                          : '#f3f4f6'
-                        : theme === 'dark'
-                        ? '#1a1a19'
-                        : '#f9fafb',
-                    '--tw-ring-color': currentConversationId === conversation.id ? '#f1d08c' : 'transparent',
-                  } as React.CSSProperties}
-                >
-                  {editingId === conversation.id ? (
-                    <div className="p-3">
-                      <input
-                        type="text"
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleRenameConversation(conversation.id);
-                          } else if (e.key === 'Escape') {
-                            setEditingId(null);
-                            setEditTitle('');
-                          }
-                        }}
-                        onBlur={() => handleRenameConversation(conversation.id)}
-                        className="w-full px-2 py-1 text-sm rounded border outline-none focus:ring-2 focus:ring-[#f1d08c] transition-colors duration-300"
-                        style={{
-                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#ffffff',
-                          borderColor: theme === 'dark' ? '#3a3a39' : '#d1d5db',
-                          color: theme === 'dark' ? '#e5e7eb' : '#111827',
-                        }}
-                        autoFocus
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        onSelectConversation(conversation.id);
-                        onClose();
-                      }}
-                      className="w-full flex items-start space-x-3 p-3 text-left hover:bg-opacity-80 transition-all duration-200"
-                    >
-                      <MessageSquare
-                        size={18}
-                        className="flex-shrink-0 mt-0.5"
-                        style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p
-                          className="text-sm font-medium truncate transition-colors duration-300"
-                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                        >
-                          {conversation.title}
-                        </p>
-                        <p
-                          className="text-xs mt-1 transition-colors duration-300"
-                          style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
-                        >
-                          {formatDate(conversation.updated_at)} · {conversation.message_count} messages
-                        </p>
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Three-dot menu */}
-                  {editingId !== conversation.id && (
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setMenuOpenId(menuOpenId === conversation.id ? null : conversation.id);
-                        }}
-                        className="p-1.5 rounded-lg transition-colors duration-200"
-                        style={{
-                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#e5e7eb',
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            theme === 'dark' ? '#3a3a39' : '#d1d5db')
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            theme === 'dark' ? '#2a2a29' : '#e5e7eb')
-                        }
-                      >
-                        <MoreVertical size={16} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
-                      </button>
-
-                      {menuOpenId === conversation.id && (
                         <div
-                          className="absolute right-0 mt-1 w-40 rounded-lg shadow-lg z-10 overflow-hidden"
-                          style={{
-                            backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
-                            border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
-                          }}
+                          key={conversation.id}
+                          className="group relative"
                         >
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditing(conversation);
-                            }}
-                            className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
-                            style={{
-                              color: theme === 'dark' ? '#e5e7eb' : '#111827',
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.backgroundColor = 'transparent')
-                            }
-                          >
-                            <Pencil size={14} />
-                            <span>Rename</span>
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteConversation(conversation.id);
-                            }}
-                            className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-500 transition-colors duration-200"
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.backgroundColor = 'transparent')
-                            }
-                          >
-                            <Trash2 size={14} />
-                            <span>Delete</span>
-                          </button>
+                          {editingId === conversation.id ? (
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleRenameConversation(conversation.id);
+                                } else if (e.key === 'Escape') {
+                                  setEditingId(null);
+                                  setEditTitle('');
+                                }
+                              }}
+                              onBlur={() => handleRenameConversation(conversation.id)}
+                              className="w-full px-0 py-2 text-base sm:text-lg border-none outline-none bg-transparent transition-colors duration-300"
+                              style={{
+                                color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                                borderBottom: `2px solid ${theme === 'dark' ? '#f1d08c' : '#e8c377'}`,
+                              }}
+                              autoFocus
+                            />
+                          ) : (
+                            <button
+                              onClick={() => {
+                                onSelectConversation(conversation.id);
+                                onClose();
+                              }}
+                              className="w-full text-left py-2 transition-opacity duration-200 hover:opacity-70"
+                            >
+                              <p
+                                className={`text-base sm:text-lg font-medium truncate transition-colors duration-300 ${
+                                  currentConversationId === conversation.id 
+                                    ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
+                                    : theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                                }`}
+                              >
+                                {conversation.title}
+                              </p>
+                              <p
+                                className="text-xs sm:text-sm transition-colors duration-300"
+                                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                              >
+                                {formatDate(conversation.updated_at)}
+                              </p>
+                            </button>
+                          )}
+
+                          {/* Three-dot menu */}
+                          {editingId !== conversation.id && (
+                            <div className="absolute top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setMenuOpenId(menuOpenId === conversation.id ? null : conversation.id);
+                                }}
+                                className="p-1 transition-colors duration-200"
+                                style={{
+                                  color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.color = theme === 'dark' ? '#e5e7eb' : '#374151')
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.color = theme === 'dark' ? '#9ca3af' : '#6b7280')
+                                }
+                              >
+                                <MoreVertical size={16} />
+                              </button>
+
+                              {menuOpenId === conversation.id && (
+                                <div
+                                  className="absolute right-0 mt-1 w-40 rounded-lg shadow-lg z-10 overflow-hidden"
+                                  style={{
+                                    backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                                    border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                                  }}
+                                >
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      startEditing(conversation);
+                                    }}
+                                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
+                                    style={{
+                                      color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.backgroundColor =
+                                        theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.backgroundColor = 'transparent')
+                                    }
+                                  >
+                                    <Pencil size={14} />
+                                    <span>Rename</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteConversation(conversation.id);
+                                    }}
+                                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-500 transition-colors duration-200"
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.backgroundColor =
+                                        theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.backgroundColor = 'transparent')
+                                    }
+                                  >
+                                    <Trash2 size={14} />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
                       ))}
                     </div>
                   );
