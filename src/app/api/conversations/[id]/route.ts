@@ -4,16 +4,17 @@ import { conversationDb } from '@/lib/db';
 // GET /api/conversations/[id] - Get a single conversation with messages
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = request.headers.get('x-user-id'); // Placeholder
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const conversation = await conversationDb.getConversation(params.id, userId);
+    const conversation = await conversationDb.getConversation(id, userId);
     
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -32,9 +33,10 @@ export async function GET(
 // PATCH /api/conversations/[id] - Update conversation (rename)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = request.headers.get('x-user-id'); // Placeholder
     
     if (!userId) {
@@ -49,7 +51,7 @@ export async function PATCH(
     }
 
     const conversation = await conversationDb.updateConversationTitle(
-      params.id,
+      id,
       userId,
       title
     );
@@ -71,16 +73,17 @@ export async function PATCH(
 // DELETE /api/conversations/[id] - Delete a conversation
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const userId = request.headers.get('x-user-id'); // Placeholder
     
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await conversationDb.deleteConversation(params.id, userId);
+    await conversationDb.deleteConversation(id, userId);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
