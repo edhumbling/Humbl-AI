@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import ResponsiveTable from './ResponsiveTable';
 import { detectTableInText, createTableColumns, createTableRows, TableData } from '../utils/tableParser';
 
@@ -184,118 +186,60 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     const headingColorClass = theme === 'dark' ? 'text-white' : 'text-black';
     const textColorClass = theme === 'dark' ? 'text-gray-300' : 'text-black';
     const italicColorClass = theme === 'dark' ? 'text-gray-200' : 'text-black';
-    
-    // Process markdown with better structure and formatting
-    let formattedText = text;
-    const codeBlockPlaceholders: string[] = [];
-    
-    // Code blocks (triple backticks) - process first and replace with placeholders
-    formattedText = formattedText.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-      const placeholder = `__CODE_BLOCK_${codeBlockPlaceholders.length}__`;
-      codeBlockPlaceholders.push(`<pre class="bg-gray-900 border border-gray-700 rounded-lg p-4 my-4 overflow-x-auto"><code class="text-gray-200 text-sm font-mono whitespace-pre">${code.trim().replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`);
-      return placeholder;
-    });
-    
-    // Headings (h1-h6)
-    formattedText = formattedText.replace(/^### (.*$)/gm, `<h3 class="${headingColorClass} font-semibold text-lg mt-6 mb-3">$1</h3>`);
-    formattedText = formattedText.replace(/^## (.*$)/gm, `<h2 class="${headingColorClass} font-semibold text-xl mt-6 mb-4">$1</h2>`);
-    formattedText = formattedText.replace(/^# (.*$)/gm, `<h1 class="${headingColorClass} font-bold text-2xl mt-6 mb-4">$1</h1>`);
-    
-    // Inline code (single backticks)
-    formattedText = formattedText.replace(/`([^`\n]+)`/g, '<code class="bg-gray-800 px-1.5 py-0.5 rounded text-sm text-gray-200 font-mono">$1</code>');
-    
-    // Restore code blocks
-    codeBlockPlaceholders.forEach((replacement, index) => {
-      formattedText = formattedText.replace(`__CODE_BLOCK_${index}__`, replacement);
-    });
-    
-    // Blockquotes
-    formattedText = formattedText.replace(/^&gt; (.*$)/gm, '<blockquote class="border-l-4 border-gray-600 pl-4 my-3 italic text-gray-400">$1</blockquote>');
-    formattedText = formattedText.replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-gray-600 pl-4 my-3 italic text-gray-400">$1</blockquote>');
-    
-    // Process lists - simple approach: wrap consecutive list items
-    type ListState = { items: string[], isOrdered: boolean };
-    const lines = formattedText.split('\n');
-    const processedLines: string[] = [];
-    let currentList: ListState | null = null;
-    
-    const renderList = (list: ListState): string => {
-      const tag = list.isOrdered ? 'ol' : 'ul';
-      const className = list.isOrdered 
-        ? 'list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400' 
-        : 'list-disc space-y-1.5 my-4 ml-6 marker:text-gray-400';
-      return `<${tag} class="${className}">${list.items.join('\n')}</${tag}>`;
-    };
-    
-    lines.forEach(line => {
-      const orderedMatch = line.match(/^(\d+)\.\s+(.+)$/);
-      const unorderedMatch = line.match(/^[-*]\s+(.+)$/);
-      
-      if (orderedMatch || unorderedMatch) {
-        const isOrdered = !!orderedMatch;
-        const content = orderedMatch ? orderedMatch[2] : unorderedMatch![1];
-        const item = `<li class="mb-1.5 ${textColorClass} leading-relaxed">${content}</li>`;
-        
-        if (currentList && currentList.isOrdered === isOrdered) {
-          currentList.items.push(item);
-        } else {
-          if (currentList) {
-            processedLines.push(renderList(currentList));
-          }
-          currentList = { items: [item], isOrdered };
-        }
-      } else {
-        if (currentList) {
-          processedLines.push(renderList(currentList));
-          currentList = null;
-        }
-        processedLines.push(line);
-      }
-    });
-    
-    if (currentList) {
-      processedLines.push(renderList(currentList));
-    }
-    
-    formattedText = processedLines.join('\n');
-    
-    // Bold text
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, `<strong class="${headingColorClass} font-semibold">$1</strong>`);
-    formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, `<strong class="${headingColorClass} font-semibold">$1</strong>`);
-    
-    // Italic text
-    formattedText = formattedText.replace(/\*(.*?)\*/g, (match, content) => {
-      // Skip if it's part of **bold**
-      if (match.includes('**')) return match;
-      return `<em class="${italicColorClass} italic">${content}</em>`;
-    });
-    
-    // Horizontal rules
-    formattedText = formattedText.replace(/^---$/gm, '<hr class="border-gray-700 my-6" />');
-    formattedText = formattedText.replace(/^___$/gm, '<hr class="border-gray-700 my-6" />');
-    
-    // Split into paragraphs (double newlines)
-    const paragraphs = formattedText.split(/\n\n+/);
-    const htmlParagraphs = paragraphs.map(p => {
-      const trimmed = p.trim();
-      if (!trimmed) return '';
-      
-      // Don't wrap if it's already a block element (heading, pre, blockquote, list, hr)
-      if (trimmed.startsWith('<h') || trimmed.startsWith('<pre') || 
-          trimmed.startsWith('<blockquote') || trimmed.startsWith('<ul') || 
-          trimmed.startsWith('<ol') || trimmed.startsWith('<hr') || trimmed.startsWith('<li')) {
-        return trimmed;
-      }
-      
-      // Regular paragraphs with proper spacing
-      return `<p class="${textColorClass} leading-relaxed mb-4">${trimmed}</p>`;
-    }).filter(p => p).join('\n');
+    const borderColorClass = theme === 'dark' ? 'border-gray-700' : 'border-gray-300';
+    const bgCodeClass = theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100';
+    const codeTextClass = theme === 'dark' ? 'text-gray-200' : 'text-gray-900';
     
     return (
-      <div 
-        className={`${textColorClass} leading-relaxed text-sm sm:text-base transition-colors duration-300`}
-        dangerouslySetInnerHTML={{ __html: htmlParagraphs }}
-      />
+      <div className={`${textColorClass} leading-relaxed text-sm sm:text-base transition-colors duration-300`}>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          components={{
+            h1: ({ children }) => <h1 className={`${headingColorClass} font-bold text-2xl mt-6 mb-4`}>{children}</h1>,
+            h2: ({ children }) => <h2 className={`${headingColorClass} font-semibold text-xl mt-6 mb-4`}>{children}</h2>,
+            h3: ({ children }) => <h3 className={`${headingColorClass} font-semibold text-lg mt-6 mb-3`}>{children}</h3>,
+            p: ({ children }) => <p className="mb-4">{children}</p>,
+            strong: ({ children }) => <strong className={`${headingColorClass} font-semibold`}>{children}</strong>,
+            em: ({ children }) => <em className={`${italicColorClass} italic`}>{children}</em>,
+            code: ({ className, children }) => {
+              const isInline = !className;
+              return isInline ? (
+                <code className={`${bgCodeClass} ${codeTextClass} px-1.5 py-0.5 rounded text-sm font-mono`}>{children}</code>
+              ) : (
+                <code className={`${codeTextClass} text-sm font-mono whitespace-pre`}>{children}</code>
+              );
+            },
+            pre: ({ children }) => (
+              <pre className={`${bgCodeClass} ${borderColorClass} border rounded-lg p-4 my-4 overflow-x-auto`}>
+                {children}
+              </pre>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className={`border-l-4 ${borderColorClass} pl-4 my-3 italic text-gray-400`}>
+                {children}
+              </blockquote>
+            ),
+            ul: ({ children }) => <ul className="list-disc space-y-1.5 my-4 ml-6 marker:text-gray-400">{children}</ul>,
+            ol: ({ children }) => <ol className="list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400">{children}</ol>,
+            li: ({ children }) => <li className="mb-1.5 leading-relaxed">{children}</li>,
+            hr: () => <hr className={`${borderColorClass} border my-6`} />,
+            table: ({ children }) => (
+              <div className="my-4 overflow-x-auto">
+                <table className={`min-w-full border-collapse ${borderColorClass} border`}>
+                  {children}
+                </table>
+              </div>
+            ),
+            thead: ({ children }) => <thead className={bgCodeClass}>{children}</thead>,
+            tbody: ({ children }) => <tbody>{children}</tbody>,
+            tr: ({ children }) => <tr className={`${borderColorClass} border-b`}>{children}</tr>,
+            th: ({ children }) => <th className={`${headingColorClass} font-semibold px-4 py-2 text-left ${borderColorClass} border-r last:border-r-0`}>{children}</th>,
+            td: ({ children }) => <td className="px-4 py-2 border-r last:border-r-0">{children}</td>,
+          }}
+        >
+          {text}
+        </ReactMarkdown>
+      </div>
     );
   };
 
