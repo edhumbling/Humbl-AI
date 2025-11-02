@@ -1,10 +1,12 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, LogIn, UserPlus } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
+import Sidebar from '../components/Sidebar';
 import { useConversation } from '@/contexts/ConversationContext';
+import { useUser } from '@stackframe/stack';
 
 interface SearchResult {
   query: string;
@@ -13,6 +15,7 @@ interface SearchResult {
 }
 
 export default function Home() {
+  const user = useUser();
   const {
     conversationHistory,
     conversationStarted,
@@ -27,6 +30,7 @@ export default function Home() {
     endConversation,
   } = useConversation();
 
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [streamingResponse, setStreamingResponse] = useState('');
@@ -1240,57 +1244,15 @@ export default function Home() {
       )}
 
       {/* Sidebar */}
-      {showSidebar && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 transition-colors duration-300"
-            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
-            onClick={() => setShowSidebar(false)}
-          />
-          <div className="relative h-full w-full flex items-start justify-start px-4 pt-20">
-            <div 
-              className="w-80 rounded-2xl shadow-xl transition-colors duration-300" 
-              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={`flex items-center justify-between px-5 py-4 transition-colors duration-300 ${theme === 'dark' ? 'border-b border-gray-800/60' : 'border-b border-gray-200'}`}>
-                <span className={`text-lg font-semibold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Menu</span>
-                <button
-                  onClick={() => setShowSidebar(false)}
-                  className={`p-2 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-200'}`}
-                  title="Close"
-                >
-                  <X size={20} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-                </button>
-              </div>
-
-              <div className="p-4 space-y-3">
-                <button
-                  onClick={() => {
-                    window.location.href = '/handler/login';
-                    setShowSidebar(false);
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-100'}`}
-                >
-                  <LogIn size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-                  <span className={`text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Login</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    window.location.href = '/handler/signup';
-                    setShowSidebar(false);
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-100'}`}
-                >
-                  <UserPlus size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-                  <span className={`text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Signup</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        theme={theme}
+        user={user}
+        onNewConversation={startNewConversation}
+        onSelectConversation={(id) => setCurrentConversationId(id)}
+        currentConversationId={currentConversationId}
+      />
 
 
       {/* Header - Only show when conversation hasn't started */}
