@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
@@ -195,6 +195,7 @@ export default function Home() {
   };
 
   const [showInfo, setShowInfo] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
@@ -873,6 +874,19 @@ export default function Home() {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('humblai-theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+    }
+  }, []);
+
+  // Apply theme changes and save to localStorage
+  useEffect(() => {
+    localStorage.setItem('humblai-theme', theme);
+  }, [theme]);
+
   const placeholderText = imageEditRemixMode === 'edit' 
     ? 'Describe how to edit the image (e.g., "Remove all people from the background")'
     : imageEditRemixMode === 'remix'
@@ -1071,9 +1085,9 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col" style={{ backgroundColor: '#151514' }}>
+    <div className="h-screen flex flex-col transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
       {/* Header Bar with New Conversation button */}
-      <div className="w-full border-b border-gray-800/60">
+      <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
         <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="grid grid-cols-3 items-center">
             {/* Left: New conversation */}
@@ -1088,7 +1102,7 @@ export default function Home() {
               >
                 <Plus size={18} className="text-black" />
               </button>
-              <span className="text-sm text-gray-400 hidden sm:inline">New</span>
+              <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>New</span>
             </div>
 
             {/* Center: Logo when conversation is active */}
@@ -1100,15 +1114,28 @@ export default function Home() {
               )}
             </div>
 
-            {/* Right: Info */}
-            <div className="flex items-center justify-end">
-            <button
-              onClick={() => setShowInfo(true)}
-              className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
-              title="Info"
-            >
-              <Info size={18} className="text-gray-200" />
-            </button>
+            {/* Right: Theme Toggle */}
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="p-2 rounded-lg transition-colors duration-300"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-blue-600" />}
+              </button>
+              <button
+                onClick={() => setShowInfo(true)}
+                className="p-2 rounded-lg transition-colors duration-300"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
+                title="Info"
+              >
+                <Info size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+              </button>
             </div>
           </div>
         </div>
@@ -1118,45 +1145,46 @@ export default function Home() {
       {showInfo && (
         <div className="fixed inset-0 z-50">
           <div
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
             onClick={() => setShowInfo(false)}
           />
           <div className="relative h-full w-full flex items-center justify-center px-4">
             <div 
-              className="w-[90%] sm:w-full max-w-sm sm:max-w-3xl rounded-2xl shadow-xl" 
-              style={{ backgroundColor: '#1f1f1f' }}
+              className="w-[90%] sm:w-full max-w-sm sm:max-w-3xl rounded-2xl shadow-xl transition-colors duration-300" 
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between px-3 py-2 sm:px-5 sm:py-4 border-b border-gray-800/60">
+              <div className={`flex items-center justify-between px-3 py-2 sm:px-5 sm:py-4 transition-colors duration-300 ${theme === 'dark' ? 'border-b border-gray-800/60' : 'border-b border-gray-200'}`}>
                 <div className="flex items-center space-x-2">
-                  <Info size={18} className="text-gray-200" />
-                  <span className="text-xs sm:text-sm text-gray-200">About this app</span>
+                  <Info size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                  <span className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>About this app</span>
                 </div>
                 <button
                   onClick={() => setShowInfo(false)}
-                  className="p-2 rounded-lg hover:bg-gray-800/60 transition-colors"
+                  className={`p-2 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-200'}`}
                   title="Close"
                 >
-                  <X size={16} className="text-gray-300" />
+                  <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
                 </button>
               </div>
 
               <div className="px-4 py-4 sm:px-5 sm:py-5 lg:grid lg:grid-cols-2 lg:gap-10 space-y-4 sm:space-y-6 lg:space-y-0">
                 {/* About - Left */}
                 <div className="space-y-3">
-                  <h3 className="text-gray-200 text-xs sm:text-sm">About Humbl AI</h3>
+                  <h3 className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>About Humbl AI</h3>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-900 flex items-center justify-center">
+                    <div className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
                       <Image src="/applogo.png" alt="Humbl AI" width={48} height={48} />
                     </div>
                     <div>
-                      <div className="text-gray-200 text-sm sm:text-base">Humbl AI</div>
-                      <div className="text-gray-400 text-xs sm:text-sm">Your Intelligent AI Assistant</div>
+                      <div className={`text-sm sm:text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>Humbl AI</div>
+                      <div className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Your Intelligent AI Assistant</div>
                     </div>
                   </div>
                   <div className="space-y-2 pt-2">
-                    <h4 className="text-gray-200 text-xs sm:text-sm">About</h4>
-                    <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+                    <h4 className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>About</h4>
+                    <p className={`text-xs sm:text-sm leading-relaxed transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                       Humbl AI is an advanced conversational assistant designed to help you research, analyze images, and get precise answers in real time. It combines internet search, voice input, and safe educational filtering to deliver concise, helpful responses.
                     </p>
                   </div>
@@ -1165,8 +1193,8 @@ export default function Home() {
                 {/* Right column: Features + Developer */}
                 <div className="space-y-6">
                   <div>
-                    <h3 className="text-gray-200 text-xs sm:text-sm mb-2">Features</h3>
-                    <ul className="list-disc pl-5 space-y-1 text-gray-300 text-xs sm:text-sm">
+                    <h3 className={`text-xs sm:text-sm mb-2 transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>Features</h3>
+                    <ul className={`list-disc pl-5 space-y-1 text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                       <li>Voice input and text-to-speech</li>
                       <li>Image analysis capabilities</li>
                       <li>Internet search integration</li>
@@ -1176,9 +1204,9 @@ export default function Home() {
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className="text-gray-200 text-xs sm:text-sm">Developer</h3>
-                    <div className="text-gray-300 text-xs sm:text-sm">EH — Emmanuel Humbling</div>
-                    <div className="text-gray-300 text-xs sm:text-sm">AI Developer, AIDEL</div>
+                    <h3 className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}>Developer</h3>
+                    <div className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>EH — Emmanuel Humbling</div>
+                    <div className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>AI Developer, AIDEL</div>
                     <div className="pt-2">
                       <a
                         href="https://www.linkedin.com/in/edhumbling"
@@ -1226,7 +1254,7 @@ export default function Home() {
           {/* Search Bar */}
           <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-visible flex flex-col rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}>
+              <div className="relative overflow-visible flex flex-col rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -1316,7 +1344,7 @@ export default function Home() {
                     onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                     placeholder={placeholderText}
-                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                  className={`humbl-textarea flex-1 bg-transparent outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto transition-colors duration-300 ${theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'}`}
                   rows={1}
                   style={{
                     height: 'auto',
@@ -1333,11 +1361,11 @@ export default function Home() {
 
                 {/* Suggestions dropdown (desktop top bar) */}
                 {!conversationStarted && showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute left-3 right-3 top-full mt-0 rounded-b-2xl bg-[#1f1f1f]/95 backdrop-blur-sm z-20 max-h-64 overflow-auto humbl-suggest">
+                  <div className={`absolute left-3 right-3 top-full mt-0 rounded-b-2xl backdrop-blur-sm z-20 max-h-64 overflow-auto humbl-suggest transition-colors duration-300 ${theme === 'dark' ? 'bg-[#1f1f1f]/95' : 'bg-white/95'}`}>
                     {suggestions.map((s, i) => (
                           <button
                         key={i}
-                        className={"w-full text-left px-3 py-2 text-sm border-t border-gray-800/60 " + (i === activeSuggestionIndex ? 'bg-[#2a2a29] text-white' : 'text-gray-300 hover:bg-[#2a2a29]')}
+                        className={`w-full text-left px-3 py-2 text-sm transition-colors duration-300 ${theme === 'dark' ? 'border-t border-gray-800/60' : 'border-t border-gray-200/60'} ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-gray-900') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-gray-700 hover:bg-gray-100')}`}
                         onMouseDown={(e) => { 
                           e.preventDefault(); 
                           suggestionSelectedRef.current = true;
@@ -1652,8 +1680,8 @@ export default function Home() {
                           ))}
                         </div>
                       )}
-                      <div className="max-w-[80%] rounded-2xl px-4 py-3" style={{ backgroundColor: '#1f1f1f' }}>
-                        <p className="text-gray-300 text-sm sm:text-base whitespace-pre-wrap">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f3f4f6' }}>
+                        <p className={`text-sm sm:text-base whitespace-pre-wrap transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
                           {message.content}
                         </p>
                       </div>
@@ -1863,7 +1891,7 @@ export default function Home() {
         <div className="w-full px-4 py-4" ref={conversationBarRef}>
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
-              <div className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg" style={{ backgroundColor: '#1f1f1f', border: '1px solid #f1d08c' }}>
+              <div className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -1938,7 +1966,7 @@ export default function Home() {
                     onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
                     placeholder={placeholderText}
-                  className="humbl-textarea flex-1 bg-transparent text-white placeholder-gray-400 outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto"
+                  className={`humbl-textarea flex-1 bg-transparent outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto transition-colors duration-300 ${theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-gray-900 placeholder-gray-500'}`}
                   rows={1}
                   style={{
                     height: 'auto',
