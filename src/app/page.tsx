@@ -199,6 +199,56 @@ export default function Home() {
     setThinkingText('');
   };
 
+  // Load a conversation from database
+  const handleSelectConversation = async (conversationId: string) => {
+    try {
+      // Stop any ongoing recording
+      if (isRecording) {
+        stopRecording();
+      }
+      if ((window as any).thinkingInterval) {
+        clearInterval((window as any).thinkingInterval);
+      }
+    } catch {}
+
+    setCurrentConversationId(conversationId);
+    
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        const conversation = data.conversation;
+        
+        // Clear current conversation and load the selected one
+        clearConversation();
+        
+        // Load all messages from the database
+        if (conversation.messages && conversation.messages.length > 0) {
+          conversation.messages.forEach((msg: any) => {
+            if (msg.role === 'user') {
+              addUserMessage(msg.content, msg.images || []);
+            } else if (msg.role === 'assistant') {
+              addAIMessage(
+                msg.content,
+                msg.images || [],
+                msg.citations || []
+              );
+            }
+          });
+        }
+        
+        // Start the conversation if there are messages
+        if (conversation.messages && conversation.messages.length > 0) {
+          startConversation();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load conversation:', error);
+      setError('Failed to load conversation');
+    }
+  };
+
   // Helper function to ensure conversation exists in database
   const ensureConversation = async () => {
     if (currentConversationId || !user) {
@@ -1351,7 +1401,7 @@ export default function Home() {
         theme={theme}
         user={user}
         onNewConversation={startNewConversation}
-        onSelectConversation={(id) => setCurrentConversationId(id)}
+        onSelectConversation={handleSelectConversation}
         currentConversationId={currentConversationId}
       />
 
