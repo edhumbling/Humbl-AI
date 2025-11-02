@@ -5,6 +5,8 @@ import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, Arrow
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
+import Sidebar from '../components/Sidebar';
+import { useUser } from '@stackframe/stack';
 
 interface SearchResult {
   query: string;
@@ -192,12 +194,26 @@ export default function Home() {
     setStreamingResponse('');
     setError(null);
     setThinkingText('');
+    setCurrentConversationId(undefined);
+  };
+
+  const handleNewConversation = () => {
+    startNewConversation();
+    // TODO: Create new conversation in database when user is logged in
+  };
+
+  const handleSelectConversation = async (conversationId: string) => {
+    // TODO: Load conversation from database
+    setCurrentConversationId(conversationId);
+    startNewConversation();
   };
 
   const [showInfo, setShowInfo] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSidebar, setShowSidebar] = useState(false);
   const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+  const user = useUser();
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
   const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
@@ -1240,57 +1256,15 @@ export default function Home() {
       )}
 
       {/* Sidebar */}
-      {showSidebar && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="absolute inset-0 transition-colors duration-300"
-            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
-            onClick={() => setShowSidebar(false)}
-          />
-          <div className="relative h-full w-full flex items-start justify-start px-4 pt-20">
-            <div 
-              className="w-80 rounded-2xl shadow-xl transition-colors duration-300" 
-              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className={`flex items-center justify-between px-5 py-4 transition-colors duration-300 ${theme === 'dark' ? 'border-b border-gray-800/60' : 'border-b border-gray-200'}`}>
-                <span className={`text-lg font-semibold transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Menu</span>
-                <button
-                  onClick={() => setShowSidebar(false)}
-                  className={`p-2 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-200'}`}
-                  title="Close"
-                >
-                  <X size={20} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-                </button>
-              </div>
-
-              <div className="p-4 space-y-3">
-                <button
-                  onClick={() => {
-                    window.location.href = '/handler/login';
-                    setShowSidebar(false);
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-100'}`}
-                >
-                  <LogIn size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-                  <span className={`text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Login</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    window.location.href = '/handler/signup';
-                    setShowSidebar(false);
-                  }}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-100'}`}
-                >
-                  <UserPlus size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-                  <span className={`text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Signup</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        theme={theme}
+        user={user}
+        onNewConversation={handleNewConversation}
+        onSelectConversation={handleSelectConversation}
+        currentConversationId={currentConversationId}
+      />
 
 
       {/* Header - Only show when conversation hasn't started */}
@@ -2059,300 +2033,4 @@ export default function Home() {
                 <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
                   <div className="flex items-center">
                     <button
-                      onClick={handleImagePickClickLower}
-                      disabled={attachedImages.length >= 3}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ backgroundColor: '#2a2a29' }}
-                      title="Attach images"
-                    >
-                      <Plus size={18} className="text-white" />
-                    </button>
-                    <input ref={fileInputRef2} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
-
-                    {/* Mode buttons in conversation bar */}
-                    <div className="ml-2 hidden sm:flex items-center gap-2 relative">
-                      <div className="relative">
-                      <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setShowWebSearchDropdown(!showWebSearchDropdown);
-                          }}
-                          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors hover:bg-opacity-80"
-                          style={{ backgroundColor: webSearchMode !== 'off' ? '#f1d08c' : '#2a2a29', color: webSearchMode !== 'off' ? '#000000' : '#ffffff' }}
-                        title="Search the web"
-                      >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                          <circle cx="12" cy="12" r="9" strokeWidth="2"/>
-                          <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                          <span className="text-xs font-medium hidden lg:inline">
-                            Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}
-                          </span>
-                      </button>
-                        {showWebSearchDropdown && (
-                          <>
-                            <div 
-                              className="fixed inset-0 z-40" 
-                              onClick={() => setShowWebSearchDropdown(false)}
-                            />
-                            <div className="absolute bottom-full left-0 mb-2 z-50 w-72 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
-                              <div className="py-1">
-                      <button
-                                  onClick={() => {
-                                    setWebSearchMode('auto');
-                                    setMode('default');
-                                    setImageGenerationMode(false);
-                                    setShowWebSearchDropdown(false);
-                                  }}
-                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
-                                >
-                                  <div>
-                                    <div className="text-white text-sm font-medium">Auto</div>
-                                    <div className="text-gray-400 text-xs mt-0.5">Automatically determine whether to search the web to answer your question.</div>
-                                  </div>
-                                  {webSearchMode === 'auto' && <Check size={16} className="text-white flex-shrink-0" />}
-                      </button>
-                                <button
-                                  onClick={() => {
-                                    setWebSearchMode('on');
-                                    setMode('search');
-                                    setImageGenerationMode(false);
-                                    setShowWebSearchDropdown(false);
-                                  }}
-                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
-                                >
-                                  <div>
-                                    <div className="text-white text-sm font-medium">On</div>
-                                    <div className="text-gray-400 text-xs mt-0.5">Always search the web before answering your question.</div>
-                                  </div>
-                                  {webSearchMode === 'on' && <Check size={16} className="text-white flex-shrink-0" />}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setWebSearchMode('off');
-                                    setMode('default');
-                                    setShowWebSearchDropdown(false);
-                                  }}
-                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
-                                >
-                                  <div>
-                                    <div className="text-white text-sm font-medium">Off</div>
-                                    <div className="text-gray-400 text-xs mt-0.5">Never search the web before answering your question.</div>
-                                  </div>
-                                  {webSearchMode === 'off' && <Check size={16} className="text-white flex-shrink-0" />}
-                                </button>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {/* Create Image button with dropdown */}
-                      <div className="ml-2 relative image-icon-dropdown-container">
-                        <div className="flex items-center">
-                          <button
-                            onClick={handleToggleImageMode}
-                            className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 ${imageGenerationMode && attachedImages.length > 0 ? 'rounded-l-full pl-3 pr-2' : 'rounded-full px-3'}`}
-                            style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
-                            title="Create image"
-                          >
-                            <ImageIcon size={16} className="w-4 h-4" />
-                          </button>
-                          {imageGenerationMode && attachedImages.length > 0 && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setImageIconDropdownOpen(!imageIconDropdownOpen);
-                                }}
-                                className="h-8 w-6 rounded-r-full flex items-center justify-center transition-colors hover:bg-opacity-80"
-                                style={{ backgroundColor: '#f1d08c', color: '#000000' }}
-                                title="Image actions"
-                              >
-                                <ChevronDown size={12} />
-                              </button>
-                              {imageIconDropdownOpen && (
-                                <div className="absolute bottom-full right-0 mb-1 rounded-lg shadow-lg overflow-hidden z-30" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStartEditImage(0);
-                                      setImageIconDropdownOpen(false);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
-                                  >
-                                    <Edit2 size={12} />
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStartRemixImage(0);
-                                      setImageIconDropdownOpen(false);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
-                                  >
-                                    <ImageIcon size={12} />
-                                    Remix
-                                  </button>
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    {/* Mobile icons only */}
-                    <div className="ml-2 flex sm:hidden items-center gap-2">
-                      <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
-                      </button>
-                      <div className="relative image-icon-dropdown-container">
-                        <div className="flex items-center">
-                          <button
-                            onClick={handleToggleImageMode}
-                            className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 ${imageGenerationMode && attachedImages.length > 0 ? 'rounded-l-full pl-3 pr-2' : 'rounded-full px-3'}`}
-                            style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
-                            title="Create image"
-                          >
-                            <ImageIcon size={16} className="w-4 h-4" />
-                          </button>
-                          {imageGenerationMode && attachedImages.length > 0 && (
-                            <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setImageIconDropdownOpen(!imageIconDropdownOpen);
-                                }}
-                                className="h-8 w-6 rounded-r-full flex items-center justify-center transition-colors hover:bg-opacity-80"
-                                style={{ backgroundColor: '#f1d08c', color: '#000000' }}
-                                title="Image actions"
-                              >
-                                <ChevronDown size={12} />
-                              </button>
-                              {imageIconDropdownOpen && (
-                                <div className="absolute bottom-full right-0 mb-1 rounded-lg shadow-lg overflow-hidden z-30" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStartEditImage(0);
-                                      setImageIconDropdownOpen(false);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
-                                  >
-                                    <Edit2 size={12} />
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleStartRemixImage(0);
-                                      setImageIconDropdownOpen(false);
-                                    }}
-                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
-                                  >
-                                    <ImageIcon size={12} />
-                                    Remix
-                      </button>
-                    </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Desktop/tablet: center absolute */}
-                  {isRecording && (
-                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
-                      <SoundWave bars={80} />
-                    </div>
-                  )}
-                  {/* Mobile: place waveform between left and right groups */}
-                  <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
-                    {isRecording && (
-                      <div className="w-28">
-                        <SoundWave bars={36} />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center">
-                    <button
-                      onClick={() => (isRecording ? stopRecording() : startRecording())}
-                      className="mr-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
-                      style={{ backgroundColor: '#2a2a29' }}
-                      title={isRecording ? 'Stop dictation' : 'Dictate'}
-                    >
-                      <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
-                    </button>
-                    <div className="relative inline-block">
-                      {isLoading && (
-                        <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
-                      )}
-                    <button
-                        onClick={() => handleSearch()}
-                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
-                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
-                        onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
-                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#f1d08c' : '#1a1a19'}
-                    >
-                      {isLoading ? (
-                          <Square size={18} className="text-black" />
-                      ) : (
-                          <ArrowUp size={18} className={(isLoading || canSend) ? 'text-black' : 'text-white'} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            </div>
-            {/* Disclaimer */}
-            <p className="text-center mt-2 text-xs text-gray-500/60">
-              Disclaimer: AI can make mistakes, kindly fact check if possible.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Copied notification */}
-      {showCopied && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-200 opacity-100">
-          <div className="px-4 py-2 rounded-lg shadow-lg border-2 flex items-center gap-2" style={{ backgroundColor: '#f1d08c', borderColor: '#f1d08c' }}>
-            <CopyIcon size={16} className="text-black" />
-            <span className="text-sm font-medium text-black">Copied!</span>
-          </div>
-        </div>
-      )}
-
-      <style jsx global>{`
-        .humbl-textarea::-webkit-scrollbar { width: 8px; }
-        .humbl-textarea::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 8px; }
-        .humbl-textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 8px; }
-        .humbl-textarea::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
-        .humbl-textarea { scrollbar-color: rgba(255,255,255,0.25) rgba(0,0,0,0.2); scrollbar-width: thin; }
-        /* Suggestions list: hide scrollbar but keep scroll */
-        .humbl-suggest { -ms-overflow-style: none; scrollbar-width: none; }
-        .humbl-suggest::-webkit-scrollbar { display: none; }
-        /* Conversation scroll: dark, faded scrollbar */
-        .humbl-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.6) transparent; }
-        .humbl-scroll::-webkit-scrollbar { width: 10px; }
-        .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
-        .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
-        .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
-        /* Recording waveform */
-        .sound-wave .bar { width: 2px; margin: 0 1px; height: 10px; background: #f1d08c; animation-name: wave-lg; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; }
-        .sound-wave .bar:nth-child(-n + 7), .sound-wave .bar:nth-last-child(-n + 7) { animation-name: wave-md; }
-        .sound-wave .bar:nth-child(-n + 3), .sound-wave .bar:nth-last-child(-n + 3) { animation-name: wave-sm; }
-        @keyframes wave-sm { 0% { opacity: 0.35; height: 10px; } 100% { opacity: 1; height: 18px; } }
-        @keyframes wave-md { 0% { opacity: 0.35; height: 14px; } 100% { opacity: 1; height: 34px; } }
-        @keyframes wave-lg { 0% { opacity: 0.35; height: 16px; } 100% { opacity: 1; height: 44px; } }
-        /* Table row striping - dark mode default */
-        table tbody tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.3); }
-        /* Light mode striping */
-        html[data-theme="light"] table tbody tr:nth-child(even),
-        div[data-theme="light"] table tbody tr:nth-child(even) { background-color: rgba(249, 250, 251, 0.5); }
-      `}</style>
-    </div>
-  );
-}
+                 
