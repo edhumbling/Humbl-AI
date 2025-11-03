@@ -58,6 +58,7 @@ export default function Sidebar({
   const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [folderConversationMenuOpenId, setFolderConversationMenuOpenId] = useState<string | null>(null);
+  const [chatsExpanded, setChatsExpanded] = useState(true);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations and folders when sidebar opens and user is logged in
@@ -559,18 +560,31 @@ export default function Sidebar({
                     
                     {/* Chats Section */}
                     {conversationsWithoutFolder.length > 0 && !searchQuery.trim() && (
-                      <div className="mt-6 mb-2">
-                        <h2
-                          className="text-sm font-semibold px-2 uppercase tracking-wide"
-                          style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
+                      <div className="mt-6">
+                        <button
+                          onClick={() => setChatsExpanded(!chatsExpanded)}
+                          className="w-full flex items-center justify-between px-2 py-2 transition-colors duration-300"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
                         >
-                          Chats
-                        </h2>
+                          <span className="text-xs font-semibold uppercase transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                            Chats
+                          </span>
+                          {chatsExpanded ? (
+                            <ChevronDown size={14} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
+                          ) : (
+                            <ChevronRight size={14} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
+                          )}
+                        </button>
                       </div>
                     )}
                     
                     {/* Unorganized Conversations by Time */}
-                    {timePeriods.map((period) => {
+                    {chatsExpanded && timePeriods.map((period) => {
                   const periodConversations = grouped[period];
                   if (periodConversations.length === 0) return null;
                   
