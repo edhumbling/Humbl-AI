@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Send, Mic, Share2, ArrowLeft } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, Share2, ChevronDown, Check, Edit2, MoreVertical, Download } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import { useConversation } from '@/contexts/ConversationContext';
@@ -13,24 +13,37 @@ export default function SharedConversationPage() {
   const router = useRouter();
   const conversationId = params.id as string;
   const user = useUser();
-  const { addUserMessage, addAIMessage, conversationHistory, clearConversation, startConversation } = useConversation();
-  
-  interface Message {
-    type: 'user' | 'ai';
-    content: string;
-    images?: string[];
-    citations?: Array<{ title: string; url: string }>;
-    timestamp: string;
-  }
+  const { 
+    conversationHistory, 
+    conversationStarted,
+    getConversationHistory,
+    addUserMessage, 
+    addAIMessage, 
+    clearConversation,
+    startConversation 
+  } = useConversation();
   
   const [conversation, setConversation] = useState<any>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [streamingResponse, setStreamingResponse] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [attachedImages, setAttachedImages] = useState<string[]>([]);
+  const [imageGenerationMode, setImageGenerationMode] = useState(false);
+  const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
+  const [mode, setMode] = useState<'default' | 'search'>('default');
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
+  const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
+  const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
+  
+  const conversationScrollRef = useRef<HTMLDivElement | null>(null);
+  const conversationBarRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileInputRef2 = useRef<HTMLInputElement | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -40,12 +53,11 @@ export default function SharedConversationPage() {
     }
   }, []);
 
-  // Fetch conversation and messages
+  // Fetch conversation and load into context
   useEffect(() => {
     const fetchConversation = async () => {
       try {
         setIsLoading(true);
-        // Use public endpoint that doesn't require authentication
         const response = await fetch(`/api/conversations/${conversationId}/public`);
         
         if (!response.ok) {
@@ -60,34 +72,19 @@ export default function SharedConversationPage() {
         const data = await response.json();
         setConversation(data.conversation);
         
-        // Convert messages to conversation history format
-        interface FormattedMessage {
-          type: 'user' | 'ai';
-          content: string;
-          images: string[];
-          citations?: Array<{ title: string; url: string }>;
-          timestamp: string;
-        }
-        
-        const formattedMessages: FormattedMessage[] = (data.conversation.messages || []).map((msg: any) => ({
-          type: msg.role === 'user' ? 'user' : 'ai' as 'user' | 'ai',
-          content: msg.content || '',
-          images: msg.images || [],
-          citations: msg.citations || [],
-          timestamp: msg.created_at || new Date().toISOString(),
-        }));
-        
-        setMessages(formattedMessages);
-        
-        // Load into conversation context if user wants to continue
+        // Load messages into conversation context
         clearConversation();
-        formattedMessages.forEach((msg: FormattedMessage) => {
-          if (msg.type === 'user') {
-            addUserMessage(msg.content, msg.images);
+        const messages = data.conversation.messages || [];
+        messages.forEach((msg: any) => {
+          if (msg.role === 'user') {
+            addUserMessage(msg.content || '', msg.images || []);
           } else {
-            addAIMessage(msg.content, msg.images, msg.citations);
+            addAIMessage(msg.content || '', msg.images || [], msg.citations || []);
           }
         });
+        
+        // Mark conversation as started
+        startConversation();
         
       } catch (err) {
         console.error('Error fetching conversation:', err);
@@ -100,24 +97,32 @@ export default function SharedConversationPage() {
     if (conversationId) {
       fetchConversation();
     }
-  }, [conversationId, clearConversation, addUserMessage, addAIMessage]);
+  }, [conversationId, clearConversation, addUserMessage, addAIMessage, startConversation]);
 
-  const handleContinueConversation = async () => {
-    if (!query.trim() || isStreaming) return;
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (conversationScrollRef.current) {
+      conversationScrollRef.current.scrollTop = conversationScrollRef.current.scrollHeight;
+    }
+  }, [conversationHistory, streamingResponse]);
 
-    const userQuery = query;
-    setQuery('');
-    addUserMessage(userQuery);
+  const handleSearch = async () => {
+    if (!searchQuery.trim() && attachedImages.length === 0) return;
+    if (isStreaming) return;
+
+    const queryToUse = searchQuery.trim();
+    setSearchQuery('');
+    addUserMessage(queryToUse, attachedImages);
+    setAttachedImages([]);
+    setImageGenerationMode(false);
 
     setIsStreaming(true);
     setStreamingResponse('');
 
     try {
-      // Build conversation history from loaded messages + new query
-      const allMessages: Message[] = [...messages, { type: 'user', content: userQuery, images: [], timestamp: new Date().toISOString() }];
-      const historyForAPI = allMessages
-        .filter((msg: Message) => msg.content && msg.content.trim() !== '')
-        .map((msg: Message) => ({
+      const historyForAPI = getConversationHistory()
+        .filter(msg => msg.content && msg.content.trim() !== '')
+        .map(msg => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content || '',
           images: msg.images || [],
@@ -125,27 +130,20 @@ export default function SharedConversationPage() {
 
       const response = await fetch('/api/search', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: userQuery,
-          images: [],
-          mode: 'default',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: queryToUse, 
+          images: attachedImages.slice(0, 3), 
+          mode: modeToUse,
           conversationHistory: historyForAPI,
         }),
       });
 
-      if (!response.ok) {
-        throw new Error('Search failed');
-      }
+      if (!response.ok) throw new Error('Search failed');
 
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
+      if (!reader) throw new Error('No response body');
 
       let fullResponse = '';
 
@@ -164,34 +162,22 @@ export default function SharedConversationPage() {
                 fullResponse += data.content;
                 setStreamingResponse(fullResponse);
               }
-              if (data.done) {
-                break;
-              }
-            } catch (e) {
-              // Skip invalid JSON
-            }
+              if (data.done) break;
+            } catch (e) {}
           }
         }
       }
 
       addAIMessage(fullResponse);
-      
-      // Update messages state to include the new messages
-      const newUserMessage = { type: 'user' as const, content: userQuery, images: [], timestamp: new Date().toISOString() };
-      const newAIMessage = { type: 'ai' as const, content: fullResponse, images: [], citations: [], timestamp: new Date().toISOString() };
-      setMessages(prev => [...prev, newUserMessage, newAIMessage]);
-      
       setStreamingResponse('');
       
-      // If user is logged in, save the continuation to a new conversation
-      // Use a ref to track if we've already created a continuation conversation
+      // Save continuation if user is logged in
       if (user) {
         const continuationKey = `continuation_${conversationId}`;
         let newConversationId = sessionStorage.getItem(continuationKey);
         
         try {
           if (!newConversationId) {
-            // Create a new conversation based on the shared one
             const response = await fetch('/api/conversations', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -206,13 +192,14 @@ export default function SharedConversationPage() {
               if (newConversationId) {
                 sessionStorage.setItem(continuationKey, newConversationId);
                 
-                // Save all original messages first
-                for (const msg of messages) {
+                // Save all original messages
+                const originalMessages = conversation?.messages || [];
+                for (const msg of originalMessages) {
                   await fetch(`/api/conversations/${newConversationId}/messages`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      role: msg.type,
+                      role: msg.role,
                       content: msg.content,
                       images: msg.images || [],
                       citations: msg.citations || [],
@@ -224,15 +211,15 @@ export default function SharedConversationPage() {
             }
           }
           
-          // Save the new messages to continuation
+          // Save new messages
           if (newConversationId) {
             await fetch(`/api/conversations/${newConversationId}/messages`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 role: 'user',
-                content: userQuery,
-                images: [],
+                content: queryToUse,
+                images: attachedImages,
                 mode: 'default'
               }),
             });
@@ -251,14 +238,63 @@ export default function SharedConversationPage() {
           }
         } catch (err) {
           console.error('Failed to save continuation:', err);
-          // Continue anyway - user can still interact
         }
       }
     } catch (error) {
-      console.error('Error continuing conversation:', error);
+      console.error('Error:', error);
       addAIMessage('Sorry, I encountered an error. Please try again.');
     } finally {
       setIsStreaming(false);
+    }
+  };
+
+  const modeToUse = mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
+  const canSend = searchQuery.trim().length > 0 || attachedImages.length > 0;
+  const placeholderText = imageGenerationMode ? 'Describe the image you want to generate...' : 'Ask anything...';
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSearch();
+    }
+  };
+
+  const handleImagePickClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImagePickClickLower = () => {
+    fileInputRef2.current?.click();
+  };
+
+  const handleImagesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length + attachedImages.length > 3) {
+      alert('Maximum 3 images allowed');
+      return;
+    }
+    
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const src = event.target?.result as string;
+        setAttachedImages(prev => [...prev, src]);
+      };
+      reader.readAsDataURL(file);
+    });
+    
+    if (e.target) e.target.value = '';
+  };
+
+  const removeAttachedImage = (index: number) => {
+    setAttachedImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleToggleImageMode = () => {
+    setImageGenerationMode(!imageGenerationMode);
+    if (!imageGenerationMode) {
+      setMode('default');
+      setWebSearchMode('off');
     }
   };
 
@@ -266,10 +302,34 @@ export default function SharedConversationPage() {
     const shareUrl = `${window.location.origin}/c/${conversationId}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
-      alert('Conversation link copied to clipboard!');
+      const toast = document.createElement('div');
+      toast.textContent = 'Link copied to clipboard!';
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
+        color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        font-size: 14px;
+        border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+      `;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.3s';
+        setTimeout(() => document.body.removeChild(toast), 300);
+      }, 2000);
     } catch (err) {
       prompt('Copy this link:', shareUrl);
     }
+  };
+
+  const startNewConversation = () => {
+    router.push('/');
   };
 
   if (isLoading) {
@@ -302,144 +362,345 @@ export default function SharedConversationPage() {
 
   return (
     <div className="h-screen flex flex-col transition-colors duration-300" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
-      {/* Header */}
-      <div className="w-full border-b transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+      {/* Header Bar - Same as main page */}
+      <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
         <div className="w-full px-4 md:px-8 py-3">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors duration-300"
-              style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-            >
-              <ArrowLeft size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-              <span className="text-sm" style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>Back</span>
-            </button>
-            
+          <div className="flex items-center justify-between relative">
+            {/* Left: Hamburger menu and New conversation */}
             <div className="flex items-center space-x-2">
-              <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-6 w-auto opacity-90" />
-            </div>
-
-            <div className="flex items-center gap-2">
               <button
-                onClick={handleShare}
+                onClick={() => router.push('/')}
                 className="p-2 rounded-lg transition-colors duration-300"
                 style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-                title="Share conversation"
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}}
+                title="Home"
               >
-                <Share2 size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                <Image src="/sidebar menu.png" alt="Menu" width={18} height={18} className="opacity-80" style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }} />
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Conversation Display */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6 custom-scrollbar">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Conversation Title */}
-          {conversation && (
-            <div className="mb-6">
-              <h1 className="text-2xl font-semibold mb-2 transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
-                {conversation.title || 'Shared Conversation'}
-              </h1>
-              <p className="text-sm transition-colors duration-300" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                Shared conversation • {new Date(conversation.created_at).toLocaleDateString()}
-              </p>
-            </div>
-          )}
-
-          {/* Messages */}
-          {messages.map((message, index) => (
-            <div key={index} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-[85%] md:max-w-[70%] rounded-lg px-4 py-3 ${
-                  message.type === 'user'
-                    ? 'rounded-br-none'
-                    : 'rounded-bl-none'
-                }`}
-                style={{
-                  backgroundColor: message.type === 'user'
-                    ? '#f1d08c'
-                    : theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-                  color: message.type === 'user' ? '#000000' : (theme === 'dark' ? '#e5e7eb' : '#111827'),
-                }}
+              <button
+                onClick={startNewConversation}
+                className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                style={{ backgroundColor: '#f1d08c' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
+                title="New conversation"
               >
-                {message.type === 'ai' ? (
-                  <ResponseRenderer
-                    content={index === messages.length - 1 && isStreaming ? streamingResponse : message.content}
-                    isLoading={index === messages.length - 1 && isStreaming}
-                    theme={theme}
-                  />
-                ) : (
-                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                )}
-              </div>
+                <Image src="/new chat.png" alt="New chat" width={18} height={18} />
+              </button>
+              <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>New</span>
             </div>
-          ))}
 
-          {/* Streaming message placeholder */}
-          {isStreaming && !streamingResponse && (
-            <div className="flex justify-start">
-              <div
-                className="max-w-[85%] md:max-w-[70%] rounded-lg rounded-bl-none px-4 py-3"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-                }}
-              >
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 rounded-full bg-gray-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
+            {/* Center: Logo when conversation is active */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
+              {conversationStarted && (
+                <button onClick={startNewConversation} className="cursor-pointer hover:opacity-80 transition-opacity" title="New conversation">
+                  <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-6 w-auto opacity-90" />
+                </button>
+              )}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Continue Conversation Input */}
-      <div className="w-full border-t transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
-        <div className="w-full px-4 md:px-8 py-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center space-x-3">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleContinueConversation();
-                    }
-                  }}
-                  placeholder="Continue this conversation..."
-                  className="w-full px-4 py-3 pr-12 rounded-2xl border-none outline-none transition-colors duration-300"
-                  style={{
-                    backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
-                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
-                  }}
-                  disabled={isStreaming}
-                />
+            {/* Right: Share button */}
+            {conversationStarted && conversationId && (
+              <div className="flex items-center">
                 <button
-                  onClick={handleContinueConversation}
-                  disabled={!query.trim() || isStreaming}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-lg transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: '#f1d08c' }}
+                  onClick={handleShare}
+                  className="p-2 rounded-lg transition-colors duration-300"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}}
+                  title="Share conversation"
                 >
-                  <Send size={18} className="text-black" />
+                  <Share2 size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
                 </button>
               </div>
-            </div>
-            {!user && (
-              <p className="text-xs mt-2 text-center transition-colors duration-300" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                Continue without account • <button onClick={() => router.push('/handler/signup')} className="underline">Sign up</button> to save your conversations
-              </p>
             )}
           </div>
         </div>
       </div>
+
+      {/* Conversation Area - Same as main page */}
+      {conversationStarted && (
+        <div ref={conversationScrollRef} className="flex-1 relative overflow-y-auto py-4 humbl-scroll">
+          <div className="w-full px-4">
+            <div className="max-w-xl lg:max-w-3xl mx-auto space-y-6 pb-52">
+              {/* Conversation History */}
+              {conversationHistory.map((message, index) => (
+                <div key={index} className="w-full">
+                  {message.type === 'user' ? (
+                    <div className="flex flex-col items-end">
+                      {message.images && message.images.length > 0 && (
+                        <div className="mb-2 flex items-center">
+                          {message.images.map((src, idx) => (
+                            <div key={idx} className={"relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden ring-1 ring-white/20 shadow bg-black group " + (idx > 0 ? "-ml-2" : "")}>
+                              <img src={src} alt={`user-attachment-${idx+1}`} className="w-full h-full object-cover" />
+                              <span className="absolute top-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/70 text-white">{idx+1}</span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const link = document.createElement('a');
+                                  link.href = src;
+                                  link.download = `attachment-${idx+1}.png`;
+                                  link.click();
+                                }}
+                                className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/80 hover:bg-[#f1d08c] opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                title="Download image"
+                              >
+                                <Download size={12} className="text-white group-hover:text-black" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f3f4f6' }}>
+                        <p className={`text-sm sm:text-base whitespace-pre-wrap transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>
+                          {message.content}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full">
+                      {message.images && message.images.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-3">
+                          {message.images.map((src, idx) => (
+                            <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
+                              <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const link = document.createElement('a');
+                                  link.href = src;
+                                  link.download = `generated-image-${idx+1}.png`;
+                                  link.click();
+                                }}
+                                className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
+                                style={{ backgroundColor: '#f1d08c' }}
+                                title="Download image"
+                              >
+                                <Download size={16} className="text-black" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {message.content && <ResponseRenderer content={message.content} theme={theme} />}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Streaming Response */}
+              {streamingResponse && (
+                <div className="w-full">
+                  <ResponseRenderer content={streamingResponse} isLoading={isStreaming} theme={theme} />
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search Bar - Same as main page conversation bar */}
+      {conversationStarted && (
+        <div className="w-full px-4 pb-4" ref={conversationBarRef}>
+          <div className="max-w-xl lg:max-w-3xl mx-auto">
+            <div className="relative">
+              <div className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}>
+                {/* Attached images preview */}
+                {attachedImages.length > 0 && (
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    {attachedImages.map((src, idx) => (
+                      <div key={idx} className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden shadow-lg bg-black flex-shrink-0 group">
+                        <img src={src} alt={`attachment-${idx+1}`} className="w-full h-full object-cover" />
+                        <button
+                          onClick={() => removeAttachedImage(idx)}
+                          className="absolute top-0 right-0 bg-black/90 hover:bg-black rounded-full p-0.5 transition-colors z-10"
+                          title="Remove"
+                        >
+                          <X size={12} className="text-white" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Input Field */}
+                <div className="flex items-start gap-2">
+                  <textarea
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder={placeholderText}
+                    className={`humbl-textarea flex-1 bg-transparent outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto transition-colors duration-300 ${theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-black placeholder-gray-500'}`}
+                    rows={1}
+                    style={{
+                      height: 'auto',
+                      minHeight: '1.5rem',
+                      maxHeight: '8rem'
+                    }}
+                    onInput={(e) => {
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.min(target.scrollHeight, 128) + 'px';
+                    }}
+                  />
+                </div>
+
+                {/* Bottom controls row */}
+                <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <button
+                      onClick={handleImagePickClickLower}
+                      disabled={attachedImages.length >= 3}
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: '#2a2a29' }}
+                      title="Attach images"
+                    >
+                      <Plus size={18} className="text-white" />
+                    </button>
+                    <input ref={fileInputRef2} type="file" accept="image/*" multiple onChange={handleImagesSelected} className="hidden" />
+
+                    {/* Mode buttons */}
+                    <div className="ml-2 hidden sm:flex items-center gap-2 relative">
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowWebSearchDropdown(!showWebSearchDropdown);
+                          }}
+                          className="flex items-center gap-2 px-3 py-1.5 rounded-full transition-colors hover:bg-opacity-80"
+                          style={{ backgroundColor: webSearchMode !== 'off' ? '#f1d08c' : '#2a2a29', color: webSearchMode !== 'off' ? '#000000' : '#ffffff' }}
+                          title="Search the web"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9" strokeWidth="2"/>
+                            <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/>
+                          </svg>
+                          <span className="text-xs font-medium hidden lg:inline">
+                            Search: {webSearchMode === 'auto' ? 'auto' : webSearchMode === 'on' ? 'on' : 'off'}
+                          </span>
+                        </button>
+                        {showWebSearchDropdown && (
+                          <>
+                            <div 
+                              className="fixed inset-0 z-40" 
+                              onClick={() => setShowWebSearchDropdown(false)}
+                            />
+                            <div className="absolute bottom-full left-0 mb-2 z-50 w-72 bg-gray-900 rounded-lg shadow-xl border border-gray-700 overflow-hidden">
+                              <div className="py-1">
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('auto');
+                                    setMode('default');
+                                    setImageGenerationMode(false);
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">Auto</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Automatically determine whether to search the web to answer your question.</div>
+                                  </div>
+                                  {webSearchMode === 'auto' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('on');
+                                    setMode('search');
+                                    setImageGenerationMode(false);
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">On</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Always search the web before answering your question.</div>
+                                  </div>
+                                  {webSearchMode === 'on' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setWebSearchMode('off');
+                                    setMode('default');
+                                    setShowWebSearchDropdown(false);
+                                  }}
+                                  className="w-full px-4 py-3 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
+                                >
+                                  <div>
+                                    <div className="text-white text-sm font-medium">Off</div>
+                                    <div className="text-gray-400 text-xs mt-0.5">Never search the web before answering your question.</div>
+                                  </div>
+                                  {webSearchMode === 'off' && <Check size={16} className="text-white flex-shrink-0" />}
+                                </button>
+                              </div>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      <div className="ml-2 relative">
+                        <button
+                          onClick={handleToggleImageMode}
+                          className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 rounded-full px-3`}
+                          style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                          title="Create image"
+                        >
+                          <ImageIcon size={16} className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="ml-2 flex sm:hidden items-center gap-2">
+                      <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </button>
+                      <button
+                        onClick={handleToggleImageMode}
+                        className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 rounded-full px-3`}
+                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                        title="Create image"
+                      >
+                        <ImageIcon size={16} className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => setIsRecording(!isRecording)}
+                      className="mr-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                      style={{ backgroundColor: '#2a2a29' }}
+                      title={isRecording ? 'Stop dictation' : 'Dictate'}
+                    >
+                      <Mic size={20} className={isRecording ? 'text-red-500 animate-pulse' : 'text-white'} />
+                    </button>
+                    <div className="relative inline-block">
+                      {isStreaming && (
+                        <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
+                      )}
+                      <button
+                        onClick={handleSearch}
+                        disabled={isStreaming || (!searchQuery.trim() && attachedImages.length === 0)}
+                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ backgroundColor: (isStreaming || canSend) ? '#f1d08c' : '#1a1a19' }}
+                        onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#e8c377' : '#2a2a29'}
+                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#f1d08c' : '#1a1a19'}}
+                      >
+                        {isStreaming ? (
+                          <Square size={18} className="text-black" />
+                        ) : (
+                          <ArrowUp size={18} className={(isStreaming || canSend) ? 'text-black' : 'text-white'} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Disclaimer */}
+            <p className="text-center mt-2 text-xs text-gray-500/60">
+              AI can make mistakes, kindly fact check if possible.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
