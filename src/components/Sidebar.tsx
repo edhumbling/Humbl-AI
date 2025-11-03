@@ -512,24 +512,16 @@ export default function Sidebar({
                 onClick={() => {
                   window.location.href = '/handler/login';
                 }}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200"
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-[1.02]"
                 style={{
-                  backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                  backgroundColor: '#f1d08c',
+                  color: '#000000',
                 }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? '#2a2a29' : '#e5e7eb')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? '#1a1a19' : '#f3f4f6')
-                }
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
               >
-                <LogIn size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-                <span
-                  className="text-base transition-colors duration-300"
-                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                >
+                <LogIn size={20} className="text-black" />
+                <span className="text-base font-medium text-black">
                   Login
                 </span>
               </button>
