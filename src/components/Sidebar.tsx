@@ -333,7 +333,7 @@ export default function Sidebar({
         )}
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
           {user ? (
             isLoading ? (
               <div className="flex items-center justify-center py-8">
