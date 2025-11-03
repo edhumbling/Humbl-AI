@@ -5,6 +5,7 @@ import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, Arrow
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
+import Onboarding from '../components/Onboarding';
 import { useConversation } from '@/contexts/ConversationContext';
 import { useUser } from '@stackframe/stack';
 
@@ -280,6 +281,7 @@ export default function Home() {
   const [showInfo, setShowInfo] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
@@ -1111,6 +1113,17 @@ export default function Home() {
     localStorage.setItem('humblai-theme', theme);
   }, [theme]);
 
+  // Check if onboarding should be shown on first visit
+  useEffect(() => {
+    const onboardingCompleted = localStorage.getItem('humbl_onboarding_completed');
+    if (!onboardingCompleted) {
+      // Small delay to ensure page is fully loaded
+      setTimeout(() => {
+        setShowOnboarding(true);
+      }, 500);
+    }
+  }, []);
+
   const placeholderText = imageEditRemixMode === 'edit' 
     ? 'Describe how to edit the image (e.g., "Remove all people from the background")'
     : imageEditRemixMode === 'remix'
@@ -1472,6 +1485,14 @@ export default function Home() {
         onSelectConversation={handleSelectConversation}
         currentConversationId={currentConversationId}
       />
+
+      {/* Onboarding */}
+      {showOnboarding && (
+        <Onboarding
+          theme={theme}
+          onClose={() => setShowOnboarding(false)}
+        />
+      )}
 
 
       {/* Header - Only show when conversation hasn't started */}
