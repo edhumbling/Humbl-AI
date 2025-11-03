@@ -1312,7 +1312,7 @@ export default function Home() {
     <div className="h-screen flex flex-col transition-colors duration-300" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
       {/* Header Bar with New Conversation button */}
       <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
-        <div className="max-w-6xl mx-auto px-4 py-3">
+        <div className="w-full px-4 md:px-8 py-3">
           <div className="flex items-center justify-between relative">
             {/* Left: Hamburger menu and New conversation */}
             <div className="flex items-center space-x-2">
