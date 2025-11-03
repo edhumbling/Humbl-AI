@@ -681,7 +681,7 @@ export default function SharedConversationPage() {
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isStreaming || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#e8c377' : '#2a2a29'}
-                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#f1d08c' : '#1a1a19'}}
+                        onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#f1d08c' : '#1a1a19'}
                       >
                         {isStreaming ? (
                           <Square size={18} className="text-black" />
