@@ -161,19 +161,36 @@ export default function Sidebar({
   // Handle click outside to close menus
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      // Check if click is outside the sidebar
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      
+      // Always close menus if clicking outside the sidebar
+      if (sidebarRef.current && !sidebarRef.current.contains(target)) {
         setShowUserMenu(false);
         setShowSearchMenu(false);
         setMenuOpenId(null);
+        return;
+      }
+      
+      // If inside sidebar, check if click is on a menu trigger or inside a menu
+      if (showSearchMenu || showUserMenu || menuOpenId) {
+        // Check if click is on the settings button (account bar button)
+        const isSettingsButton = target.closest('[data-menu-trigger="settings"]');
+        // Check if click is on a three-dot button
+        const isThreeDotsButton = target.closest('[data-menu-trigger="three-dots"]');
+        // Check if click is inside a menu dropdown
+        const isMenuDropdown = target.closest('[data-menu-dropdown]');
+        
+        // Close menus if not clicking on trigger or inside dropdown
+        if (!isSettingsButton && !isThreeDotsButton && !isMenuDropdown) {
+          setShowUserMenu(false);
+          setShowSearchMenu(false);
+          setMenuOpenId(null);
+        }
       }
     };
 
     if (showUserMenu || showSearchMenu || menuOpenId) {
-      // Add a small delay to prevent immediate closing
-      setTimeout(() => {
-        document.addEventListener('mousedown', handleClickOutside);
-      }, 100);
+      document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
@@ -419,6 +436,7 @@ export default function Sidebar({
                           {editingId !== conversation.id && (
                             <div className="absolute top-2 right-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
                               <button
+                                data-menu-trigger="three-dots"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setMenuOpenId(menuOpenId === conversation.id ? null : conversation.id);
@@ -439,6 +457,7 @@ export default function Sidebar({
 
                               {menuOpenId === conversation.id && (
                                 <div
+                                  data-menu-dropdown
                                   className="absolute right-0 mt-1 w-40 rounded-lg shadow-lg z-10 overflow-hidden"
                                   style={{
                                     backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
@@ -559,6 +578,7 @@ export default function Sidebar({
           >
             <div className="relative">
                 <button
+                  data-menu-trigger="settings"
                   onClick={() => {
                     setShowSearchMenu(!showSearchMenu);
                     setShowUserMenu(false);
@@ -604,6 +624,7 @@ export default function Sidebar({
                 {/* Search menu dropdown */}
                 {showSearchMenu && (
                   <div
+                    data-menu-dropdown
                     className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg overflow-hidden min-w-[180px]"
                     style={{
                       backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
