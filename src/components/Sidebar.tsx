@@ -557,12 +557,11 @@ export default function Sidebar({
             className="border-t p-4 transition-colors duration-300"
             style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
           >
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1">
+            <div className="relative">
                 <button
                   onClick={() => {
-                    setShowUserMenu(!showUserMenu);
-                    setShowSearchMenu(false);
+                    setShowSearchMenu(!showSearchMenu);
+                    setShowUserMenu(false);
                   }}
                   className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
                   style={{
@@ -599,34 +598,6 @@ export default function Sidebar({
                       {user.primaryEmail}
                     </p>
                   </div>
-                </button>
-
-                {/* User menu dropdown - Currently empty, reserved for future features */}
-                {showUserMenu && false && (
-                  <div
-                    className="absolute bottom-full left-0 mb-2 rounded-lg shadow-lg overflow-hidden w-full"
-                    style={{
-                      backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
-                      border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
-                    }}
-                  >
-                  </div>
-                )}
-              </div>
-
-              {/* Settings button */}
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setShowSearchMenu(!showSearchMenu);
-                    setShowUserMenu(false);
-                  }}
-                  className="h-10 w-10 flex items-center justify-center rounded-lg transition-all duration-200 hover:bg-opacity-80"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
-                  }}
-                  title="More options"
-                >
                   <Settings size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
                 </button>
 
@@ -677,7 +648,6 @@ export default function Sidebar({
                     </button>
                   </div>
                 )}
-              </div>
             </div>
           </div>
         )}
