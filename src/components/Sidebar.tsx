@@ -1033,19 +1033,19 @@ export default function Sidebar({
                       onClick={() => moveConversationToFolder(folder.id)}
                       className="w-full flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 text-left"
                       style={{
-                        backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
-                        color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                        backgroundColor: theme === 'dark' ? '#f1d08c' : '#e8c377',
+                        color: theme === 'dark' ? '#111827' : '#111827',
                       }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                          theme === 'dark' ? '#e8c377' : '#d9af5a')
                       }
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)')
+                          theme === 'dark' ? '#f1d08c' : '#e8c377')
                       }
                     >
-                      <Folder size={14} style={{ color: theme === 'dark' ? '#f1d08c' : '#e8c377' }} />
+                      <Folder size={14} style={{ color: theme === 'dark' ? '#111827' : '#111827' }} />
                       <span className="text-sm">{folder.name}</span>
                     </button>
                   ))}
