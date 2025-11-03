@@ -1337,7 +1337,7 @@ export default function Home() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                 title="Menu"
               >
-                <Menu size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                <Image src="/sidebar menu.png" alt="Menu" width={18} height={18} className="opacity-80" />
               </button>
               <button
                 onClick={startNewConversation}
