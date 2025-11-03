@@ -150,19 +150,8 @@ export default function FolderList({
                       onClick={() => onToggleFolder(folder.id)}
                       className="w-full flex items-center px-2.5 py-1.5 rounded-md transition-all duration-200"
                       style={{
-                        backgroundColor: currentConversationId && folderConversations.some(c => c.id === currentConversationId)
-                          ? '#8B6F47'
-                          : '#A0826D',
+                        backgroundColor: '#A0826D',
                       }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = '#8B6F47')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          currentConversationId && folderConversations.some(c => c.id === currentConversationId)
-                            ? '#8B6F47'
-                            : '#A0826D')
-                      }
                     >
                       <Folder size={12} style={{ color: '#f1d08c', flexShrink: 0 }} />
                       <span
@@ -199,7 +188,7 @@ export default function FolderList({
                       {folderMenuOpenId === folder.id && (
                         <div
                           data-menu-dropdown
-                          className="absolute right-0 mt-1 w-40 rounded-lg shadow-lg z-10 overflow-hidden"
+                          className="absolute right-0 mt-1 w-36 rounded-md shadow-lg z-10 overflow-hidden"
                           style={{
                             backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                             border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -210,7 +199,7 @@ export default function FolderList({
                               e.stopPropagation();
                               onStartEditFolder(folder);
                             }}
-                            className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
+                            className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs transition-colors duration-200 whitespace-nowrap"
                             style={{
                               color: theme === 'dark' ? '#e5e7eb' : '#111827',
                             }}
@@ -222,8 +211,8 @@ export default function FolderList({
                               (e.currentTarget.style.backgroundColor = 'transparent')
                             }
                           >
-                            <Pencil size={12} />
-                            <span>Rename</span>
+                            <Pencil size={10} />
+                            <span className="truncate">Rename</span>
                           </button>
                           {onAddChatsToFolder && (
                             <button
@@ -232,7 +221,7 @@ export default function FolderList({
                                 onAddChatsToFolder(folder.id);
                                 onSetFolderMenuOpen(null);
                               }}
-                              className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
+                              className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs transition-colors duration-200 whitespace-nowrap"
                               style={{
                                 color: theme === 'dark' ? '#e5e7eb' : '#111827',
                               }}
@@ -244,8 +233,8 @@ export default function FolderList({
                                 (e.currentTarget.style.backgroundColor = 'transparent')
                               }
                             >
-                              <MessageSquare size={12} />
-                              <span>Add chats from history</span>
+                              <MessageSquare size={10} />
+                              <span className="truncate">Add chats from history</span>
                             </button>
                           )}
                           <button
@@ -253,7 +242,7 @@ export default function FolderList({
                               e.stopPropagation();
                               onDeleteFolder(folder.id);
                             }}
-                            className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-red-500 transition-colors duration-200"
+                            className="w-full flex items-center space-x-1.5 px-2 py-1.5 text-xs text-red-500 transition-colors duration-200 whitespace-nowrap"
                             onMouseEnter={(e) =>
                               (e.currentTarget.style.backgroundColor =
                                 theme === 'dark' ? '#2a2a29' : '#f3f4f6')
@@ -262,8 +251,8 @@ export default function FolderList({
                               (e.currentTarget.style.backgroundColor = 'transparent')
                             }
                           >
-                            <Trash2 size={12} />
-                            <span>Delete</span>
+                            <Trash2 size={10} />
+                            <span className="truncate">Delete</span>
                           </button>
                         </div>
                       )}
