@@ -15,8 +15,16 @@ export default function SharedConversationPage() {
   const user = useUser();
   const { addUserMessage, addAIMessage, conversationHistory, clearConversation, startConversation } = useConversation();
   
+  interface Message {
+    type: 'user' | 'ai';
+    content: string;
+    images?: string[];
+    citations?: Array<{ title: string; url: string }>;
+    timestamp: string;
+  }
+  
   const [conversation, setConversation] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -53,7 +61,15 @@ export default function SharedConversationPage() {
         setConversation(data.conversation);
         
         // Convert messages to conversation history format
-        const formattedMessages = (data.conversation.messages || []).map((msg: any) => ({
+        interface FormattedMessage {
+          type: 'user' | 'ai';
+          content: string;
+          images: string[];
+          citations?: Array<{ title: string; url: string }>;
+          timestamp: string;
+        }
+        
+        const formattedMessages: FormattedMessage[] = (data.conversation.messages || []).map((msg: any) => ({
           type: msg.role === 'user' ? 'user' : 'ai' as 'user' | 'ai',
           content: msg.content || '',
           images: msg.images || [],
@@ -65,7 +81,7 @@ export default function SharedConversationPage() {
         
         // Load into conversation context if user wants to continue
         clearConversation();
-        formattedMessages.forEach(msg => {
+        formattedMessages.forEach((msg: FormattedMessage) => {
           if (msg.type === 'user') {
             addUserMessage(msg.content, msg.images);
           } else {
@@ -98,10 +114,10 @@ export default function SharedConversationPage() {
 
     try {
       // Build conversation history from loaded messages + new query
-      const allMessages = [...messages, { type: 'user', content: userQuery, images: [] }];
+      const allMessages: Message[] = [...messages, { type: 'user', content: userQuery, images: [], timestamp: new Date().toISOString() }];
       const historyForAPI = allMessages
-        .filter((msg: any) => msg.content && msg.content.trim() !== '')
-        .map((msg: any) => ({
+        .filter((msg: Message) => msg.content && msg.content.trim() !== '')
+        .map((msg: Message) => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
           content: msg.content || '',
           images: msg.images || [],
