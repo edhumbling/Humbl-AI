@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Search } from 'lucide-react';
 import Image from 'next/image';
 
 interface Conversation {
@@ -31,11 +31,14 @@ export default function Sidebar({
   currentConversationId,
 }: SidebarProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSearchMenu, setShowSearchMenu] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations when sidebar opens and user is logged in
@@ -44,6 +47,18 @@ export default function Sidebar({
       fetchConversations();
     }
   }, [isOpen, user]);
+
+  // Filter conversations based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredConversations(conversations);
+    } else {
+      const filtered = conversations.filter(conv =>
+        conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredConversations(filtered);
+    }
+  }, [searchQuery, conversations]);
 
   const fetchConversations = async () => {
     if (!user) return;
@@ -54,6 +69,7 @@ export default function Sidebar({
       if (response.ok) {
         const data = await response.json();
         setConversations(data.conversations || []);
+        setFilteredConversations(data.conversations || []);
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -70,6 +86,7 @@ export default function Sidebar({
 
       if (response.ok) {
         setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+        setFilteredConversations(prev => prev.filter(conv => conv.id !== conversationId));
         setMenuOpenId(null);
         
         // If deleting current conversation, start a new one
@@ -207,17 +224,8 @@ export default function Sidebar({
           backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
         }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-4 border-b transition-colors duration-300"
-          style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-        >
-          <h2
-            className="text-lg font-semibold transition-colors duration-300"
-            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-          >
-            {user ? 'Conversations' : 'Menu'}
-          </h2>
+        {/* Close button */}
+        <div className="flex justify-end px-5 py-4">
           <button
             onClick={onClose}
             className="p-2 rounded-lg transition-colors duration-300"
@@ -239,7 +247,7 @@ export default function Sidebar({
 
         {/* New Conversation Button */}
         {user && (
-          <div className="p-4">
+          <div className="p-4 space-y-3">
             <button
               onClick={() => {
                 onNewConversation();
@@ -256,6 +264,26 @@ export default function Sidebar({
               <Plus size={20} />
               <span>New Conversation</span>
             </button>
+
+            {/* Search Bar */}
+            <div className="relative">
+              <Search 
+                size={18} 
+                className="absolute left-3 top-1/2 transform -translate-y-1/2" 
+                style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
+              />
+              <input
+                type="text"
+                placeholder="Search Grok History"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 rounded-lg border-none outline-none transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                }}
+              />
+            </div>
           </div>
         )}
 
@@ -266,16 +294,16 @@ export default function Sidebar({
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent" style={{ borderColor: '#f1d08c' }} />
               </div>
-            ) : conversations.length === 0 ? (
+            ) : filteredConversations.length === 0 ? (
               <div
                 className="text-center py-8 text-sm"
                 style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
               >
-                No conversations yet. Start a new one!
+                {searchQuery.trim() ? 'No conversations found' : 'No conversations yet. Start a new one!'}
               </div>
             ) : (
               (() => {
-                const grouped = groupConversationsByTime(conversations);
+                const grouped = groupConversationsByTime(filteredConversations);
                 const timePeriods = ['Today', 'Yesterday', 'This Week', 'This Month', 'Earlier'];
                 
                 return timePeriods.map((period) => {
@@ -484,71 +512,141 @@ export default function Sidebar({
             className="border-t p-4 transition-colors duration-300"
             style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
           >
-            <div className="relative">
-              <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
-                }}
-              >
-                {user.profileImageUrl ? (
-                  <Image
-                    src={user.profileImageUrl}
-                    alt={user.displayName || user.primaryEmail || 'User'}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center"
-                    style={{ backgroundColor: '#f1d08c' }}
-                  >
-                    <User size={20} className="text-black" />
-                  </div>
-                )}
-                <div className="flex-1 text-left min-w-0">
-                  <p
-                    className="text-sm font-medium truncate transition-colors duration-300"
-                    style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                  >
-                    {user.displayName || 'User'}
-                  </p>
-                  <p
-                    className="text-xs truncate transition-colors duration-300"
-                    style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
-                  >
-                    {user.primaryEmail}
-                  </p>
-                </div>
-              </button>
-
-              {/* User menu dropdown */}
-              {showUserMenu && (
-                <div
-                  className="absolute bottom-full left-0 right-0 mb-2 rounded-lg shadow-lg overflow-hidden"
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1">
+                <button
+                  onClick={() => {
+                    setShowUserMenu(!showUserMenu);
+                    setShowSearchMenu(false);
+                  }}
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
                   style={{
-                    backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
-                    border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
                   }}
                 >
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-red-500 transition-colors duration-200"
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.backgroundColor =
-                        theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = 'transparent')
-                    }
+                  {user.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={user.displayName || user.primaryEmail || 'User'}
+                      width={40}
+                      height={40}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: '#f1d08c' }}
+                    >
+                      <User size={20} className="text-black" />
+                    </div>
+                  )}
+                  <div className="flex-1 text-left min-w-0">
+                    <p
+                      className="text-sm font-medium truncate transition-colors duration-300"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                    >
+                      {user.displayName || 'User'}
+                    </p>
+                    <p
+                      className="text-xs truncate transition-colors duration-300"
+                      style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
+                    >
+                      {user.primaryEmail}
+                    </p>
+                  </div>
+                </button>
+
+                {/* User menu dropdown */}
+                {showUserMenu && (
+                  <div
+                    className="absolute bottom-full left-0 mb-2 rounded-lg shadow-lg overflow-hidden w-full"
+                    style={{
+                      backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                      border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                    }}
                   >
-                    <LogOut size={16} />
-                    <span>Logout</span>
-                  </button>
-                </div>
-              )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-red-500 transition-colors duration-200"
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <LogOut size={16} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Search button */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowSearchMenu(!showSearchMenu);
+                    setShowUserMenu(false);
+                  }}
+                  className="p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                  }}
+                  title="More options"
+                >
+                  <Search size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
+                </button>
+
+                {/* Search menu dropdown */}
+                {showSearchMenu && (
+                  <div
+                    className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg overflow-hidden min-w-[180px]"
+                    style={{
+                      backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                      border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                    }}
+                  >
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <LogOut size={16} />
+                      <span>Logout</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        const phoneNumber = '233208705290';
+                        const message = encodeURIComponent('Feedback from Humbl AI: ');
+                        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+                        window.open(whatsappUrl, '_blank');
+                        setShowSearchMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <MessageSquare size={16} />
+                      <span>Send feedback</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
