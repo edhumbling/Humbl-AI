@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, MessageSquare, Image as ImageIcon, Search, Mic, BookOpen, ChevronRight, Star } from 'lucide-react';
+import { X, MessageSquare, Image as ImageIcon, Search, Mic, ChevronRight, Star } from 'lucide-react';
 import Image from 'next/image';
 
 interface OnboardingProps {
@@ -33,12 +33,6 @@ const onboardingSteps = [
     title: 'Voice Search',
     description: 'Speak your queries naturally using voice input',
     color: '#9b59b6',
-  },
-  {
-    icon: BookOpen,
-    title: 'Study Mode',
-    description: 'Enhanced learning mode for educational content',
-    color: '#27ae60',
   },
 ];
 
