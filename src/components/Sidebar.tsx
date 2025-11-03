@@ -53,6 +53,8 @@ export default function Sidebar({
   const [showSearchMenu, setShowSearchMenu] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [showMoveToProjectModal, setShowMoveToProjectModal] = useState(false);
+  const [conversationToMove, setConversationToMove] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations and folders when sidebar opens and user is logged in
@@ -233,6 +235,32 @@ export default function Sidebar({
     setEditingId(folder.id);
     setEditTitle(folder.name);
     setFolderMenuOpenId(null);
+  };
+
+  const handleMoveToProject = (conversationId: string) => {
+    setConversationToMove(conversationId);
+    setShowMoveToProjectModal(true);
+    setMenuOpenId(null);
+  };
+
+  const moveConversationToFolder = async (folderId: string | null) => {
+    if (!conversationToMove) return;
+
+    try {
+      const response = await fetch(`/api/conversations/${conversationToMove}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id: folderId }),
+      });
+
+      if (response.ok) {
+        fetchConversations();
+        setShowMoveToProjectModal(false);
+        setConversationToMove(null);
+      }
+    } catch (error) {
+      console.error('Failed to move conversation:', error);
+    }
   };
 
   const handleLogout = async () => {
@@ -442,32 +470,6 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* New Folder Button */}
-        {user && folders.length > 0 && !searchQuery.trim() && (
-          <div className="px-4 pb-2">
-            <button
-              onClick={() => setShowCreateFolderModal(true)}
-              className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)')
-              }
-            >
-              <FolderPlus size={14} style={{ color: theme === 'dark' ? '#f1d08c' : '#e8c377' }} />
-              <span className="text-xs font-medium transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>
-                New Folder
-              </span>
-            </button>
-          </div>
-        )}
-
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
           {user ? (
@@ -513,6 +515,7 @@ export default function Sidebar({
                           onSelectConversation(id);
                           onClose();
                         }}
+                        onCreateNewProject={() => setShowCreateFolderModal(true)}
                         formatDate={formatDate}
                       />
                     )}
@@ -633,6 +636,26 @@ export default function Sidebar({
                                   >
                                     <Pencil size={14} />
                                     <span>Rename</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleMoveToProject(conversation.id);
+                                    }}
+                                    className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
+                                    style={{
+                                      color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                                    }}
+                                    onMouseEnter={(e) =>
+                                      (e.currentTarget.style.backgroundColor =
+                                        theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                                    }
+                                    onMouseLeave={(e) =>
+                                      (e.currentTarget.style.backgroundColor = 'transparent')
+                                    }
+                                  >
+                                    <Folder size={14} />
+                                    <span>Move to project</span>
                                   </button>
                                   <button
                                     onClick={(e) => {
@@ -844,13 +867,13 @@ export default function Sidebar({
               style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
               <h3 className="text-lg font-semibold transition-colors duration-300"
                 style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
-                Create New Folder
+                Create New Project
               </h3>
             </div>
             <div className="px-6 py-4">
               <input
                 type="text"
-                placeholder="Folder name"
+                placeholder="Project name"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
                 onKeyDown={(e) => {
@@ -895,6 +918,93 @@ export default function Sidebar({
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
               >
                 Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move to Project Modal */}
+      {showMoveToProjectModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowMoveToProjectModal(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <h3 className="text-lg font-semibold transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Move to Project
+              </h3>
+            </div>
+            <div className="px-6 py-4 max-h-96 overflow-y-auto custom-scrollbar">
+              {folders.length === 0 ? (
+                <p className="text-sm text-center py-4 transition-colors duration-300"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  No projects yet. Create one first!
+                </p>
+              ) : (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => moveConversationToFolder(null)}
+                    className="w-full flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 text-left"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                      color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)')
+                    }
+                  >
+                    <span className="text-sm">Unorganized</span>
+                  </button>
+                  {folders.map((folder) => (
+                    <button
+                      key={folder.id}
+                      onClick={() => moveConversationToFolder(folder.id)}
+                      className="w-full flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors duration-200 text-left"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                        color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)')
+                      }
+                    >
+                      <Folder size={14} style={{ color: theme === 'dark' ? '#f1d08c' : '#e8c377' }} />
+                      <span className="text-sm">{folder.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <button
+                onClick={() => setShowMoveToProjectModal(false)}
+                className="w-full px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>

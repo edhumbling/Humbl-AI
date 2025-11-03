@@ -81,6 +81,18 @@ export const conversationDb = {
     return result.rows[0];
   },
 
+  // Update conversation folder
+  async updateConversationFolder(conversationId: string, userId: string, folderId: string | null) {
+    const result = await query(
+      `UPDATE conversations 
+       SET folder_id = $1 
+       WHERE id = $2 AND user_id = $3 
+       RETURNING *`,
+      [folderId, conversationId, userId]
+    );
+    return result.rows[0];
+  },
+
   // Delete a conversation
   async deleteConversation(conversationId: string, userId: string) {
     await query(

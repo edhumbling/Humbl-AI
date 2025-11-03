@@ -59,17 +59,30 @@ export async function PATCH(
     );
 
     const body = await request.json();
-    const { title } = body;
+    const { title, folder_id } = body;
 
-    if (!title || !title.trim()) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    let conversation;
+
+    // Update title if provided
+    if (title) {
+      if (!title.trim()) {
+        return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
+      }
+      conversation = await conversationDb.updateConversationTitle(
+        id,
+        dbUser.id,
+        title
+      );
     }
 
-    const conversation = await conversationDb.updateConversationTitle(
-      id,
-      dbUser.id,
-      title
-    );
+    // Update folder if provided
+    if (folder_id !== undefined) {
+      conversation = await conversationDb.updateConversationFolder(
+        id,
+        dbUser.id,
+        folder_id
+      );
+    }
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
