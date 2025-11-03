@@ -2117,25 +2117,22 @@ export default function Home() {
         </div>
       )}
 
-      {/* Scroll to bottom button - Only show when conversation has started */}
-      {conversationStarted && showScrollToBottom && (
-        <div className="w-full px-4 pb-2 flex justify-center">
-          <button
-            onClick={scrollToBottom}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-all opacity-100 border-2 bg-transparent hover:bg-[#f1d08c]/10 hover:scale-110"
-            style={{ borderColor: '#f1d08c' }}
-            title="Scroll to bottom"
-          >
-            <ChevronDown size={20} className="text-[#f1d08c]" strokeWidth={2} />
-          </button>
-        </div>
-      )}
-
       {/* Search Bar - Only show when conversation has started */}
       {conversationStarted && (
-        <div className="w-full px-4 py-4" ref={conversationBarRef}>
+        <div className="w-full px-4 pb-4" ref={conversationBarRef}>
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
+              {/* Scroll to bottom button */}
+              {showScrollToBottom && (
+                <button
+                  onClick={scrollToBottom}
+                  className="absolute -top-12 left-1/2 transform -translate-x-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-all opacity-100 border-2 bg-transparent hover:bg-[#f1d08c]/10 hover:scale-110 z-10"
+                  style={{ borderColor: '#f1d08c', backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}
+                  title="Scroll to bottom"
+                >
+                  <ChevronDown size={20} className="text-[#f1d08c]" strokeWidth={2} />
+                </button>
+              )}
               <div className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}>
                 {/* Full-bar waveform background */}
                 {isRecording && (
