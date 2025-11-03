@@ -39,6 +39,7 @@ interface FolderListProps {
   onSelectConversation: (id: string) => void;
   onMoveToUnorganized: (id: string) => void;
   onCreateNewProject: () => void;
+  onAddChatsToFolder?: (folderId: string) => void;
   formatDate: (date: string) => string;
 }
 
@@ -63,6 +64,7 @@ export default function FolderList({
   onSelectConversation,
   onMoveToUnorganized,
   onCreateNewProject,
+  onAddChatsToFolder,
   formatDate,
 }: FolderListProps) {
   const [projectsExpanded, setProjectsExpanded] = React.useState(true);
@@ -223,6 +225,29 @@ export default function FolderList({
                             <Pencil size={12} />
                             <span>Rename</span>
                           </button>
+                          {onAddChatsToFolder && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onAddChatsToFolder(folder.id);
+                                onSetFolderMenuOpen(null);
+                              }}
+                              className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
+                              style={{
+                                color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <MessageSquare size={12} />
+                              <span>Add chats from history</span>
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

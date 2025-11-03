@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 
@@ -59,6 +59,9 @@ export default function Sidebar({
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [folderConversationMenuOpenId, setFolderConversationMenuOpenId] = useState<string | null>(null);
   const [chatsExpanded, setChatsExpanded] = useState(true);
+  const [showAddChatsToFolderModal, setShowAddChatsToFolderModal] = useState(false);
+  const [targetFolderForAdd, setTargetFolderForAdd] = useState<string | null>(null);
+  const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations and folders when sidebar opens and user is logged in
@@ -80,6 +83,11 @@ export default function Sidebar({
       setFilteredConversations(filtered);
     }
   }, [searchQuery, conversations]);
+
+  // Get conversations without folders (for Chats section)
+  const conversationsWithoutFolder = React.useMemo(() => {
+    return filteredConversations.filter(conv => !conv.folder_id);
+  }, [filteredConversations]);
 
   const fetchConversations = async () => {
     if (!user) return;
@@ -313,6 +321,21 @@ export default function Sidebar({
       });
 
       if (response.ok) {
+        // Update local state immediately
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, folder_id: undefined }
+              : conv
+          )
+        );
+        setFilteredConversations(prev => 
+          prev.map(conv => 
+            conv.id === conversationId 
+              ? { ...conv, folder_id: undefined }
+              : conv
+          )
+        );
         // Refresh conversations to get updated data
         await fetchConversations();
         setFolderConversationMenuOpenId(null);
@@ -320,6 +343,80 @@ export default function Sidebar({
     } catch (error) {
       console.error('Failed to move conversation to unorganized:', error);
     }
+  };
+
+  const handleBatchMoveToFolder = async () => {
+    if (!targetFolderForAdd || selectedConversations.size === 0) return;
+
+    try {
+      // Move all selected conversations
+      const movePromises = Array.from(selectedConversations).map(conversationId =>
+        fetch(`/api/conversations/${conversationId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ folder_id: targetFolderForAdd }),
+        })
+      );
+
+      const results = await Promise.all(movePromises);
+      const allSucceeded = results.every(r => r.ok);
+
+      if (allSucceeded) {
+        // Update local state immediately for all moved conversations
+        setConversations(prev => 
+          prev.map(conv => 
+            selectedConversations.has(conv.id)
+              ? { ...conv, folder_id: targetFolderForAdd }
+              : conv
+          )
+        );
+        setFilteredConversations(prev => 
+          prev.map(conv => 
+            selectedConversations.has(conv.id)
+              ? { ...conv, folder_id: targetFolderForAdd }
+              : conv
+          )
+        );
+
+        // Expand the target folder
+        setExpandedFolders(prev => {
+          const newSet = new Set(prev);
+          newSet.add(targetFolderForAdd);
+          return newSet;
+        });
+
+        // Refresh data
+        await Promise.all([fetchConversations(), fetchFolders()]);
+
+        // Close modal and reset
+        setShowAddChatsToFolderModal(false);
+        setSelectedConversations(new Set());
+        setTargetFolderForAdd(null);
+      }
+    } catch (error) {
+      console.error('Failed to move conversations:', error);
+    }
+  };
+
+  const toggleConversationSelection = (conversationId: string) => {
+    setSelectedConversations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(conversationId)) {
+        newSet.delete(conversationId);
+      } else {
+        newSet.add(conversationId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const allIds = conversationsWithoutFolder.map(conv => conv.id);
+    setSelectedConversations(new Set(allIds));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedConversations(new Set());
   };
 
   const handleLogout = async () => {
@@ -335,7 +432,7 @@ export default function Sidebar({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       // Don't close sidebar if any modal is open
-      if (showCreateFolderModal || showMoveToProjectModal || showDeleteProjectModal) {
+      if (showCreateFolderModal || showMoveToProjectModal || showDeleteProjectModal || showAddChatsToFolderModal) {
         return;
       }
       
@@ -354,7 +451,7 @@ export default function Sidebar({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose, showCreateFolderModal, showMoveToProjectModal, showDeleteProjectModal]);
+  }, [isOpen, onClose, showCreateFolderModal, showMoveToProjectModal, showDeleteProjectModal, showAddChatsToFolderModal]);
 
   // Handle click outside to close menus
   useEffect(() => {
@@ -452,14 +549,14 @@ export default function Sidebar({
       {/* Backdrop */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-300 ${
-          isOpen && !showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isOpen && !showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal && !showAddChatsToFolderModal ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         style={{
           backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
         }}
         onClick={() => {
           // Don't close sidebar if any modal is open
-          if (!showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal) {
+          if (!showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal && !showAddChatsToFolderModal) {
             onClose();
           }
         }}
@@ -592,6 +689,10 @@ export default function Sidebar({
                         }}
                         onMoveToUnorganized={moveFolderConversationToUnorganized}
                         onCreateNewProject={() => setShowCreateFolderModal(true)}
+                        onAddChatsToFolder={(folderId) => {
+                          setTargetFolderForAdd(folderId);
+                          setShowAddChatsToFolderModal(true);
+                        }}
                         formatDate={formatDate}
                       />
                     )}
@@ -1195,6 +1296,208 @@ export default function Sidebar({
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Chats to Folder Modal */}
+      {showAddChatsToFolderModal && targetFolderForAdd && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => {
+              setShowAddChatsToFolderModal(false);
+              setSelectedConversations(new Set());
+              setTargetFolderForAdd(null);
+            }}
+          />
+          <div className="relative w-full max-w-2xl max-h-[80vh] rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300 flex flex-col"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between flex-shrink-0"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <div>
+                <h3 className="text-lg font-semibold transition-colors duration-300"
+                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Add Chats to Project
+                </h3>
+                <p className="text-xs mt-1 transition-colors duration-300"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  {folders.find(f => f.id === targetFolderForAdd)?.name || 'Project'}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddChatsToFolderModal(false);
+                  setSelectedConversations(new Set());
+                  setTargetFolderForAdd(null);
+                }}
+                className="p-1 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
+            </div>
+
+            {/* Selection Controls */}
+            <div className="px-6 py-3 border-b transition-colors duration-300 flex items-center justify-between flex-shrink-0"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleSelectAll}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)')
+                  }
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={handleDeselectAll}
+                  className="px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)')
+                  }
+                >
+                  Deselect All
+                </button>
+              </div>
+              <span className="text-sm transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                {selectedConversations.size} selected
+              </span>
+            </div>
+
+            {/* Conversations List */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+              {conversationsWithoutFolder.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm transition-colors duration-300"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                    No chats in history to add
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {conversationsWithoutFolder.map((conversation) => {
+                    const isSelected = selectedConversations.has(conversation.id);
+                    return (
+                      <button
+                        key={conversation.id}
+                        onClick={() => toggleConversationSelection(conversation.id)}
+                        className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 text-left"
+                        style={{
+                          backgroundColor: isSelected
+                            ? (theme === 'dark' ? 'rgba(241, 208, 140, 0.2)' : 'rgba(241, 208, 140, 0.3)')
+                            : (theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)'),
+                          border: isSelected
+                            ? `1px solid ${theme === 'dark' ? '#f1d08c' : '#e8c377'}`
+                            : '1px solid transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.4)' : 'rgba(209, 213, 219, 0.7)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isSelected) {
+                            e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)';
+                          }
+                        }}
+                      >
+                        <div
+                          className="flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200"
+                          style={{
+                            borderColor: isSelected
+                              ? (theme === 'dark' ? '#f1d08c' : '#e8c377')
+                              : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
+                            backgroundColor: isSelected
+                              ? (theme === 'dark' ? '#f1d08c' : '#e8c377')
+                              : 'transparent',
+                          }}
+                        >
+                          {isSelected && (
+                            <Check size={14} style={{ color: theme === 'dark' ? '#111827' : '#111827' }} />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p
+                            className="text-sm font-medium truncate transition-colors duration-300"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          >
+                            {conversation.title}
+                          </p>
+                          <p
+                            className="text-xs transition-colors duration-300"
+                            style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                          >
+                            {formatDate(conversation.updated_at)}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer Actions */}
+            <div className="px-6 py-4 border-t transition-colors duration-300 flex gap-3 flex-shrink-0"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <button
+                onClick={() => {
+                  setShowAddChatsToFolderModal(false);
+                  setSelectedConversations(new Set());
+                  setTargetFolderForAdd(null);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBatchMoveToFolder}
+                disabled={selectedConversations.size === 0}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{
+                  backgroundColor: selectedConversations.size > 0 ? '#f1d08c' : (theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)'),
+                  color: selectedConversations.size > 0 ? '#000000' : (theme === 'dark' ? '#9ca3af' : '#6b7280'),
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedConversations.size > 0) {
+                    e.currentTarget.style.backgroundColor = '#e8c377';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedConversations.size > 0) {
+                    e.currentTarget.style.backgroundColor = '#f1d08c';
+                  }
+                }}
+              >
+                Add {selectedConversations.size > 0 ? `${selectedConversations.size} ` : ''}Chat{selectedConversations.size !== 1 ? 's' : ''}
               </button>
             </div>
           </div>
