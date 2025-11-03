@@ -264,20 +264,37 @@ export default function Sidebar({
           backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
         }}
       >
-        {/* Logo */}
-        <div className="flex justify-center py-4 px-5 border-b transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+        {/* Logo with Close Button */}
+        <div className="flex items-center justify-between py-4 px-5 border-b transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
           <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors duration-300"
+            style={{
+              backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.backgroundColor =
+                theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.backgroundColor =
+                theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+            }
+          >
+            <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+          </button>
         </div>
 
-        {/* Top bar with New Conversation and Close */}
+        {/* Top bar with New Conversation */}
         {user && (
-          <div className="flex items-center gap-3 px-5 py-3">
+          <div className="px-5 py-3">
             <button
               onClick={() => {
                 onNewConversation();
                 onClose();
               }}
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] flex-1"
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
               style={{
                 backgroundColor: '#f1d08c',
                 color: '#000000',
@@ -287,45 +304,6 @@ export default function Sidebar({
             >
               <Pencil size={16} />
               <span className="text-sm font-medium">Start New Conversation</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg transition-colors duration-300"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
-              }
-            >
-              <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-            </button>
-          </div>
-        )}
-        
-        {!user && (
-          <div className="flex justify-end px-5 py-3">
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg transition-colors duration-300"
-              style={{
-                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor =
-                  theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
-              }
-            >
-              <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
             </button>
           </div>
         )}
