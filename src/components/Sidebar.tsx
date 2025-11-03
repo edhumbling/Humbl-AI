@@ -267,7 +267,34 @@ export default function Sidebar({
       });
 
       if (response.ok) {
-        fetchConversations();
+        // Update local state immediately for better UX
+        setConversations(prev => 
+          prev.map(conv => 
+            conv.id === conversationToMove 
+              ? { ...conv, folder_id: folderId || undefined }
+              : conv
+          )
+        );
+        setFilteredConversations(prev => 
+          prev.map(conv => 
+            conv.id === conversationToMove 
+              ? { ...conv, folder_id: folderId || undefined }
+              : conv
+          )
+        );
+
+        // If moving to a folder, expand that folder so user can see the conversation
+        if (folderId) {
+          setExpandedFolders(prev => {
+            const newSet = new Set(prev);
+            newSet.add(folderId);
+            return newSet;
+          });
+        }
+        
+        // Refresh both conversations and folders to get updated data from server
+        await Promise.all([fetchConversations(), fetchFolders()]);
+        
         setShowMoveToProjectModal(false);
         setConversationToMove(null);
         setFolderConversationMenuOpenId(null);
@@ -286,7 +313,8 @@ export default function Sidebar({
       });
 
       if (response.ok) {
-        fetchConversations();
+        // Refresh conversations to get updated data
+        await fetchConversations();
         setFolderConversationMenuOpenId(null);
       }
     } catch (error) {
