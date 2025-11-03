@@ -2276,8 +2276,10 @@ export default function Home() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
                     onFocus={() => { 
+                      // Always scroll input bar above keyboard on mobile
+                      scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement);
+                      // Show suggestions only if conversation hasn't started
                       if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); 
-                      scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); 
                     }}
                     onBlur={(e) => {
                       setTimeout(() => setShowSuggestions(false), 120);
