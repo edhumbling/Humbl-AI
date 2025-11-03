@@ -429,7 +429,7 @@ export default function Sidebar({
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-full w-80 sm:w-96 z-50 flex flex-col transition-transform duration-300 ease-out shadow-2xl ${
+        className={`fixed top-0 left-0 h-full w-2/3 sm:w-96 z-50 flex flex-col transition-transform duration-300 ease-out shadow-2xl ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{
