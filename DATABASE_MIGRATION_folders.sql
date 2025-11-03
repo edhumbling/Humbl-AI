@@ -29,3 +29,19 @@ CREATE INDEX IF NOT EXISTS idx_conversations_folder_id ON conversations(folder_i
 CREATE TRIGGER update_folders_updated_at BEFORE UPDATE ON folders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Update conversation_summaries view to include folder_id
+CREATE OR REPLACE VIEW conversation_summaries AS
+SELECT 
+    c.id,
+    c.user_id,
+    c.folder_id,
+    c.title,
+    c.created_at,
+    c.updated_at,
+    c.is_archived,
+    COUNT(m.id) as message_count,
+    MAX(m.created_at) as last_message_at
+FROM conversations c
+LEFT JOIN messages m ON c.id = m.conversation_id
+GROUP BY c.id, c.user_id, c.folder_id, c.title, c.created_at, c.updated_at, c.is_archived;
+

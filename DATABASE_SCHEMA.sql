@@ -94,6 +94,7 @@ CREATE OR REPLACE VIEW conversation_summaries AS
 SELECT 
     c.id,
     c.user_id,
+    c.folder_id,
     c.title,
     c.created_at,
     c.updated_at,
@@ -102,7 +103,7 @@ SELECT
     MAX(m.created_at) as last_message_at
 FROM conversations c
 LEFT JOIN messages m ON c.id = m.conversation_id
-GROUP BY c.id, c.user_id, c.title, c.created_at, c.updated_at, c.is_archived;
+GROUP BY c.id, c.user_id, c.folder_id, c.title, c.created_at, c.updated_at, c.is_archived;
 
 -- Sample query to get user conversations
 -- SELECT * FROM conversation_summaries 
