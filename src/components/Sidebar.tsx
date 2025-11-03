@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus } from 'lucide-react';
 import Image from 'next/image';
+import FolderList from './FolderList';
 
 interface Conversation {
   id: string;
@@ -441,6 +442,32 @@ export default function Sidebar({
           </div>
         )}
 
+        {/* New Folder Button */}
+        {user && folders.length > 0 && !searchQuery.trim() && (
+          <div className="px-4 pb-2">
+            <button
+              onClick={() => setShowCreateFolderModal(true)}
+              className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)')
+              }
+            >
+              <FolderPlus size={14} style={{ color: theme === 'dark' ? '#f1d08c' : '#e8c377' }} />
+              <span className="text-xs font-medium transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>
+                New Folder
+              </span>
+            </button>
+          </div>
+        )}
+
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
           {user ? (
@@ -457,10 +484,41 @@ export default function Sidebar({
               </div>
             ) : (
               (() => {
-                const grouped = groupConversationsByTime(filteredConversations);
+                // Filter out conversations that are in folders
+                const conversationsWithoutFolder = filteredConversations.filter(conv => !conv.folder_id);
+                const grouped = groupConversationsByTime(conversationsWithoutFolder);
                 const timePeriods = ['Today', 'Yesterday', 'This Week', 'This Month', 'Earlier'];
                 
-                return timePeriods.map((period) => {
+                return (
+                  <>
+                    {/* Folders List */}
+                    {!searchQuery.trim() && (
+                      <FolderList
+                        folders={folders}
+                        conversations={filteredConversations}
+                        expandedFolders={expandedFolders}
+                        editingId={editingId}
+                        editTitle={editTitle}
+                        folderMenuOpenId={folderMenuOpenId}
+                        theme={theme}
+                        currentConversationId={currentConversationId}
+                        onToggleFolder={toggleFolderExpanded}
+                        onRenameFolder={handleRenameFolder}
+                        onDeleteFolder={handleDeleteFolder}
+                        onStartEditFolder={startEditingFolder}
+                        onSetEditTitle={setEditTitle}
+                        onSetEditingId={setEditingId}
+                        onSetFolderMenuOpen={setFolderMenuOpenId}
+                        onSelectConversation={(id) => {
+                          onSelectConversation(id);
+                          onClose();
+                        }}
+                        formatDate={formatDate}
+                      />
+                    )}
+                    
+                    {/* Unorganized Conversations by Time */}
+                    {timePeriods.map((period) => {
                   const periodConversations = grouped[period];
                   if (periodConversations.length === 0) return null;
                   
@@ -601,7 +659,9 @@ export default function Sidebar({
                       ))}
                     </div>
                   );
-                });
+                })}
+                  </>
+                );
               })()
             )
           ) : (
@@ -767,6 +827,79 @@ export default function Sidebar({
           </div>
         )}
       </div>
+
+      {/* Create Folder Modal */}
+      {showCreateFolderModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowCreateFolderModal(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <h3 className="text-lg font-semibold transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Create New Folder
+              </h3>
+            </div>
+            <div className="px-6 py-4">
+              <input
+                type="text"
+                placeholder="Folder name"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleCreateFolder();
+                  } else if (e.key === 'Escape') {
+                    setShowCreateFolderModal(false);
+                    setNewFolderName('');
+                  }
+                }}
+                className="w-full px-4 py-3 rounded-lg border-none outline-none transition-colors duration-300 text-sm"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="px-6 py-4 flex gap-3 border-t transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <button
+                onClick={() => {
+                  setShowCreateFolderModal(false);
+                  setNewFolderName('');
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02]"
+                style={{
+                  backgroundColor: '#f1d08c',
+                  color: '#000000',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
