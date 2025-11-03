@@ -443,14 +443,44 @@ export default function Home() {
                     mode: modeToUse
                   })
                 });
-                // Update conversation title from first message
+                // Generate conversation title for image generation
                 const history = getConversationHistory();
                 if (history.length === 2) {
-                  await fetch(`/api/conversations/${convId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: queryToUse.substring(0, 50) })
-                  });
+                  try {
+                    const titleResponse = await fetch('/api/conversations/generate-title', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        query: queryToUse,
+                        aiResponse: 'Image generated successfully!'
+                      })
+                    });
+                    
+                    if (titleResponse.ok) {
+                      const titleData = await titleResponse.json();
+                      const generatedTitle = titleData.title || queryToUse.substring(0, 50);
+                      
+                      await fetch(`/api/conversations/${convId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: generatedTitle })
+                      });
+                    } else {
+                      // Fallback to query
+                      await fetch(`/api/conversations/${convId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                      });
+                    }
+                  } catch (titleErr) {
+                    console.error('Failed to generate title:', titleErr);
+                    await fetch(`/api/conversations/${convId}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                    });
+                  }
                 }
               } catch (err) {
                 console.error('Failed to save image message:', err);
@@ -621,13 +651,48 @@ export default function Home() {
                               mode: modeToUse
                             })
                           });
-                          // Update conversation title from first message
+                          // Generate and update conversation title from first AI response
                           if (conversationHistory.length === 2) { // First user + first AI message
-                            await fetch(`/api/conversations/${convId}`, {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ title: queryToUse.substring(0, 50) })
-                            });
+                            try {
+                              const titleResponse = await fetch('/api/conversations/generate-title', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  query: queryToUse,
+                                  aiResponse: fullResponse
+                                })
+                              });
+                              
+                              if (titleResponse.ok) {
+                                const titleData = await titleResponse.json();
+                                const generatedTitle = titleData.title || queryToUse.substring(0, 50);
+                                
+                                await fetch(`/api/conversations/${convId}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ title: generatedTitle })
+                                });
+                              } else {
+                                // Fallback to query if title generation fails
+                                await fetch(`/api/conversations/${convId}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                                });
+                              }
+                            } catch (titleErr) {
+                              console.error('Failed to generate title:', titleErr);
+                              // Fallback to query if title generation fails
+                              try {
+                                await fetch(`/api/conversations/${convId}`, {
+                                  method: 'PATCH',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                                });
+                              } catch (fallbackErr) {
+                                console.error('Failed to update conversation title:', fallbackErr);
+                              }
+                            }
                           }
                         } catch (err) {
                           console.error('Failed to save AI message:', err);

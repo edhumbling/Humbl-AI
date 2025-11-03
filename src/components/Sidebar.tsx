@@ -344,7 +344,7 @@ export default function Sidebar({
 
                           {/* Three-dot menu */}
                           {editingId !== conversation.id && (
-                            <div className="absolute top-2 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <div className="absolute top-2 right-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
