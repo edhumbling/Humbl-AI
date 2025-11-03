@@ -55,6 +55,8 @@ export default function Sidebar({
   const [newFolderName, setNewFolderName] = useState('');
   const [showMoveToProjectModal, setShowMoveToProjectModal] = useState(false);
   const [conversationToMove, setConversationToMove] = useState<string | null>(null);
+  const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations and folders when sidebar opens and user is logged in
@@ -196,15 +198,24 @@ export default function Sidebar({
     }
   };
 
-  const handleDeleteFolder = async (folderId: string) => {
+  const handleDeleteFolder = (folderId: string) => {
+    setProjectToDelete(folderId);
+    setShowDeleteProjectModal(true);
+    setFolderMenuOpenId(null);
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!projectToDelete) return;
+
     try {
-      const response = await fetch(`/api/folders/${folderId}`, {
+      const response = await fetch(`/api/folders/${projectToDelete}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         fetchFolders();
-        setFolderMenuOpenId(null);
+        setShowDeleteProjectModal(false);
+        setProjectToDelete(null);
       }
     } catch (error) {
       console.error('Failed to delete folder:', error);
@@ -384,7 +395,7 @@ export default function Sidebar({
       {/* Backdrop */}
       <div
         className={`fixed inset-0 z-40 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          isOpen && !showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         style={{
           backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
@@ -1005,6 +1016,62 @@ export default function Sidebar({
                 }}
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Project Confirmation Modal */}
+      {showDeleteProjectModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowDeleteProjectModal(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <h3 className="text-lg font-semibold transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Delete Project
+              </h3>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Are you sure you want to delete this project? This action cannot be undone.
+              </p>
+            </div>
+            <div className="px-6 py-4 flex gap-3 border-t transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <button
+                onClick={() => {
+                  setShowDeleteProjectModal(false);
+                  setProjectToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteFolder}
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] text-white"
+                style={{
+                  backgroundColor: '#ef4444',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
+              >
+                Delete
               </button>
             </div>
           </div>
