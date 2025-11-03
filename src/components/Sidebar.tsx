@@ -57,6 +57,7 @@ export default function Sidebar({
   const [conversationToMove, setConversationToMove] = useState<string | null>(null);
   const [showDeleteProjectModal, setShowDeleteProjectModal] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [folderConversationMenuOpenId, setFolderConversationMenuOpenId] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Fetch conversations and folders when sidebar opens and user is logged in
@@ -268,9 +269,27 @@ export default function Sidebar({
         fetchConversations();
         setShowMoveToProjectModal(false);
         setConversationToMove(null);
+        setFolderConversationMenuOpenId(null);
       }
     } catch (error) {
       console.error('Failed to move conversation:', error);
+    }
+  };
+
+  const moveFolderConversationToUnorganized = async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id: null }),
+      });
+
+      if (response.ok) {
+        fetchConversations();
+        setFolderConversationMenuOpenId(null);
+      }
+    } catch (error) {
+      console.error('Failed to move conversation to unorganized:', error);
     }
   };
 
@@ -314,38 +333,42 @@ export default function Sidebar({
         setShowSearchMenu(false);
         setMenuOpenId(null);
         setFolderMenuOpenId(null);
+        setFolderConversationMenuOpenId(null);
         return;
       }
       
       // If inside sidebar, check if click is on a menu trigger or inside a menu
-      if (showSearchMenu || showUserMenu || menuOpenId || folderMenuOpenId) {
+      if (showSearchMenu || showUserMenu || menuOpenId || folderMenuOpenId || folderConversationMenuOpenId) {
         // Check if click is on the settings button (account bar button)
         const isSettingsButton = target.closest('[data-menu-trigger="settings"]');
         // Check if click is on a three-dot button
         const isThreeDotsButton = target.closest('[data-menu-trigger="three-dots"]');
         // Check if click is on a folder menu button
         const isFolderMenuButton = target.closest('[data-menu-trigger="folder-menu"]');
+        // Check if click is on a folder conversation menu button
+        const isFolderConversationMenuButton = target.closest('[data-menu-trigger="folder-conversation-menu"]');
         // Check if click is inside a menu dropdown
         const isMenuDropdown = target.closest('[data-menu-dropdown]');
         
         // Close menus if not clicking on trigger or inside dropdown
-        if (!isSettingsButton && !isThreeDotsButton && !isFolderMenuButton && !isMenuDropdown) {
+        if (!isSettingsButton && !isThreeDotsButton && !isFolderMenuButton && !isFolderConversationMenuButton && !isMenuDropdown) {
           setShowUserMenu(false);
           setShowSearchMenu(false);
           setMenuOpenId(null);
           setFolderMenuOpenId(null);
+          setFolderConversationMenuOpenId(null);
         }
       }
     };
 
-    if (showUserMenu || showSearchMenu || menuOpenId || folderMenuOpenId) {
+    if (showUserMenu || showSearchMenu || menuOpenId || folderMenuOpenId || folderConversationMenuOpenId) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu, showSearchMenu, menuOpenId, folderMenuOpenId]);
+  }, [showUserMenu, showSearchMenu, menuOpenId, folderMenuOpenId, folderConversationMenuOpenId]);
 
   // Format date for display - simplified format like "Oct 23", "Oct 19", etc.
   const formatDate = (dateString: string) => {
@@ -513,6 +536,7 @@ export default function Sidebar({
                         editingId={editingId}
                         editTitle={editTitle}
                         folderMenuOpenId={folderMenuOpenId}
+                        folderConversationMenuOpenId={folderConversationMenuOpenId}
                         theme={theme}
                         currentConversationId={currentConversationId}
                         onToggleFolder={toggleFolderExpanded}
@@ -522,10 +546,12 @@ export default function Sidebar({
                         onSetEditTitle={setEditTitle}
                         onSetEditingId={setEditingId}
                         onSetFolderMenuOpen={setFolderMenuOpenId}
+                        onSetFolderConversationMenuOpen={setFolderConversationMenuOpenId}
                         onSelectConversation={(id) => {
                           onSelectConversation(id);
                           onClose();
                         }}
+                        onMoveToUnorganized={moveFolderConversationToUnorganized}
                         onCreateNewProject={() => setShowCreateFolderModal(true)}
                         formatDate={formatDate}
                       />

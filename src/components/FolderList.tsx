@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Folder, ChevronDown, ChevronRight, MoreVertical, Pencil, Trash2, FolderPlus } from 'lucide-react';
+import { Folder, ChevronDown, ChevronRight, MoreVertical, Pencil, Trash2, FolderPlus, MessageSquare } from 'lucide-react';
 
 interface Folder {
   id: string;
@@ -25,6 +25,7 @@ interface FolderListProps {
   editingId: string | null;
   editTitle: string;
   folderMenuOpenId: string | null;
+  folderConversationMenuOpenId: string | null;
   theme: 'dark' | 'light';
   currentConversationId?: string;
   onToggleFolder: (folderId: string) => void;
@@ -34,7 +35,9 @@ interface FolderListProps {
   onSetEditTitle: (title: string) => void;
   onSetEditingId: (id: string | null) => void;
   onSetFolderMenuOpen: (id: string | null) => void;
+  onSetFolderConversationMenuOpen: (id: string | null) => void;
   onSelectConversation: (id: string) => void;
+  onMoveToUnorganized: (id: string) => void;
   onCreateNewProject: () => void;
   formatDate: (date: string) => string;
 }
@@ -46,6 +49,7 @@ export default function FolderList({
   editingId,
   editTitle,
   folderMenuOpenId,
+  folderConversationMenuOpenId,
   theme,
   currentConversationId,
   onToggleFolder,
@@ -55,7 +59,9 @@ export default function FolderList({
   onSetEditTitle,
   onSetEditingId,
   onSetFolderMenuOpen,
+  onSetFolderConversationMenuOpen,
   onSelectConversation,
+  onMoveToUnorganized,
   onCreateNewProject,
   formatDate,
 }: FolderListProps) {
@@ -244,7 +250,7 @@ export default function FolderList({
                 {isExpanded && folderConversations.length > 0 && (
                   <div className="ml-4">
                     {folderConversations.map((conversation) => (
-                      <div key={conversation.id} className="group">
+                      <div key={conversation.id} className="group relative">
                         <button
                           onClick={() => onSelectConversation(conversation.id)}
                           className="w-full text-left py-1 px-2 pr-8 transition-opacity duration-200 hover:opacity-70"
@@ -259,6 +265,62 @@ export default function FolderList({
                             {conversation.title}
                           </p>
                         </button>
+                        
+                        {/* Three dots menu for folder conversations */}
+                        <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+                          <button
+                            data-menu-trigger="folder-conversation-menu"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSetFolderConversationMenuOpen(folderConversationMenuOpenId === conversation.id ? null : conversation.id);
+                            }}
+                            className="p-1.5 transition-colors duration-200 rounded opacity-0 group-hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            style={{
+                              color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                              backgroundColor: folderConversationMenuOpenId === conversation.id ? (theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.8)') : 'transparent',
+                            }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.color = theme === 'dark' ? '#e5e7eb' : '#374151')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.color = theme === 'dark' ? '#9ca3af' : '#6b7280')
+                            }
+                          >
+                            <MoreVertical size={14} />
+                          </button>
+
+                          {folderConversationMenuOpenId === conversation.id && (
+                            <div
+                              data-menu-dropdown
+                              className="absolute right-0 mt-1 w-40 rounded-lg shadow-lg z-10 overflow-hidden"
+                              style={{
+                                backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                                border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                              }}
+                            >
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onMoveToUnorganized(conversation.id);
+                                }}
+                                className="w-full flex items-center space-x-2 px-3 py-2 text-sm transition-colors duration-200"
+                                style={{
+                                  color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.backgroundColor =
+                                    theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.backgroundColor = 'transparent')
+                                }
+                              >
+                                <MessageSquare size={12} />
+                                <span>Move to history</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
