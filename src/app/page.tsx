@@ -1347,7 +1347,7 @@ export default function Home() {
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
                 title="New conversation"
               >
-                <Plus size={18} className="text-black" />
+                <Image src="/new chat.png" alt="New chat" width={18} height={18} />
               </button>
               <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>New</span>
             </div>
@@ -1361,29 +1361,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* Right: Theme Toggle and Info */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2 rounded-lg transition-colors duration-300"
-                style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
-                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              >
-                {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} className="text-blue-600" />}
-              </button>
-              <button
-                onClick={() => setShowInfo(true)}
-                className="p-2 rounded-lg transition-colors duration-300"
-                style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
-                title="Info"
-              >
-                <Info size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -1476,10 +1453,12 @@ export default function Home() {
       )}
 
       {/* Sidebar */}
-      <Sidebar
+        <Sidebar
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         theme={theme}
+        setTheme={setTheme}
+        onShowInfo={() => setShowInfo(true)}
         user={user}
         onNewConversation={startNewConversation}
         onSelectConversation={handleSelectConversation}

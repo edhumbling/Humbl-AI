@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 
@@ -24,6 +24,8 @@ interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   theme: 'dark' | 'light';
+  setTheme: (theme: 'dark' | 'light') => void;
+  onShowInfo: () => void;
   user: any; // Stack Auth user object
   onNewConversation: () => void;
   onSelectConversation: (conversationId: string) => void;
@@ -34,6 +36,8 @@ export default function Sidebar({
   isOpen,
   onClose,
   theme,
+  setTheme,
+  onShowInfo,
   user,
   onNewConversation,
   onSelectConversation,
@@ -63,12 +67,62 @@ export default function Sidebar({
   const [targetFolderForAdd, setTargetFolderForAdd] = useState<string | null>(null);
   const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
   const sidebarRef = useRef<HTMLDivElement>(null);
+  
+  // Persistent state refs (survive sidebar open/close)
+  const conversationsCacheRef = useRef<Conversation[]>([]);
+  const foldersCacheRef = useRef<FolderType[]>([]);
+  const lastFetchTimeRef = useRef<number>(0);
+  const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const REFRESH_INTERVAL = 30000; // 30 seconds
+  const STALE_TIME = 60000; // 1 minute - data is stale after this
 
-  // Fetch conversations and folders when sidebar opens and user is logged in
+  // Initialize from cache if available
+  useEffect(() => {
+    if (conversationsCacheRef.current.length > 0) {
+      setConversations(conversationsCacheRef.current);
+      setFilteredConversations(conversationsCacheRef.current);
+    }
+    if (foldersCacheRef.current.length > 0) {
+      setFolders(foldersCacheRef.current);
+    }
+  }, []);
+
+  // Fetch conversations and folders - only if stale or missing
   useEffect(() => {
     if (isOpen && user) {
-      fetchConversations();
-      fetchFolders();
+      const now = Date.now();
+      const timeSinceLastFetch = now - lastFetchTimeRef.current;
+      const hasCachedData = conversationsCacheRef.current.length > 0 || foldersCacheRef.current.length > 0;
+      const isStale = timeSinceLastFetch > STALE_TIME;
+
+      // Only show loading if we don't have cached data
+      if (!hasCachedData) {
+        setIsLoading(true);
+      }
+
+      // Fetch if no cache or stale
+      if (!hasCachedData || isStale) {
+        fetchConversations();
+        fetchFolders();
+      }
+
+      // Set up background refresh interval
+      if (fetchIntervalRef.current) {
+        clearInterval(fetchIntervalRef.current);
+      }
+      fetchIntervalRef.current = setInterval(() => {
+        if (user) {
+          fetchConversations(true); // background refresh
+          fetchFolders(true);
+        }
+      }, REFRESH_INTERVAL);
+
+      return () => {
+        if (fetchIntervalRef.current) {
+          clearInterval(fetchIntervalRef.current);
+          fetchIntervalRef.current = null;
+        }
+      };
     }
   }, [isOpen, user]);
 
@@ -89,10 +143,12 @@ export default function Sidebar({
     return filteredConversations.filter(conv => !conv.folder_id || conv.folder_id === null);
   }, [filteredConversations]);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (background = false) => {
     if (!user) return;
     
-    setIsLoading(true);
+    if (!background) {
+      setIsLoading(true);
+    }
     try {
       const response = await fetch('/api/conversations');
       if (response.ok) {
@@ -103,6 +159,12 @@ export default function Sidebar({
           ...conv,
           folder_id: conv.folder_id || null
         }));
+        
+        // Update cache
+        conversationsCacheRef.current = normalizedConversations;
+        lastFetchTimeRef.current = Date.now();
+        
+        // Update state
         setConversations(normalizedConversations);
         setFilteredConversations(normalizedConversations);
         return normalizedConversations;
@@ -110,18 +172,29 @@ export default function Sidebar({
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
-      setIsLoading(false);
+      if (!background) {
+        setIsLoading(false);
+      }
     }
   };
 
-  const fetchFolders = async () => {
+  const fetchFolders = async (background = false) => {
     if (!user) return;
     
     try {
       const response = await fetch('/api/folders');
       if (response.ok) {
         const data = await response.json();
-        setFolders(data.folders || []);
+        const folders = data.folders || [];
+        
+        // Update cache
+        foldersCacheRef.current = folders;
+        if (!background) {
+          lastFetchTimeRef.current = Date.now();
+        }
+        
+        // Update state
+        setFolders(folders);
       }
     } catch (error) {
       console.error('Failed to fetch folders:', error);
@@ -1022,9 +1095,12 @@ export default function Sidebar({
                     }}
                   >
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setTheme(theme === 'dark' ? 'light' : 'dark');
+                        setShowSearchMenu(false);
+                      }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: '#ef4444' }}
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor =
                           theme === 'dark' ? '#2a2a29' : '#f3f4f6')
@@ -1033,8 +1109,35 @@ export default function Sidebar({
                         (e.currentTarget.style.backgroundColor = 'transparent')
                       }
                     >
-                      <LogOut size={16} />
-                      <span>Logout</span>
+                      {theme === 'dark' ? (
+                        <>
+                          <Sun size={16} className="text-yellow-400" />
+                          <span>Switch to Light Mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <Moon size={16} className="text-blue-600" />
+                          <span>Switch to Dark Mode</span>
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        onShowInfo();
+                        setShowSearchMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <Info size={16} />
+                      <span>Developer Info</span>
                     </button>
                     <button
                       onClick={() => {
@@ -1056,6 +1159,25 @@ export default function Sidebar({
                     >
                       <MessageSquare size={16} />
                       <span>Send feedback</span>
+                    </button>
+                    <div
+                      className="w-full h-px my-1"
+                      style={{ backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}
+                    />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: '#ef4444' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <LogOut size={16} />
+                      <span>Logout</span>
                     </button>
                   </div>
                 )}
