@@ -203,21 +203,23 @@ export default function SharedConversationPage() {
             if (response.ok) {
               const data = await response.json();
               newConversationId = data.conversation.id;
-              sessionStorage.setItem(continuationKey, newConversationId);
-              
-              // Save all original messages first
-              for (const msg of messages) {
-                await fetch(`/api/conversations/${newConversationId}/messages`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    role: msg.type,
-                    content: msg.content,
-                    images: msg.images || [],
-                    citations: msg.citations || [],
-                    mode: 'default'
-                  }),
-                });
+              if (newConversationId) {
+                sessionStorage.setItem(continuationKey, newConversationId);
+                
+                // Save all original messages first
+                for (const msg of messages) {
+                  await fetch(`/api/conversations/${newConversationId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      role: msg.type,
+                      content: msg.content,
+                      images: msg.images || [],
+                      citations: msg.citations || [],
+                      mode: 'default'
+                    }),
+                  });
+                }
               }
             }
           }
