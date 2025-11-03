@@ -48,6 +48,7 @@ export default function Home() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const firstAIMessageRef = useRef<boolean>(false);
 
   const startVisualizer = (stream: MediaStream) => {
     try {
@@ -192,6 +193,7 @@ export default function Home() {
     endConversation();
     clearConversation();
     setCurrentConversationId(undefined); // Clear conversation ID
+    firstAIMessageRef.current = false; // Reset first AI message flag
     setSearchQuery('');
     setSearchResult(null);
     setStreamingResponse('');
@@ -444,8 +446,8 @@ export default function Home() {
                   })
                 });
                 // Generate conversation title for image generation
-                const history = getConversationHistory();
-                if (history.length === 2) {
+                if (!firstAIMessageRef.current) {
+                  firstAIMessageRef.current = true; // Mark as processed
                   try {
                     const titleResponse = await fetch('/api/conversations/generate-title', {
                       method: 'POST',
@@ -652,7 +654,8 @@ export default function Home() {
                             })
                           });
                           // Generate and update conversation title from first AI response
-                          if (conversationHistory.length === 2) { // First user + first AI message
+                          if (!firstAIMessageRef.current) { // Check if this is the first AI message
+                            firstAIMessageRef.current = true; // Mark as processed
                             try {
                               const titleResponse = await fetch('/api/conversations/generate-title', {
                                 method: 'POST',
