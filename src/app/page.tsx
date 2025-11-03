@@ -1313,9 +1313,9 @@ export default function Home() {
       {/* Header Bar with New Conversation button */}
       <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
         <div className="max-w-6xl mx-auto px-4 py-3">
-          <div className="grid grid-cols-3 items-center">
+          <div className="flex items-center justify-between relative">
             {/* Left: Hamburger menu and New conversation */}
-            <div className="flex items-center space-x-2 justify-start">
+            <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowSidebar(true)}
                 className="p-2 rounded-lg transition-colors duration-300"
@@ -1340,7 +1340,7 @@ export default function Home() {
             </div>
 
             {/* Center: Logo when conversation is active */}
-            <div className="flex items-center justify-center">
+            <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
               {conversationStarted && (
                 <button onClick={startNewConversation} className="cursor-pointer hover:opacity-80 transition-opacity" title="New conversation">
                   <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-6 w-auto opacity-90" />
@@ -1348,8 +1348,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* Right: Theme Toggle */}
-            <div className="flex items-center justify-end gap-2">
+            {/* Right: Theme Toggle and Info */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                 className="p-2 rounded-lg transition-colors duration-300"
