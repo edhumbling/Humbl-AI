@@ -139,6 +139,53 @@ export const conversationDb = {
   },
 };
 
+// Folder database operations
+export const folderDb = {
+  // Get all folders for a user
+  async getUserFolders(userId: string) {
+    const result = await query(
+      `SELECT * FROM folders WHERE user_id = $1 ORDER BY created_at ASC`,
+      [userId]
+    );
+    return result.rows;
+  },
+
+  // Get a single folder
+  async getFolder(folderId: string, userId: string) {
+    const result = await query(
+      `SELECT * FROM folders WHERE id = $1 AND user_id = $2`,
+      [folderId, userId]
+    );
+    return result.rows[0];
+  },
+
+  // Create a new folder
+  async createFolder(userId: string, name: string) {
+    const result = await query(
+      `INSERT INTO folders (user_id, name) VALUES ($1, $2) RETURNING *`,
+      [userId, name]
+    );
+    return result.rows[0];
+  },
+
+  // Update folder name
+  async updateFolderName(folderId: string, userId: string, name: string) {
+    const result = await query(
+      `UPDATE folders SET name = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
+      [name, folderId, userId]
+    );
+    return result.rows[0];
+  },
+
+  // Delete a folder
+  async deleteFolder(folderId: string, userId: string) {
+    await query(
+      `DELETE FROM folders WHERE id = $1 AND user_id = $2`,
+      [folderId, userId]
+    );
+  },
+};
+
 // User database operations
 export const userDb = {
   // Create or update user from Stack Auth
