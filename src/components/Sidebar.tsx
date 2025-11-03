@@ -266,13 +266,13 @@ export default function Sidebar({
       >
         {/* Top bar with New Conversation and Close */}
         {user && (
-          <div className="flex items-center justify-between px-5 py-3">
+          <div className="flex items-center gap-3 px-5 py-3">
             <button
               onClick={() => {
                 onNewConversation();
                 onClose();
               }}
-              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02] flex-1"
               style={{
                 backgroundColor: '#f1d08c',
                 color: '#000000',
