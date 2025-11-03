@@ -158,6 +158,29 @@ export default function Sidebar({
     };
   }, [isOpen, onClose]);
 
+  // Handle click outside to close menus
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Check if click is outside the sidebar
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+        setShowSearchMenu(false);
+        setMenuOpenId(null);
+      }
+    };
+
+    if (showUserMenu || showSearchMenu || menuOpenId) {
+      // Add a small delay to prevent immediate closing
+      setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu, showSearchMenu, menuOpenId]);
+
   // Format date for display - simplified format like "Oct 23", "Oct 19", etc.
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -241,11 +264,11 @@ export default function Sidebar({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
             >
               <Pencil size={16} />
-              <span className="text-sm font-medium">New Conversation</span>
+              <span className="text-sm font-medium">Start New Conversation</span>
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg transition-colors duration-300"
+              className="p-2 rounded-lg transition-colors duration-300"
               style={{
                 backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
               }}
@@ -372,7 +395,7 @@ export default function Sidebar({
                                 onSelectConversation(conversation.id);
                                 onClose();
                               }}
-                              className="w-full text-left py-2 transition-opacity duration-200 hover:opacity-70"
+                              className="w-full text-left py-2 pr-8 transition-opacity duration-200 hover:opacity-70"
                             >
                               <p
                                 className={`text-sm sm:text-base font-medium truncate transition-colors duration-300 ${
@@ -578,8 +601,8 @@ export default function Sidebar({
                   </div>
                 </button>
 
-                {/* User menu dropdown */}
-                {showUserMenu && (
+                {/* User menu dropdown - Currently empty, reserved for future features */}
+                {showUserMenu && false && (
                   <div
                     className="absolute bottom-full left-0 mb-2 rounded-lg shadow-lg overflow-hidden w-full"
                     style={{
@@ -587,20 +610,6 @@ export default function Sidebar({
                       border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
                     }}
                   >
-                    <button
-                      onClick={handleLogout}
-                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm text-red-500 transition-colors duration-200"
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
-                    >
-                      <LogOut size={16} />
-                      <span>Logout</span>
-                    </button>
                   </div>
                 )}
               </div>
@@ -612,13 +621,13 @@ export default function Sidebar({
                     setShowSearchMenu(!showSearchMenu);
                     setShowUserMenu(false);
                   }}
-                  className="p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
+                  className="h-10 w-10 flex items-center justify-center rounded-lg transition-all duration-200 hover:bg-opacity-80"
                   style={{
                     backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
                   }}
                   title="More options"
                 >
-                  <Settings size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
+                  <Settings size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
                 </button>
 
                 {/* Search menu dropdown */}
@@ -633,7 +642,7 @@ export default function Sidebar({
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      style={{ color: '#ef4444' }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor =
                           theme === 'dark' ? '#2a2a29' : '#f3f4f6')
