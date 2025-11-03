@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Search } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search } from 'lucide-react';
 import Image from 'next/image';
 
 interface Conversation {
@@ -224,36 +224,15 @@ export default function Sidebar({
           backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
         }}
       >
-        {/* Close button */}
-        <div className="flex justify-end px-5 py-4">
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg transition-colors duration-300"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
-            }
-          >
-            <X size={20} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-          </button>
-        </div>
-
-        {/* New Conversation Button */}
+        {/* Top bar with New Conversation and Close */}
         {user && (
-          <div className="p-4 space-y-3">
+          <div className="flex items-center justify-between px-5 py-3">
             <button
               onClick={() => {
                 onNewConversation();
                 onClose();
               }}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02]"
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
               style={{
                 backgroundColor: '#f1d08c',
                 color: '#000000',
@@ -261,23 +240,66 @@ export default function Sidebar({
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
             >
-              <Plus size={20} />
-              <span>New Conversation</span>
+              <Pencil size={16} />
+              <span className="text-sm font-medium">New Conversation</span>
             </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg transition-colors duration-300"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+              }
+            >
+              <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+            </button>
+          </div>
+        )}
+        
+        {!user && (
+          <div className="flex justify-end px-5 py-3">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg transition-colors duration-300"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+              }
+            >
+              <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+            </button>
+          </div>
+        )}
 
-            {/* Search Bar */}
+        {/* Search Bar */}
+        {user && (
+          <div className="px-4 pb-3">
             <div className="relative">
               <Search 
-                size={18} 
+                size={16} 
                 className="absolute left-3 top-1/2 transform -translate-y-1/2" 
                 style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
               />
               <input
                 type="text"
-                placeholder="Search Grok History"
+                placeholder="Search Humbl History"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 rounded-lg border-none outline-none transition-colors duration-300"
+                className="w-full pl-10 pr-3 py-2 rounded-lg border-none outline-none transition-colors duration-300 text-sm"
                 style={{
                   backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
                   color: theme === 'dark' ? '#e5e7eb' : '#111827',
@@ -583,7 +605,7 @@ export default function Sidebar({
                 )}
               </div>
 
-              {/* Search button */}
+              {/* Settings button */}
               <div className="relative">
                 <button
                   onClick={() => {
@@ -596,7 +618,7 @@ export default function Sidebar({
                   }}
                   title="More options"
                 >
-                  <Search size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
+                  <Settings size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
                 </button>
 
                 {/* Search menu dropdown */}
