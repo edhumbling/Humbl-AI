@@ -728,9 +728,49 @@ export default function Sidebar({
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
           {user ? (
             isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-t-transparent" style={{ borderColor: '#f1d08c' }} />
-              </div>
+              <>
+                <style dangerouslySetInnerHTML={{__html: `
+                  @keyframes shimmer {
+                    0% {
+                      background-position: -200% 0;
+                    }
+                    100% {
+                      background-position: 200% 0;
+                    }
+                  }
+                  .shimmer-animation {
+                    animation: shimmer 1.5s ease-in-out infinite;
+                  }
+                `}} />
+                <div className="px-4 py-4 space-y-3">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <div 
+                        className="h-4 rounded shimmer-animation"
+                        style={{ 
+                          backgroundColor: theme === 'dark' ? 'rgba(156, 163, 175, 0.2)' : 'rgba(192, 192, 192, 0.3)',
+                          backgroundImage: theme === 'dark' 
+                            ? 'linear-gradient(90deg, rgba(156, 163, 175, 0.2) 0%, rgba(209, 213, 219, 0.4) 50%, rgba(156, 163, 175, 0.2) 100%)'
+                            : 'linear-gradient(90deg, rgba(192, 192, 192, 0.3) 0%, rgba(230, 230, 230, 0.6) 50%, rgba(192, 192, 192, 0.3) 100%)',
+                          backgroundSize: '200% 100%',
+                          animationDelay: `${i * 0.1}s`
+                        }}
+                      />
+                      <div 
+                        className="h-3 rounded w-3/4 shimmer-animation"
+                        style={{ 
+                          backgroundColor: theme === 'dark' ? 'rgba(156, 163, 175, 0.15)' : 'rgba(192, 192, 192, 0.25)',
+                          backgroundImage: theme === 'dark' 
+                            ? 'linear-gradient(90deg, rgba(156, 163, 175, 0.15) 0%, rgba(209, 213, 219, 0.3) 50%, rgba(156, 163, 175, 0.15) 100%)'
+                            : 'linear-gradient(90deg, rgba(192, 192, 192, 0.25) 0%, rgba(230, 230, 230, 0.5) 50%, rgba(192, 192, 192, 0.25) 100%)',
+                          backgroundSize: '200% 100%',
+                          animationDelay: `${i * 0.1}s`
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : filteredConversations.length === 0 ? (
               <div
                 className="text-center py-8 text-sm"

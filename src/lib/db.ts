@@ -58,6 +58,28 @@ export const conversationDb = {
     };
   },
 
+  // Get a conversation publicly (no user check)
+  async getConversationPublic(conversationId: string) {
+    const convResult = await query(
+      `SELECT * FROM conversations WHERE id = $1`,
+      [conversationId]
+    );
+
+    if (convResult.rows.length === 0) {
+      return null;
+    }
+
+    const messagesResult = await query(
+      `SELECT * FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC`,
+      [conversationId]
+    );
+
+    return {
+      ...convResult.rows[0],
+      messages: messagesResult.rows,
+    };
+  },
+
   // Create a new conversation
   async createConversation(userId: string, title: string = 'New Conversation') {
     const result = await query(

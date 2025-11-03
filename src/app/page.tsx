@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
@@ -1337,7 +1337,7 @@ export default function Home() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                 title="Menu"
               >
-                <Image src="/sidebar menu.png" alt="Menu" width={18} height={18} className="opacity-80" style={{ filter: 'brightness(0) invert(1)' }} />
+                <Image src="/sidebar menu.png" alt="Menu" width={18} height={18} className="opacity-80" style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }} />
               </button>
               <button
                 onClick={startNewConversation}
@@ -1360,6 +1360,54 @@ export default function Home() {
                 </button>
               )}
             </div>
+
+            {/* Right: Share button (only when conversation is active) */}
+            {conversationStarted && currentConversationId && (
+              <div className="flex items-center">
+                <button
+                  onClick={async () => {
+                    if (currentConversationId) {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      try {
+                        await navigator.clipboard.writeText(shareUrl);
+                        // Show toast notification
+                        const toast = document.createElement('div');
+                        toast.textContent = 'Link copied to clipboard!';
+                        toast.style.cssText = `
+                          position: fixed;
+                          top: 20px;
+                          right: 20px;
+                          background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
+                          color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
+                          padding: 12px 20px;
+                          border-radius: 8px;
+                          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                          z-index: 9999;
+                          font-size: 14px;
+                          border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+                        `;
+                        document.body.appendChild(toast);
+                        setTimeout(() => {
+                          toast.style.opacity = '0';
+                          toast.style.transition = 'opacity 0.3s';
+                          setTimeout(() => document.body.removeChild(toast), 300);
+                        }, 2000);
+                      } catch (err) {
+                        // Fallback for browsers that don't support clipboard API
+                        prompt('Copy this link:', shareUrl);
+                      }
+                    }
+                  }}
+                  className="p-2 rounded-lg transition-colors duration-300"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
+                  title="Share conversation"
+                >
+                  <Share2 size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                </button>
+              </div>
+            )}
 
           </div>
         </div>
