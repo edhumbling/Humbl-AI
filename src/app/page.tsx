@@ -1374,7 +1374,7 @@ export default function Home() {
 
             {/* Right: Share button (only when conversation is active) */}
             {conversationStarted && currentConversationId && (
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <button
                   onClick={async () => {
                     if (currentConversationId) {
@@ -1417,6 +1417,7 @@ export default function Home() {
                 >
                   <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
                 </button>
+                <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
               </div>
             )}
 

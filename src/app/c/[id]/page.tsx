@@ -458,7 +458,7 @@ export default function SharedConversationPage() {
 
             {/* Right: Share button */}
             {conversationStarted && (conversationId || continuationConversationId) && (
-              <div className="flex items-center">
+              <div className="flex items-center space-x-2">
                 <button
                   onClick={handleShare}
                   className="p-2 rounded-lg transition-colors duration-300"
@@ -469,6 +469,7 @@ export default function SharedConversationPage() {
                 >
                   <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
                 </button>
+                <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
               </div>
             )}
           </div>
