@@ -557,6 +557,18 @@ export default function Sidebar({
                       />
                     )}
                     
+                    {/* Chats Section */}
+                    {conversationsWithoutFolder.length > 0 && !searchQuery.trim() && (
+                      <div className="mt-6 mb-2">
+                        <h2
+                          className="text-sm font-semibold px-2 uppercase tracking-wide"
+                          style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
+                        >
+                          Chats
+                        </h2>
+                      </div>
+                    )}
+                    
                     {/* Unorganized Conversations by Time */}
                     {timePeriods.map((period) => {
                   const periodConversations = grouped[period];
