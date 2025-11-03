@@ -275,6 +275,44 @@ export default function SharedConversationPage() {
     }
   };
 
+  // Function to scroll input bar above mobile keyboard
+  const scrollBarAboveKeyboard = (el: HTMLElement | null) => {
+    if (!el) return;
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    if (!isMobile) return;
+    
+    const doScroll = () => {
+      try {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.scrollBy({ top: -16, left: 0, behavior: 'smooth' });
+      } catch {
+        const rect = el.getBoundingClientRect();
+        window.scrollTo({ top: window.scrollY + rect.top - 16, behavior: 'smooth' });
+      }
+    };
+    
+    // Small delay to allow keyboard animation to begin
+    setTimeout(doScroll, 50);
+    
+    // Use visualViewport API if available (mobile browsers)
+    const vv: any = (window as any).visualViewport;
+    if (vv && vv.addEventListener) {
+      // Listen for viewport changes continuously while keyboard is open
+      const handleViewportChange = () => {
+        requestAnimationFrame(doScroll);
+      };
+      
+      vv.addEventListener('resize', handleViewportChange);
+      vv.addEventListener('scroll', handleViewportChange);
+      
+      // Store cleanup function on the element
+      (el as any)._keyboardCleanup = () => {
+        vv.removeEventListener('resize', handleViewportChange);
+        vv.removeEventListener('scroll', handleViewportChange);
+      };
+    }
+  };
+
   const handleImagePickClick = () => {
     fileInputRef.current?.click();
   };
@@ -548,6 +586,7 @@ export default function SharedConversationPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyPress={handleKeyPress}
+                    onFocus={() => scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement)}
                     placeholder={placeholderText}
                     className={`humbl-textarea flex-1 bg-transparent outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto transition-colors duration-300 ${theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-black placeholder-gray-500'}`}
                     rows={1}

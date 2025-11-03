@@ -1140,15 +1140,26 @@ export default function Home() {
         window.scrollBy({ top: -16, left: 0, behavior: 'smooth' });
       } catch {
         const rect = el.getBoundingClientRect();
-        window.scrollTo({ top: window.scrollY + rect.top - 16 });
+        window.scrollTo({ top: window.scrollY + rect.top - 16, behavior: 'smooth' });
       }
     };
     // small delay to allow keyboard animation to begin
     setTimeout(doScroll, 50);
     const vv: any = (window as any).visualViewport;
     if (vv && vv.addEventListener) {
-      const once = () => { doScroll(); vv.removeEventListener('resize', once); };
-      vv.addEventListener('resize', once);
+      // Listen for viewport changes continuously while keyboard is open
+      const handleViewportChange = () => {
+        requestAnimationFrame(doScroll);
+      };
+      
+      vv.addEventListener('resize', handleViewportChange);
+      vv.addEventListener('scroll', handleViewportChange);
+      
+      // Store cleanup function on the element
+      (el as any)._keyboardCleanup = () => {
+        vv.removeEventListener('resize', handleViewportChange);
+        vv.removeEventListener('scroll', handleViewportChange);
+      };
     }
   };
 
@@ -1634,8 +1645,19 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                    onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(initialSearchRef.current); }}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
+                    onFocus={() => { 
+                    if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); 
+                    scrollBarAboveKeyboard(initialSearchRef.current); 
+                  }}
+                    onBlur={(e) => {
+                      setTimeout(() => setShowSuggestions(false), 120);
+                      // Clean up viewport listeners when input loses focus
+                      const el = initialSearchRef.current;
+                      if (el && (el as any)._keyboardCleanup) {
+                        (el as any)._keyboardCleanup();
+                        (el as any)._keyboardCleanup = null;
+                      }
+                    }}
                     placeholder={placeholderText}
                   className={`humbl-textarea flex-1 bg-transparent outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto transition-colors duration-300 ${theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-black placeholder-gray-500'}`}
                   rows={1}
@@ -2253,8 +2275,19 @@ export default function Home() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={handleKeyPress}
-                    onFocus={() => { if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); }}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
+                    onFocus={() => { 
+                      if (!conversationStarted && suggestions.length > 0) setShowSuggestions(true); 
+                      scrollBarAboveKeyboard(conversationBarRef.current as HTMLElement); 
+                    }}
+                    onBlur={(e) => {
+                      setTimeout(() => setShowSuggestions(false), 120);
+                      // Clean up viewport listeners when input loses focus
+                      const el = conversationBarRef.current as HTMLElement;
+                      if (el && (el as any)._keyboardCleanup) {
+                        (el as any)._keyboardCleanup();
+                        (el as any)._keyboardCleanup = null;
+                      }
+                    }}
                     placeholder={placeholderText}
                   className={`humbl-textarea flex-1 bg-transparent outline-none text-base sm:text-lg resize-none min-h-[1.5rem] max-h-32 overflow-y-auto transition-colors duration-300 ${theme === 'dark' ? 'text-white placeholder-gray-400' : 'text-black placeholder-gray-500'}`}
                   rows={1}
