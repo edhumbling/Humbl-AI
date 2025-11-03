@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus } from 'lucide-react';
 import Image from 'next/image';
 
 interface Conversation {
@@ -9,6 +9,14 @@ interface Conversation {
   title: string;
   updated_at: string;
   message_count: number;
+  folder_id?: string;
+}
+
+interface FolderType {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface SidebarProps {
@@ -32,19 +40,25 @@ export default function Sidebar({
 }: SidebarProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
+  const [folders, setFolders] = useState<FolderType[]>([]);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [folderMenuOpenId, setFolderMenuOpenId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSearchMenu, setShowSearchMenu] = useState(false);
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Fetch conversations when sidebar opens and user is logged in
+  // Fetch conversations and folders when sidebar opens and user is logged in
   useEffect(() => {
     if (isOpen && user) {
       fetchConversations();
+      fetchFolders();
     }
   }, [isOpen, user]);
 
@@ -75,6 +89,20 @@ export default function Sidebar({
       console.error('Failed to fetch conversations:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchFolders = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/folders');
+      if (response.ok) {
+        const data = await response.json();
+        setFolders(data.folders || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch folders:', error);
     }
   };
 
@@ -129,6 +157,83 @@ export default function Sidebar({
     setMenuOpenId(null);
   };
 
+  const toggleFolderExpanded = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) {
+      setShowCreateFolderModal(false);
+      setNewFolderName('');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newFolderName }),
+      });
+
+      if (response.ok) {
+        fetchFolders();
+        setShowCreateFolderModal(false);
+        setNewFolderName('');
+      }
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+    }
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      const response = await fetch(`/api/folders/${folderId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        fetchFolders();
+        setFolderMenuOpenId(null);
+      }
+    } catch (error) {
+      console.error('Failed to delete folder:', error);
+    }
+  };
+
+  const handleRenameFolder = async (folderId: string, newName: string) => {
+    if (!newName.trim()) return;
+
+    try {
+      const response = await fetch(`/api/folders/${folderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName }),
+      });
+
+      if (response.ok) {
+        fetchFolders();
+        setEditingId(null);
+        setEditTitle('');
+      }
+    } catch (error) {
+      console.error('Failed to rename folder:', error);
+    }
+  };
+
+  const startEditingFolder = (folder: FolderType) => {
+    setEditingId(folder.id);
+    setEditTitle(folder.name);
+    setFolderMenuOpenId(null);
+  };
+
   const handleLogout = async () => {
     try {
       // @ts-ignore - signOut method exists on user object
@@ -168,35 +273,39 @@ export default function Sidebar({
         setShowUserMenu(false);
         setShowSearchMenu(false);
         setMenuOpenId(null);
+        setFolderMenuOpenId(null);
         return;
       }
       
       // If inside sidebar, check if click is on a menu trigger or inside a menu
-      if (showSearchMenu || showUserMenu || menuOpenId) {
+      if (showSearchMenu || showUserMenu || menuOpenId || folderMenuOpenId) {
         // Check if click is on the settings button (account bar button)
         const isSettingsButton = target.closest('[data-menu-trigger="settings"]');
         // Check if click is on a three-dot button
         const isThreeDotsButton = target.closest('[data-menu-trigger="three-dots"]');
+        // Check if click is on a folder menu button
+        const isFolderMenuButton = target.closest('[data-menu-trigger="folder-menu"]');
         // Check if click is inside a menu dropdown
         const isMenuDropdown = target.closest('[data-menu-dropdown]');
         
         // Close menus if not clicking on trigger or inside dropdown
-        if (!isSettingsButton && !isThreeDotsButton && !isMenuDropdown) {
+        if (!isSettingsButton && !isThreeDotsButton && !isFolderMenuButton && !isMenuDropdown) {
           setShowUserMenu(false);
           setShowSearchMenu(false);
           setMenuOpenId(null);
+          setFolderMenuOpenId(null);
         }
       }
     };
 
-    if (showUserMenu || showSearchMenu || menuOpenId) {
+    if (showUserMenu || showSearchMenu || menuOpenId || folderMenuOpenId) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showUserMenu, showSearchMenu, menuOpenId]);
+  }, [showUserMenu, showSearchMenu, menuOpenId, folderMenuOpenId]);
 
   // Format date for display - simplified format like "Oct 23", "Oct 19", etc.
   const formatDate = (dateString: string) => {
