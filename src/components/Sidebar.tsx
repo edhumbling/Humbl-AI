@@ -306,6 +306,11 @@ export default function Sidebar({
   // Handle click outside to close sidebar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Don't close sidebar if any modal is open
+      if (showCreateFolderModal || showMoveToProjectModal || showDeleteProjectModal) {
+        return;
+      }
+      
       if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -321,7 +326,7 @@ export default function Sidebar({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showCreateFolderModal, showMoveToProjectModal, showDeleteProjectModal]);
 
   // Handle click outside to close menus
   useEffect(() => {
@@ -424,7 +429,12 @@ export default function Sidebar({
         style={{
           backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
         }}
-        onClick={onClose}
+        onClick={() => {
+          // Don't close sidebar if any modal is open
+          if (!showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal) {
+            onClose();
+          }
+        }}
       />
 
       {/* Sidebar */}
