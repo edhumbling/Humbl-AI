@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, Share2, ChevronDown, Check, Edit2, MoreVertical, Download } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
+import Sidebar from '@/components/Sidebar';
 import { useConversation } from '@/contexts/ConversationContext';
 import { useUser } from '@stackframe/stack';
 
@@ -40,6 +41,7 @@ export default function SharedConversationPage() {
   const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
   const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -385,12 +387,12 @@ export default function SharedConversationPage() {
             {/* Left: Hamburger menu and New conversation */}
             <div className="flex items-center space-x-2">
               <button
-                onClick={() => router.push('/')}
+                onClick={() => setShowSidebar(true)}
                 className="p-2 rounded-lg transition-colors duration-300"
                 style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
-                title="Home"
+                title="Menu"
               >
                 <Image src="/sidebar menu.png" alt="Menu" width={18} height={18} className="opacity-80" style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }} />
               </button>
@@ -717,6 +719,22 @@ export default function SharedConversationPage() {
           </div>
         </div>
       )}
+
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        theme={theme}
+        setTheme={setTheme}
+        onShowInfo={() => {}}
+        user={user}
+        onNewConversation={startNewConversation}
+        onSelectConversation={(id) => {
+          // If user selects a conversation, navigate to it
+          router.push(`/c/${id}`);
+        }}
+        currentConversationId={continuationConversationId || conversationId}
+      />
     </div>
   );
 }
