@@ -264,6 +264,11 @@ export default function Sidebar({
           backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
         }}
       >
+        {/* Logo */}
+        <div className="flex justify-center py-4 px-5 border-b transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+          <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
+        </div>
+
         {/* Top bar with New Conversation and Close */}
         {user && (
           <div className="flex items-center gap-3 px-5 py-3">
@@ -514,7 +519,17 @@ export default function Sidebar({
             )
           ) : (
             /* Not logged in - show login/signup buttons */
-            <div className="space-y-3 pt-4">
+            <div className="space-y-3 pt-4 px-4">
+              {/* Encouragement message */}
+              <div className="mb-4 p-4 rounded-lg text-center" style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)' }}>
+                <p className="text-sm font-medium mb-1 transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Save & retrieve your conversations
+                </p>
+                <p className="text-xs transition-colors duration-300" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  Sign up to access your chat history anytime
+                </p>
+              </div>
+
               <button
                 onClick={() => {
                   window.location.href = '/handler/login';
