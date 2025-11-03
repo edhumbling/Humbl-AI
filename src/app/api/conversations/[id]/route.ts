@@ -82,13 +82,24 @@ export async function PATCH(
         dbUser.id,
         folder_id
       );
+      
+      // If folder was updated but conversation is null, try to fetch it
+      if (!conversation) {
+        conversation = await conversationDb.getConversation(id, dbUser.id);
+      }
     }
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ conversation }, { status: 200 });
+    // Ensure folder_id is included in response (even if null)
+    const responseData = {
+      ...conversation,
+      folder_id: conversation.folder_id || null
+    };
+
+    return NextResponse.json({ conversation: responseData }, { status: 200 });
   } catch (error) {
     console.error('Error updating conversation:', error);
     return NextResponse.json(

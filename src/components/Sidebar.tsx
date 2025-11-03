@@ -86,7 +86,7 @@ export default function Sidebar({
 
   // Get conversations without folders (for Chats section)
   const conversationsWithoutFolder = React.useMemo(() => {
-    return filteredConversations.filter(conv => !conv.folder_id);
+    return filteredConversations.filter(conv => !conv.folder_id || conv.folder_id === null);
   }, [filteredConversations]);
 
   const fetchConversations = async () => {
@@ -97,8 +97,15 @@ export default function Sidebar({
       const response = await fetch('/api/conversations');
       if (response.ok) {
         const data = await response.json();
-        setConversations(data.conversations || []);
-        setFilteredConversations(data.conversations || []);
+        const conversations = data.conversations || [];
+        // Ensure folder_id is properly set (handle null/undefined)
+        const normalizedConversations = conversations.map((conv: Conversation) => ({
+          ...conv,
+          folder_id: conv.folder_id || null
+        }));
+        setConversations(normalizedConversations);
+        setFilteredConversations(normalizedConversations);
+        return normalizedConversations;
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -275,18 +282,19 @@ export default function Sidebar({
       });
 
       if (response.ok) {
+        const updatedConversation = await response.json();
         // Update local state immediately for better UX
         setConversations(prev => 
           prev.map(conv => 
             conv.id === conversationToMove 
-              ? { ...conv, folder_id: folderId || undefined }
+              ? { ...conv, folder_id: updatedConversation.conversation?.folder_id ?? null }
               : conv
           )
         );
         setFilteredConversations(prev => 
           prev.map(conv => 
             conv.id === conversationToMove 
-              ? { ...conv, folder_id: folderId || undefined }
+              ? { ...conv, folder_id: updatedConversation.conversation?.folder_id ?? null }
               : conv
           )
         );
@@ -363,6 +371,9 @@ export default function Sidebar({
 
       if (allSucceeded) {
         // Update local state immediately for all moved conversations
+        // Refresh from server to get accurate data
+        const updatedConversations = await fetchConversations();
+        // The fetchConversations will update the state, but we also update locally for instant feedback
         setConversations(prev => 
           prev.map(conv => 
             selectedConversations.has(conv.id)

@@ -113,7 +113,7 @@ export default function FolderList({
 
       {/* Projects List */}
       {projectsExpanded && folders.length > 0 && (
-        <div className="space-y-0.5">
+        <div className="space-y-1.5">
           {folders.map((folder) => {
             const folderConversations = conversations.filter(conv => conv.folder_id === folder.id);
             const isExpanded = expandedFolders.has(folder.id);
@@ -148,26 +148,26 @@ export default function FolderList({
                   <div className="relative">
                     <button
                       onClick={() => onToggleFolder(folder.id)}
-                      className="w-full flex items-center px-2 py-1.5 transition-colors duration-300 group-hover:bg-opacity-50"
+                      className="w-full flex items-center px-2.5 py-1.5 rounded-md transition-all duration-200"
                       style={{
                         backgroundColor: currentConversationId && folderConversations.some(c => c.id === currentConversationId)
-                          ? (theme === 'dark' ? 'rgba(75, 85, 99, 0.4)' : 'rgba(209, 213, 219, 0.6)')
-                          : 'transparent',
+                          ? '#8B6F47'
+                          : '#A0826D',
                       }}
                       onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)')
+                        (e.currentTarget.style.backgroundColor = '#8B6F47')
                       }
                       onMouseLeave={(e) =>
                         (e.currentTarget.style.backgroundColor =
                           currentConversationId && folderConversations.some(c => c.id === currentConversationId)
-                            ? (theme === 'dark' ? 'rgba(75, 85, 99, 0.4)' : 'rgba(209, 213, 219, 0.6)')
-                            : 'transparent')
+                            ? '#8B6F47'
+                            : '#A0826D')
                       }
                     >
-                      <Folder size={14} style={{ color: theme === 'dark' ? '#f1d08c' : '#e8c377' }} />
+                      <Folder size={12} style={{ color: '#f1d08c', flexShrink: 0 }} />
                       <span
-                        className="ml-2 text-sm truncate"
-                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                        className="ml-2 text-xs font-medium truncate block"
+                        style={{ color: '#ffffff' }}
                       >
                         {folder.name}
                       </span>
