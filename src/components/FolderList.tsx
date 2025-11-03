@@ -166,16 +166,17 @@ export default function FolderList({
                     </button>
 
                     {/* Folder menu */}
-                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
                       <button
                         data-menu-trigger="folder-menu"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSetFolderMenuOpen(folderMenuOpenId === folder.id ? null : folder.id);
                         }}
-                        className="p-1 transition-colors duration-200"
+                        className="p-1.5 transition-colors duration-200 rounded hover:bg-opacity-50"
                         style={{
                           color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                          backgroundColor: folderMenuOpenId === folder.id ? (theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.8)') : 'transparent',
                         }}
                         onMouseEnter={(e) =>
                           (e.currentTarget.style.color = theme === 'dark' ? '#e5e7eb' : '#374151')
@@ -190,7 +191,7 @@ export default function FolderList({
                       {folderMenuOpenId === folder.id && (
                         <div
                           data-menu-dropdown
-                          className="absolute right-0 mt-1 w-32 rounded-lg shadow-lg z-10 overflow-hidden"
+                          className="absolute right-0 mt-1 w-40 rounded-lg shadow-lg z-10 overflow-hidden"
                           style={{
                             backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                             border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -243,21 +244,22 @@ export default function FolderList({
                 {isExpanded && folderConversations.length > 0 && (
                   <div className="ml-4">
                     {folderConversations.map((conversation) => (
-                      <button
-                        key={conversation.id}
-                        onClick={() => onSelectConversation(conversation.id)}
-                        className="w-full text-left py-1 px-2 transition-opacity duration-200 hover:opacity-70"
-                      >
-                        <p
-                          className={`text-xs font-medium truncate transition-colors duration-300 ${
-                            currentConversationId === conversation.id
-                              ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
-                              : theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
-                          }`}
+                      <div key={conversation.id} className="group">
+                        <button
+                          onClick={() => onSelectConversation(conversation.id)}
+                          className="w-full text-left py-1 px-2 pr-8 transition-opacity duration-200 hover:opacity-70"
                         >
-                          {conversation.title}
-                        </p>
-                      </button>
+                          <p
+                            className={`text-xs font-medium truncate transition-colors duration-300 ${
+                              currentConversationId === conversation.id
+                                ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
+                                : theme === 'dark' ? 'text-gray-300' : 'text-gray-700'
+                            }`}
+                          >
+                            {conversation.title}
+                          </p>
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}

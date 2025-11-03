@@ -874,12 +874,24 @@ export default function Sidebar({
             style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b transition-colors duration-300"
+            <div className="px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between"
               style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
               <h3 className="text-lg font-semibold transition-colors duration-300"
                 style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
                 Create New Project
               </h3>
+              <button
+                onClick={() => {
+                  setShowCreateFolderModal(false);
+                  setNewFolderName('');
+                }}
+                className="p-1 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
             </div>
             <div className="px-6 py-4">
               <input
@@ -947,12 +959,21 @@ export default function Sidebar({
             style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b transition-colors duration-300"
+            <div className="px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between"
               style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
               <h3 className="text-lg font-semibold transition-colors duration-300"
                 style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
                 Move to Project
               </h3>
+              <button
+                onClick={() => setShowMoveToProjectModal(false)}
+                className="p-1 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
             </div>
             <div className="px-6 py-4 max-h-96 overflow-y-auto custom-scrollbar">
               {folders.length === 0 ? (
@@ -1034,12 +1055,24 @@ export default function Sidebar({
             style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-6 py-4 border-b transition-colors duration-300"
+            <div className="px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between"
               style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
               <h3 className="text-lg font-semibold transition-colors duration-300"
                 style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
                 Delete Project
               </h3>
+              <button
+                onClick={() => {
+                  setShowDeleteProjectModal(false);
+                  setProjectToDelete(null);
+                }}
+                className="p-1 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
             </div>
             <div className="px-6 py-4">
               <p className="text-sm transition-colors duration-300"
