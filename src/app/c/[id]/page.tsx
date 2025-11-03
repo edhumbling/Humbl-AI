@@ -30,6 +30,7 @@ export default function SharedConversationPage() {
   const [streamingResponse, setStreamingResponse] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [continuationConversationId, setContinuationConversationId] = useState<string | null>(null);
   const [attachedImages, setAttachedImages] = useState<string[]>([]);
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
@@ -86,6 +87,15 @@ export default function SharedConversationPage() {
         // Mark conversation as started
         startConversation();
         
+        // Check if user has a continuation conversation for this shared conversation
+        if (user) {
+          const continuationKey = `continuation_${conversationId}`;
+          const existingContinuationId = sessionStorage.getItem(continuationKey);
+          if (existingContinuationId) {
+            setContinuationConversationId(existingContinuationId);
+          }
+        }
+        
       } catch (err) {
         console.error('Error fetching conversation:', err);
         setError('Failed to load conversation');
@@ -97,7 +107,7 @@ export default function SharedConversationPage() {
     if (conversationId) {
       fetchConversation();
     }
-  }, [conversationId, clearConversation, addUserMessage, addAIMessage, startConversation]);
+  }, [conversationId, clearConversation, addUserMessage, addAIMessage, startConversation, user]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -191,6 +201,7 @@ export default function SharedConversationPage() {
               newConversationId = data.conversation.id;
               if (newConversationId) {
                 sessionStorage.setItem(continuationKey, newConversationId);
+                setContinuationConversationId(newConversationId); // Store in state for sharing
                 
                 // Save all original messages
                 const originalMessages = conversation?.messages || [];
@@ -209,6 +220,9 @@ export default function SharedConversationPage() {
                 }
               }
             }
+          } else {
+            // If continuation already exists, use it
+            setContinuationConversationId(newConversationId);
           }
           
           // Save new messages
@@ -299,7 +313,9 @@ export default function SharedConversationPage() {
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/c/${conversationId}`;
+    // Use continuation conversation ID if it exists (user's own conversation), otherwise use original shared ID
+    const shareId = continuationConversationId || conversationId;
+    const shareUrl = `${window.location.origin}/c/${shareId}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       const toast = document.createElement('div');
@@ -401,7 +417,7 @@ export default function SharedConversationPage() {
             </div>
 
             {/* Right: Share button */}
-            {conversationStarted && conversationId && (
+            {conversationStarted && (conversationId || continuationConversationId) && (
               <div className="flex items-center">
                 <button
                   onClick={handleShare}
