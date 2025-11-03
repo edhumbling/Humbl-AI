@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, Share2, ChevronDown, Check, Edit2, MoreVertical, Download } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -467,7 +467,7 @@ export default function SharedConversationPage() {
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                   title="Share conversation"
                 >
-                  <Share2 size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                  <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
                 </button>
               </div>
             )}
