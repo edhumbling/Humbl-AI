@@ -325,7 +325,7 @@ export default function Sidebar({
                               className="w-full text-left py-2 transition-opacity duration-200 hover:opacity-70"
                             >
                               <p
-                                className={`text-base sm:text-lg font-medium truncate transition-colors duration-300 ${
+                                className={`text-sm sm:text-base font-medium truncate transition-colors duration-300 ${
                                   currentConversationId === conversation.id 
                                     ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
                                     : theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
@@ -334,7 +334,7 @@ export default function Sidebar({
                                 {conversation.title}
                               </p>
                               <p
-                                className="text-xs sm:text-sm transition-colors duration-300"
+                                className="text-xs transition-colors duration-300"
                                 style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                               >
                                 {formatDate(conversation.updated_at)}
