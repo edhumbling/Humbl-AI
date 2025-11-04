@@ -1508,15 +1508,15 @@ export default function Home() {
             onClick={() => setShowShareModal(false)}
           >
             <div
-              className="relative rounded-lg shadow-xl max-w-md w-full p-6"
+              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6"
               style={{
                 backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                 border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
               }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="text-base sm:text-lg font-semibold" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
                   Share Conversation
                 </h3>
                 <button
@@ -1532,8 +1532,8 @@ export default function Home() {
                 </button>
               </div>
               
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                {/* Twitter/X */}
+              <div className="flex gap-4 overflow-x-auto pb-2 mb-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                {/* X (formerly Twitter) */}
                 <button
                   onClick={() => {
                     const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
@@ -1541,15 +1541,11 @@ export default function Home() {
                     window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`, '_blank');
                     setShowShareModal(false);
                   }}
-                  className="flex flex-col items-center p-4 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f9fafb')}
+                  className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
+                  title="Share on X"
                 >
-                  <img src="https://abs.twimg.com/favicons/twitter.3.ico" alt="Twitter" className="w-8 h-8 mb-2" />
-                  <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>Twitter</span>
+                  <img src="https://abs.twimg.com/favicons/twitter.3.ico" alt="X" className="w-10 h-10 mb-1.5" />
+                  <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>X</span>
                 </button>
 
                 {/* Facebook */}
@@ -1559,14 +1555,10 @@ export default function Home() {
                     window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
                     setShowShareModal(false);
                   }}
-                  className="flex flex-col items-center p-4 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f9fafb')}
+                  className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
+                  title="Share on Facebook"
                 >
-                  <img src="https://static.xx.fbcdn.net/rsrc.php/yb/r/hLRJ1GG_y0J.ico" alt="Facebook" className="w-8 h-8 mb-2" />
+                  <img src="https://www.facebook.com/images/fb_icon_325x325.png" alt="Facebook" className="w-10 h-10 mb-1.5" />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>Facebook</span>
                 </button>
 
@@ -1577,14 +1569,10 @@ export default function Home() {
                     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
                     setShowShareModal(false);
                   }}
-                  className="flex flex-col items-center p-4 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f9fafb')}
+                  className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
+                  title="Share on LinkedIn"
                 >
-                  <img src="https://static.licdn.com/sc/h/al2o9zrvru7aqj8e1x2rzsrca" alt="LinkedIn" className="w-8 h-8 mb-2" />
+                  <img src="https://static.licdn.com/sc/h/al2o9zrvru7aqj8e1x2rzsrca" alt="LinkedIn" className="w-10 h-10 mb-1.5" />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>LinkedIn</span>
                 </button>
 
@@ -1596,14 +1584,10 @@ export default function Home() {
                     window.open(`https://wa.me/?text=${text}%20${encodeURIComponent(shareUrl)}`, '_blank');
                     setShowShareModal(false);
                   }}
-                  className="flex flex-col items-center p-4 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f9fafb')}
+                  className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
+                  title="Share on WhatsApp"
                 >
-                  <img src="https://static.whatsapp.net/rsrc.php/v3/yz/r/ujTY9BX_Jk7.png" alt="WhatsApp" className="w-8 h-8 mb-2" />
+                  <img src="https://static.whatsapp.net/rsrc.php/y7/r/ujty9NX7jR3.png" alt="WhatsApp" className="w-10 h-10 mb-1.5" />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>WhatsApp</span>
                 </button>
 
@@ -1615,14 +1599,10 @@ export default function Home() {
                     window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${text}`, '_blank');
                     setShowShareModal(false);
                   }}
-                  className="flex flex-col items-center p-4 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f9fafb')}
+                  className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
+                  title="Share on Telegram"
                 >
-                  <img src="https://web.telegram.org/a/icon-192x192.png" alt="Telegram" className="w-8 h-8 mb-2" />
+                  <img src="https://web.telegram.org/a/icon-192x192.png" alt="Telegram" className="w-10 h-10 mb-1.5" />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>Telegram</span>
                 </button>
 
@@ -1658,15 +1638,11 @@ export default function Home() {
                       prompt('Copy this link:', shareUrl);
                     }
                   }}
-                  className="flex flex-col items-center p-4 rounded-lg transition-colors"
-                  style={{
-                    backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#f3f4f6')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f9fafb')}
+                  className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
+                  title="Copy Link"
                 >
-                  <CopyIcon size={32} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827', marginBottom: '8px' }} />
-                  <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>Copy Link</span>
+                  <CopyIcon size={40} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827', marginBottom: '4px' }} />
+                  <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>Copy</span>
                 </button>
               </div>
             </div>
