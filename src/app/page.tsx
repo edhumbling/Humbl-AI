@@ -1596,9 +1596,9 @@ export default function Home() {
                   className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
                   title="Share on WhatsApp"
                 >
-                  <img src="https://static.whatsapp.net/rsrc.php/v3/yL/r/ujTY9BX_Jk7.png" alt="WhatsApp" className="w-10 h-10 mb-1.5" onError={(e) => {
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-10 h-10 mb-1.5" onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTcuNDcyIDguNzA0Yy0uMjI5LS4xMjMtLjQ5LS4yMTktLjcyLS4yODlBMjAuMjA4IDIwLjIwOCAwIDAgMCAxMy4wMyA3Ljk4Yy0uMjQ4LS4wMTQtLjQ5OC0uMDIxLS43NS0uMDIxYTEwLjk3IDEwLjk3IDAgMCAwLTcuNDkyIDMuMzA0QTExLjExIDExLjExIDAgMCAwIDIgMTMuMjYxYTExLjE4IDExLjE4IDAgMCAwIDEuODIxIDYuMDI2bC0xLjYyOCA0LjkyNmE0LjgyIDQuODIgMCAwIDAgNS44NTggMy4wMTJsNC44MjktMS42ODRhMTEgMTEgMCAwIDAgNS4yOTguNjI1YzEuODkzLjE2NyAzLjgwNi41MyA1LjU2NiAxLjEwNmExLjQ4IDEuNDggMCAwIDAgMS41ODUtLjMyNGwxLjM2Mi0xLjE2NGEuNzUuNzUgMCAwIDAgLjEtLjEwOGwzLjE0MS0yLjY1MWEuNzUuNzUgMCAwIDAgLjEtLjEwOGMuMTI2LS4xMjMuMjQ3LS4yNS4zNjEtLjM3OGEuNzUuNzUgMCAwIDAgLjEtLjA4NmMyLjA3LTIuMjA0IDMuMTUzLTQuOTg1IDMuMTUzLTcuNzgyIDAtMi4xOTItLjkxNC00LjI3MS0yLjUyOC01Ljc2NnoiIGZpbGw9IiMyNUQzNjYiLz48L3N2Zz4=';
+                    target.src = 'https://commons.wikimedia.org/wiki/Special:FilePath/WhatsApp.svg';
                   }} />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>WhatsApp</span>
                 </button>
