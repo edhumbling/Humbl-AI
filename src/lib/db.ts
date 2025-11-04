@@ -28,9 +28,12 @@ export const conversationDb = {
   // Get all conversations for a user
   async getUserConversations(userId: string) {
     const result = await query(
-      `SELECT * FROM conversation_summaries 
-       WHERE user_id = $1 AND is_archived = FALSE 
-       ORDER BY updated_at DESC`,
+      `SELECT c.* FROM conversation_summaries c
+       WHERE c.user_id = $1 AND c.is_archived = FALSE 
+       AND NOT EXISTS (
+         SELECT 1 FROM message_shares ms WHERE ms.conversation_id = c.id
+       )
+       ORDER BY c.updated_at DESC`,
       [userId]
     );
     return result.rows;
