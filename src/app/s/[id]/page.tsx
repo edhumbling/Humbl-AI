@@ -203,14 +203,29 @@ export default function MessageSharePage() {
             if (line.startsWith('data: ')) {
               try {
                 const data = JSON.parse(line.slice(6));
+                
+                if (data.error) {
+                  setError(data.error);
+                  setIsStreaming(false);
+                  setStreamingResponse('');
+                  return;
+                }
+                
                 if (data.content !== undefined && data.content !== null) {
                   // Convert content to string to handle numeric values
                   const contentStr = String(data.content);
                   fullResponse += contentStr;
                   setStreamingResponse(fullResponse);
                 }
-                if (data.done) break;
-              } catch (e) {}
+                
+                if (data.done) {
+                  // Ensure fullResponse is a string before finalizing
+                  const finalResponse = String(fullResponse || '');
+                  break;
+                }
+              } catch (e) {
+                // Skip invalid JSON lines
+              }
             }
           }
         }
@@ -219,7 +234,8 @@ export default function MessageSharePage() {
         if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
           // User cancelled, finalize with current response
           if (fullResponse) {
-            addAIMessage(fullResponse);
+            const finalResponse = String(fullResponse || '');
+            addAIMessage(finalResponse);
           }
           setStreamingResponse('');
           setIsStreaming(false);
@@ -228,7 +244,9 @@ export default function MessageSharePage() {
         throw err;
       }
 
-      addAIMessage(fullResponse);
+      // Ensure fullResponse is a string before adding to conversation
+      const finalResponse = String(fullResponse || '');
+      addAIMessage(finalResponse);
       setStreamingResponse('');
       
       // Save continuation if user is logged in
@@ -254,7 +272,7 @@ export default function MessageSharePage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   role: 'assistant',
-                  content: fullResponse,
+                  content: finalResponse,
                   images: [],
                   citations: [],
                   mode: 'default'
@@ -328,7 +346,7 @@ export default function MessageSharePage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 role: 'assistant',
-                content: fullResponse,
+                content: finalResponse,
                 images: [],
                 citations: [],
                 mode: 'default'
