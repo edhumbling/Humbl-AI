@@ -54,12 +54,23 @@ export default function SharedConversationPage() {
   const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
   const [isGeneratingMessageShareLink, setIsGeneratingMessageShareLink] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
+  const [imageEditRemixMode, setImageEditRemixMode] = useState<'edit' | 'remix' | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -144,17 +155,88 @@ export default function SharedConversationPage() {
   }, [conversationHistory, streamingResponse]);
 
   const handleSearch = async () => {
+    // Handle image edit/remix mode
+    if (imageEditRemixMode && selectedImageIndex !== null) {
+      const instruction = searchQuery;
+      if (instruction.trim()) {
+        await handleImageEditRemix(instruction);
+        return;
+      }
+      return;
+    }
+
     if (!searchQuery.trim() && attachedImages.length === 0) return;
     if (isStreaming) return;
 
     const queryToUse = searchQuery.trim();
+    const imagesToUse = attachedImages;
     setSearchQuery('');
-    addUserMessage(queryToUse, attachedImages);
+    addUserMessage(queryToUse, imagesToUse);
     setAttachedImages([]);
     setImageGenerationMode(false);
 
     setIsStreaming(true);
     setStreamingResponse('');
+
+    const modeToUse = imageGenerationMode ? 'image' : mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
+
+    // Handle image generation mode
+    if (modeToUse === 'image') {
+      // Set generating state and progress
+      setIsGeneratingImage(true);
+      setImageGenerationProgress(0);
+      
+      // Add a placeholder AI message for the generation status
+      addAIMessage('', [], undefined, queryToUse, [], modeToUse);
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setImageGenerationProgress(prev => {
+          if (prev >= 90) return prev; // Stop at 90% until actual completion
+          return prev + Math.random() * 15;
+        });
+      }, 500);
+      
+      try {
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt: queryToUse }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to generate image' }));
+          throw new Error(errorData.error || 'Failed to generate image');
+        }
+
+        const imageData = await response.json();
+        
+        // Complete progress
+        setImageGenerationProgress(100);
+        
+        if (imageData.imageUrl) {
+          // Update the last AI message with the generated image
+          setTimeout(() => {
+            updateLastAIMessage('Image generated successfully!', [imageData.imageUrl]);
+            setIsGeneratingImage(false);
+            setImageGenerationProgress(0);
+            clearInterval(progressInterval);
+          }, 300);
+        }
+      } catch (err: any) {
+        console.error('Failed to generate image:', err);
+        setError(err.message || 'Failed to generate image');
+        setIsGeneratingImage(false);
+        setImageGenerationProgress(0);
+        clearInterval(progressInterval);
+        // Remove the placeholder AI message on error
+        removeMessage(conversationHistory.length - 1);
+      }
+      setIsStreaming(false);
+      return;
+    }
 
     try {
       const historyForAPI = getConversationHistory()
@@ -170,7 +252,7 @@ export default function SharedConversationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: queryToUse, 
-          images: attachedImages.slice(0, 3), 
+          images: imagesToUse.slice(0, 3), 
           mode: modeToUse,
           conversationHistory: historyForAPI,
         }),
@@ -323,8 +405,12 @@ export default function SharedConversationPage() {
   };
 
   const modeToUse = mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
-  const canSend = searchQuery.trim().length > 0 || attachedImages.length > 0;
-  const placeholderText = imageGenerationMode ? 'Describe the image you want to generate...' : 'Ask anything...';
+  const canSend = (!!searchQuery.trim() || attachedImages.length > 0 || (imageEditRemixMode && selectedImageIndex !== null)) && !isStreaming;
+  const placeholderText = imageEditRemixMode === 'edit' 
+    ? 'Describe how to edit this image...' 
+    : imageEditRemixMode === 'remix'
+    ? 'Describe how to remix this image...'
+    : imageGenerationMode ? 'Describe the image you want to generate...' : 'Ask anything...';
 
   const handleCopy = async (text: string) => {
     try {
@@ -511,6 +597,254 @@ export default function SharedConversationPage() {
     setAttachedImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  const startVisualizer = (stream: MediaStream) => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const audioCtx = audioContextRef.current!;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const canvas = waveCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const render = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth * dpr;
+        const height = canvas.clientHeight * dpr;
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, width, height);
+        const bars = 64;
+        const barWidth = Math.max(2 * dpr, Math.floor(width / (bars * 1.5)));
+        const gap = 2 * dpr;
+        let x = 0;
+        for (let i = 0; i < bars; i++) {
+          const v = dataArray[Math.floor((i / bars) * bufferLength)] / 255;
+          const barHeight = Math.max(2 * dpr, v * height);
+          ctx.fillStyle = '#8b8b8a';
+          ctx.fillRect(x, (height - barHeight) / 2, barWidth, barHeight);
+          x += barWidth + gap;
+        }
+        animationRef.current = requestAnimationFrame(render);
+      };
+      render();
+    } catch (e) {
+      // fail silently if visualizer can't start
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      // Reuse microphone stream within the same browsing session to avoid repeated prompts
+      let stream = micStreamRef.current;
+      if (!stream) {
+        // Check Permissions API when available
+        if (navigator.permissions && 'query' in navigator.permissions) {
+          try {
+            const status = await (navigator.permissions as any).query({ name: 'microphone' });
+            if (status.state === 'denied') {
+              console.warn('Microphone permission denied by the user');
+              return;
+            }
+          } catch {
+            // ignore - not all browsers support permissions query for microphone
+          }
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        // Mark permission as granted for this tab session
+        try { sessionStorage.setItem('humblai_mic_granted', 'true'); } catch {}
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // Start waveform visualizer
+      startVisualizer(stream);
+      recordedChunksRef.current = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      mediaRecorder.onstop = async () => {
+        // Stop visualizer and clear canvas
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        const c = waveCanvasRef.current;
+        if (c) {
+          const ctx = c.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, c.width, c.height);
+        }
+        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', blob, 'recording.webm');
+        try {
+          setIsTranscribing(true);
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json?.text) {
+            setSearchQuery(prev => (prev ? prev + ' ' : '') + json.text);
+          }
+        } catch (e) {
+          console.error('Transcription request failed', e);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone permission/recording error:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== 'inactive') {
+      mr.stop();
+    }
+    // Stop all audio tracks
+    const micStream = micStreamRef.current;
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+      micStreamRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const handleImageEditRemix = async (instruction: string) => {
+    if (!imageEditRemixMode || selectedImageIndex === null || !instruction.trim()) return;
+
+    const imageToProcess = attachedImages[selectedImageIndex];
+    if (!imageToProcess) {
+      setError('Image not found');
+      return;
+    }
+
+    // Start conversation to ensure UI is visible
+    startConversation();
+
+    // Capture index and mode before clearing state
+    const imageIndex = selectedImageIndex;
+    const mode = imageEditRemixMode;
+    const trimmedInstruction = instruction.trim();
+
+    // Add user message with instruction
+    const userMessage = `${mode === 'edit' ? 'Edit' : 'Remix'} image: ${trimmedInstruction}`;
+    addUserMessage(userMessage, [imageToProcess]);
+
+    // Clear edit/remix mode
+    setImageEditRemixMode(null);
+    setSelectedImageIndex(null);
+    setSearchQuery('');
+
+    // Set generating state and progress
+    setIsGeneratingImage(true);
+    setImageGenerationProgress(0);
+
+    // Add a placeholder AI message for the generation status
+    addAIMessage('', [], undefined, userMessage, [imageToProcess], 'image');
+
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setImageGenerationProgress(prev => {
+        if (prev >= 90) return prev; // Stop at 90% until actual completion
+        return prev + Math.random() * 15;
+      });
+    }, 500);
+
+    try {
+      const endpoint = mode === 'edit' ? '/api/edit-image' : '/api/remix-image';
+      const body = mode === 'edit' 
+        ? { editInstruction: trimmedInstruction, referenceImage: imageToProcess }
+        : { prompt: trimmedInstruction, referenceImages: [imageToProcess] };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${mode} image`);
+      }
+
+      const data = await response.json();
+      
+      // Complete progress
+      setImageGenerationProgress(100);
+
+      if (data.imageUrl) {
+        // Update the last AI message with the generated image
+        setTimeout(() => {
+          updateLastAIMessage(`Image ${mode === 'edit' ? 'edited' : 'remixed'} successfully!`, [data.imageUrl]);
+          setIsGeneratingImage(false);
+          setImageGenerationProgress(0);
+          clearInterval(progressInterval);
+          
+          // Remove the original image from attached images (only for edit)
+          if (mode === 'edit') {
+            setAttachedImages(prev => {
+              const newImages = [...prev];
+              newImages.splice(imageIndex, 1);
+              return newImages;
+            });
+          }
+        }, 300);
+      }
+    } catch (err: any) {
+      console.error(`Failed to ${mode} image:`, err);
+      setError(err.message || `Failed to ${mode} image`);
+      setIsGeneratingImage(false);
+      setImageGenerationProgress(0);
+      clearInterval(progressInterval);
+      // Remove the placeholder AI message on error
+      removeMessage(conversationHistory.length - 1);
+    }
+  };
+
+  const handleStartEditImage = (index: number) => {
+    setImageEditRemixMode('edit');
+    setSelectedImageIndex(index);
+    setImageMenuOpen(null);
+    setImageIconDropdownOpen(false);
+    // Focus search bar
+    setTimeout(() => {
+      const textarea = document.querySelector('.humbl-textarea') as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    }, 100);
+  };
+
+  const handleStartRemixImage = (index: number) => {
+    setImageEditRemixMode('remix');
+    setSelectedImageIndex(index);
+    setImageMenuOpen(null);
+    setImageIconDropdownOpen(false);
+    // Focus search bar
+    setTimeout(() => {
+      const textarea = document.querySelector('.humbl-textarea') as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    }, 100);
+  };
+
+  const handleCancelImageEditRemix = () => {
+    setImageEditRemixMode(null);
+    setSelectedImageIndex(null);
+    setSearchQuery('');
+  };
+
   const handleToggleImageMode = () => {
     setImageGenerationMode(!imageGenerationMode);
     if (!imageGenerationMode) {
@@ -571,6 +905,22 @@ export default function SharedConversationPage() {
 
   const startNewConversation = () => {
     router.push('/');
+  };
+
+  // SoundWave visualization for recording state
+  const SoundWave = ({ bars = 80 }: { bars?: number }) => {
+    const items = Array.from({ length: bars });
+    return (
+      <div className="sound-wave flex items-end justify-center h-6">
+        {items.map((_, i) => (
+          <div
+            key={i}
+            className="bar"
+            style={{ animationDuration: `${(Math.random() * 0.5 + 0.2).toFixed(2)}s` }}
+          />
+        ))}
+      </div>
+    );
   };
 
 
@@ -701,30 +1051,44 @@ export default function SharedConversationPage() {
                     </div>
                   ) : (
                     <div className="w-full">
-                      {message.images && message.images.length > 0 && (
-                        <div className="mb-3 flex flex-wrap gap-3">
-                          {message.images.map((src, idx) => (
-                            <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
-                              <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const link = document.createElement('a');
-                                  link.href = src;
-                                  link.download = `generated-image-${idx+1}.png`;
-                                  link.click();
-                                }}
-                                className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
-                                style={{ backgroundColor: '#f1d08c' }}
-                                title="Download image"
-                              >
-                                <Download size={16} className="text-black" />
-                              </button>
-                            </div>
-                          ))}
+                      {isGeneratingImage && index === conversationHistory.length - 1 && !message.content && message.images?.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8">
+                          <div className="w-64 h-64 bg-gray-800/50 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-gray-800/50 to-gray-900/50" style={{ 
+                              width: `${Math.max(2, Math.min(100, imageGenerationProgress))}%`, 
+                              transition: 'width 0.3s ease-out'
+                            }} />
+                          </div>
+                          <div className="mt-2 text-xs text-gray-400">{Math.round(imageGenerationProgress)}% complete</div>
                         </div>
+                      ) : (
+                        <>
+                          {message.images && message.images.length > 0 && (
+                            <div className="mb-3 flex flex-wrap gap-3">
+                              {message.images.map((src, idx) => (
+                                <div key={idx} className="relative rounded-xl overflow-hidden ring-1 ring-white/20 shadow-lg bg-black max-w-full group">
+                                  <img src={src} alt={`generated-image-${idx+1}`} className="max-w-xs sm:max-w-md lg:max-w-lg h-auto object-contain" />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const link = document.createElement('a');
+                                      link.href = src;
+                                      link.download = `generated-image-${idx+1}.png`;
+                                      link.click();
+                                    }}
+                                    className="absolute bottom-2 right-2 p-2 rounded-full transition-all z-10 hover:scale-110"
+                                    style={{ backgroundColor: '#f1d08c' }}
+                                    title="Download image"
+                                  >
+                                    <Download size={16} className="text-black" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {message.content && <ResponseRenderer content={message.content} theme={theme} />}
+                        </>
                       )}
-                      {message.content && <ResponseRenderer content={message.content} theme={theme} />}
                     </div>
                   )}
                   {/* Action buttons for AI responses */}
@@ -865,6 +1229,14 @@ export default function SharedConversationPage() {
           <div className="max-w-xl lg:max-w-3xl mx-auto">
             <div className="relative">
               <div className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}>
+                {/* Full-bar waveform background */}
+                {isRecording && (
+                  <canvas
+                    ref={waveCanvasRef}
+                    className="pointer-events-none absolute inset-0 w-full h-full opacity-25"
+                  />
+                )}
+                
                 {/* Attached images preview */}
                 {attachedImages.length > 0 && (
                   <div className="flex items-center gap-2 mb-2 flex-wrap">
@@ -878,6 +1250,45 @@ export default function SharedConversationPage() {
                         >
                           <X size={12} className="text-white" />
                         </button>
+                        {imageGenerationMode && (
+                          <div className="absolute bottom-0 left-0 image-menu-container">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setImageMenuOpen(imageMenuOpen === idx ? null : idx);
+                              }}
+                              className="p-1 rounded-full transition-all z-10 opacity-0 group-hover:opacity-100"
+                              style={{ backgroundColor: '#f1d08c' }}
+                              title="Image options"
+                            >
+                              <MoreVertical size={10} className="text-black" />
+                            </button>
+                            {imageMenuOpen === idx && (
+                              <div className="absolute bottom-full left-0 mb-1 rounded-lg shadow-lg overflow-hidden z-20" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartEditImage(idx);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <Edit2 size={12} />
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartRemixImage(idx);
+                                  }}
+                                  className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                >
+                                  <ImageIcon size={12} />
+                                  Remix
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -885,6 +1296,21 @@ export default function SharedConversationPage() {
 
                 {/* Input Field */}
                 <div className="flex items-start gap-2">
+                  {/* Edit/Remix Mode Indicator */}
+                  {imageEditRemixMode && selectedImageIndex !== null && attachedImages[selectedImageIndex] && (
+                    <div className="flex items-center gap-2 mr-2">
+                      <div className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#f1d08c', color: '#000000' }}>
+                        {imageEditRemixMode === 'edit' ? 'Edit' : 'Remix'} Image
+                      </div>
+                      <button
+                        onClick={handleCancelImageEditRemix}
+                        className="p-1.5 rounded-full hover:bg-gray-700/50 transition-colors"
+                        title="Cancel"
+                      >
+                        <X size={14} className="text-gray-400" />
+                      </button>
+                    </div>
+                  )}
                   <textarea
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -908,6 +1334,20 @@ export default function SharedConversationPage() {
 
                 {/* Bottom controls row */}
                 <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
+                  {/* Desktop/tablet: center absolute */}
+                  {isRecording && (
+                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
+                      <SoundWave bars={80} />
+                    </div>
+                  )}
+                  {/* Mobile: place waveform between left and right groups */}
+                  <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
+                    {isRecording && (
+                      <div className="w-28">
+                        <SoundWave bars={36} />
+                      </div>
+                    )}
+                  </div>
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClickLower}
@@ -1024,7 +1464,7 @@ export default function SharedConversationPage() {
                   </div>
                   <div className="flex items-center">
                     <button
-                      onClick={() => setIsRecording(!isRecording)}
+                      onClick={() => (isRecording ? stopRecording() : startRecording())}
                       className="mr-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
                       style={{ backgroundColor: '#2a2a29' }}
                       title={isRecording ? 'Stop dictation' : 'Dictate'}
@@ -1037,7 +1477,7 @@ export default function SharedConversationPage() {
                       )}
                       <button
                         onClick={handleSearch}
-                        disabled={isStreaming || (!searchQuery.trim() && attachedImages.length === 0)}
+                        disabled={isStreaming || !canSend}
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isStreaming || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#e8c377' : '#2a2a29'}
@@ -1950,6 +2390,12 @@ export default function SharedConversationPage() {
           50% { opacity: 1; }
           100% { opacity: 0.1; }
         }
+        .sound-wave .bar { width: 2px; margin: 0 1px; height: 10px; background: #f1d08c; animation-name: wave-lg; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; }
+        .sound-wave .bar:nth-child(-n + 7), .sound-wave .bar:nth-last-child(-n + 7) { animation-name: wave-md; }
+        .sound-wave .bar:nth-child(-n + 3), .sound-wave .bar:nth-last-child(-n + 3) { animation-name: wave-sm; }
+        @keyframes wave-sm { 0% { opacity: 0.35; height: 10px; } 100% { opacity: 1; height: 18px; } }
+        @keyframes wave-md { 0% { opacity: 0.35; height: 14px; } 100% { opacity: 1; height: 34px; } }
+        @keyframes wave-lg { 0% { opacity: 0.35; height: 16px; } 100% { opacity: 1; height: 44px; } }
       `}</style>
     </div>
   );
