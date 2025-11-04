@@ -661,136 +661,138 @@ export default function Home() {
           
           if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              
-              if (data.error) {
-                setError(data.error);
-                setIsLoading(false);
-                return;
-              }
-              
-                    if (data.done) {
-                      // Finalize AI response - update with metadata if streaming happened, or add new if not
-                      if (aiMessageInitialized && fullResponse) {
-                        // Update the existing streaming message with final metadata
-                        // The content is already set via updateLastAIMessage
-                        const lastIndex = conversationHistory.length - 1;
-                        if (lastIndex >= 0) {
-                          updateMessageAt(lastIndex, {
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                
+                if (data.error) {
+                  setError(data.error);
+                  setIsLoading(false);
+                  setThinkingText('');
+                  clearInterval((window as any).thinkingInterval);
+                  return;
+                }
+                
+                if (data.done) {
+                  // Finalize AI response - update with metadata if streaming happened, or add new if not
+                  if (aiMessageInitialized && fullResponse) {
+                    // Update the existing streaming message with final metadata
+                    // The content is already set via updateLastAIMessage
+                    const lastIndex = conversationHistory.length - 1;
+                    if (lastIndex >= 0) {
+                      updateMessageAt(lastIndex, {
                         citations: data.citations || finalCitations,
-                            originalQuery: queryToUse,
-                            originalImages: imagesToUse.slice(0, 3),
-                            originalMode: modeToUse,
-                          });
-                        }
-                      } else {
-                        // No streaming happened, add new message
-                        addAIMessage(
-                          fullResponse,
-                          undefined,
-                          data.citations || finalCitations,
-                          queryToUse,
-                          imagesToUse.slice(0, 3),
-                          modeToUse
-                        );
-                      }
-                      
-                      // Save AI message to database
-                      if (convId && user && fullResponse) {
+                        originalQuery: queryToUse,
+                        originalImages: imagesToUse.slice(0, 3),
+                        originalMode: modeToUse,
+                      });
+                    }
+                  } else {
+                    // No streaming happened, add new message
+                    addAIMessage(
+                      fullResponse,
+                      undefined,
+                      data.citations || finalCitations,
+                      queryToUse,
+                      imagesToUse.slice(0, 3),
+                      modeToUse
+                    );
+                  }
+                  
+                  // Save AI message to database
+                  if (convId && user && fullResponse) {
+                    try {
+                      await fetch(`/api/conversations/${convId}/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          role: 'assistant',
+                          content: fullResponse,
+                          citations: data.citations || finalCitations,
+                          mode: modeToUse
+                        })
+                      });
+                      // Generate and update conversation title from first AI response
+                      if (!firstAIMessageRef.current) { // Check if this is the first AI message
+                        firstAIMessageRef.current = true; // Mark as processed
                         try {
-                          await fetch(`/api/conversations/${convId}/messages`, {
+                          const titleResponse = await fetch('/api/conversations/generate-title', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              role: 'assistant',
-                              content: fullResponse,
-                              citations: data.citations || finalCitations,
-                              mode: modeToUse
+                              query: queryToUse,
+                              aiResponse: fullResponse
                             })
                           });
-                          // Generate and update conversation title from first AI response
-                          if (!firstAIMessageRef.current) { // Check if this is the first AI message
-                            firstAIMessageRef.current = true; // Mark as processed
-                            try {
-                              const titleResponse = await fetch('/api/conversations/generate-title', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  query: queryToUse,
-                                  aiResponse: fullResponse
-                                })
-                              });
-                              
-                              if (titleResponse.ok) {
-                                const titleData = await titleResponse.json();
-                                const generatedTitle = titleData.title || queryToUse.substring(0, 50);
-                                
-                                await fetch(`/api/conversations/${convId}`, {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ title: generatedTitle })
-                                });
-                              } else {
-                                // Fallback to query if title generation fails
-                                await fetch(`/api/conversations/${convId}`, {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ title: queryToUse.substring(0, 50) })
-                                });
-                              }
-                            } catch (titleErr) {
-                              console.error('Failed to generate title:', titleErr);
-                              // Fallback to query if title generation fails
-                              try {
-                                await fetch(`/api/conversations/${convId}`, {
-                                  method: 'PATCH',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ title: queryToUse.substring(0, 50) })
-                                });
-                              } catch (fallbackErr) {
-                                console.error('Failed to update conversation title:', fallbackErr);
-                              }
-                            }
+                          
+                          if (titleResponse.ok) {
+                            const titleData = await titleResponse.json();
+                            const generatedTitle = titleData.title || queryToUse.substring(0, 50);
+                            
+                            await fetch(`/api/conversations/${convId}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ title: generatedTitle })
+                            });
+                          } else {
+                            // Fallback to query if title generation fails
+                            await fetch(`/api/conversations/${convId}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                            });
                           }
-                        } catch (err) {
-                          console.error('Failed to save AI message:', err);
+                        } catch (titleErr) {
+                          console.error('Failed to generate title:', titleErr);
+                          // Fallback to query if title generation fails
+                          try {
+                            await fetch(`/api/conversations/${convId}`, {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                            });
+                          } catch (fallbackErr) {
+                            console.error('Failed to update conversation title:', fallbackErr);
+                          }
                         }
                       }
-                      
-                      // Clear streaming response and search query
-                      setStreamingResponse('');
-                      setSearchQuery('');
-                      setIsLoading(false);
-                      setThinkingText('');
-                      clearInterval((window as any).thinkingInterval);
-                      setAttachedImages([]);
-                      return;
+                    } catch (err) {
+                      console.error('Failed to save AI message:', err);
                     }
-              
-              if (data.content !== undefined && data.content !== null) {
-                // Convert content to string to handle numeric values
-                const contentStr = String(data.content);
-                fullResponse += contentStr;
-                setStreamingResponse(fullResponse);
-                // Update last AI message for streaming
-                updateLastAIMessage(fullResponse);
-                aiMessageInitialized = true;
+                  }
+                  
+                  // Clear streaming response and search query
+                  setStreamingResponse('');
+                  setSearchQuery('');
+                  setIsLoading(false);
+                  setThinkingText('');
+                  clearInterval((window as any).thinkingInterval);
+                  setAttachedImages([]);
+                  break; // Break out of while loop instead of return
+                }
+                
+                if (data.content !== undefined && data.content !== null) {
+                  // Convert content to string to handle numeric values
+                  const contentStr = String(data.content);
+                  fullResponse += contentStr;
+                  setStreamingResponse(fullResponse);
+                  // Update last AI message for streaming
+                  updateLastAIMessage(fullResponse);
+                  aiMessageInitialized = true;
+                }
+                if (data.citations) {
+                  finalCitations = data.citations;
+                }
+              } catch (e) {
+                // Skip invalid JSON lines
               }
-              if (data.citations) {
-                finalCitations = data.citations;
-              }
-            } catch (e) {
-              // Skip invalid JSON lines
             }
           }
         }
-      }
       } catch (err: any) {
         // Check if aborted
         if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
@@ -831,6 +833,14 @@ export default function Home() {
         // Clean up refs
         streamReaderRef.current = null;
       }
+    } catch (outerErr: any) {
+      // Handle errors from fetch or reader setup
+      setError('Failed to search. Please try again.');
+      console.error('Search error:', outerErr);
+      setIsLoading(false);
+      setThinkingText('');
+      clearInterval((window as any).thinkingInterval);
+    }
   };
 
   const stopStreaming = () => {
