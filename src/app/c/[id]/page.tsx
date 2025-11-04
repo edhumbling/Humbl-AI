@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -43,6 +43,7 @@ export default function SharedConversationPage() {
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -750,7 +751,7 @@ export default function SharedConversationPage() {
             onClick={() => setShowShareModal(false)}
           >
             <div
-              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6"
+              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto share-modal-scroll"
               style={{
                 backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                 border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -829,7 +830,10 @@ export default function SharedConversationPage() {
                   className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
                   title="Share on WhatsApp"
                 >
-                  <img src="https://static.whatsapp.net/rsrc.php/y7/r/ujty9NX7jR3.png" alt="WhatsApp" className="w-10 h-10 mb-1.5" />
+                  <img src="https://static.whatsapp.net/rsrc.php/v3/yL/r/ujTY9BX_Jk7.png" alt="WhatsApp" className="w-10 h-10 mb-1.5" onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTcuNDcyIDguNzA0Yy0uMjI5LS4xMjMtLjQ5LS4yMTktLjcyLS4yODlBMjAuMjA4IDIwLjIwOCAwIDAgMCAxMy4wMyA3Ljk4Yy0uMjQ4LS4wMTQtLjQ5OC0uMDIxLS43NS0uMDIxYTEwLjk3IDEwLjk3IDAgMCAwLTcuNDkyIDMuMzA0QTExLjExIDExLjExIDAgMCAwIDIgMTMuMjYxYTExLjE4IDExLjE4IDAgMCAwIDEuODIxIDYuMDI2bC0xLjYyOCA0LjkyNmE0LjgyIDQuODIgMCAwIDAgNS44NTggMy4wMTJsNC44MjktMS42ODRhMTEgMTEgMCAwIDAgNS4yOTguNjI1YzEuODkzLjE2NyAzLjgwNi41MyA1LjU2NiAxLjEwNmExLjQ4IDEuNDggMCAwIDAgMS41ODUtLjMyNGwxLjM2Mi0xLjE2NGEuNzUuNzUgMCAwIDAgLjEtLjEwOGwzLjE0MS0yLjY1MWEuNzUuNzUgMCAwIDAgLjEtLjEwOGMuMTI2LS4xMjMuMjQ3LS4yNS4zNjEtLjM3OGEuNzUuNzUgMCAwIDAgLjEtLjA4NmMyLjA3LTIuMjA0IDMuMTUzLTQuOTg1IDMuMTUzLTcuNzgyIDAtMi4xOTItLjkxNC00LjI3MS0yLjUyOC01Ljc2NnoiIGZpbGw9IiMyNUQzNjYiLz48L3N2Zz4=';
+                  }} />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>WhatsApp</span>
                 </button>
 
@@ -896,13 +900,96 @@ export default function SharedConversationPage() {
         </>
       )}
 
+      {/* Developer Info Modal - Higher z-index than sidebar */}
+      {showInfo && (
+        <div className="fixed inset-0 z-[60]">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowInfo(false)}
+          />
+          <div className="relative h-full w-full flex items-center justify-center px-4">
+            <div 
+              className="w-[90%] sm:w-full max-w-sm sm:max-w-3xl rounded-2xl shadow-xl transition-colors duration-300" 
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={`flex items-center justify-between px-3 py-2 sm:px-5 sm:py-4 transition-colors duration-300 ${theme === 'dark' ? 'border-b border-gray-800/60' : 'border-b border-gray-200'}`}>
+                <div className="flex items-center space-x-2">
+                  <Info size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                  <span className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>About this app</span>
+                </div>
+                <button
+                  onClick={() => setShowInfo(false)}
+                  className={`p-2 rounded-lg transition-colors duration-300 ${theme === 'dark' ? 'hover:bg-gray-800/60' : 'hover:bg-gray-200'}`}
+                  title="Close"
+                >
+                  <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                </button>
+              </div>
+
+              <div className="px-4 py-4 sm:px-5 sm:py-5 lg:grid lg:grid-cols-2 lg:gap-10 space-y-4 sm:space-y-6 lg:space-y-0">
+                {/* About - Left */}
+                <div className="space-y-3">
+                  <h3 className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>About Humbl AI</h3>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'}`}>
+                      <Image src="/applogo.png" alt="Humbl AI" width={48} height={48} />
+                    </div>
+                    <div>
+                      <div className={`text-sm sm:text-base transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Humbl AI</div>
+                      <div className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Your Intelligent AI Assistant</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2 pt-2">
+                    <h4 className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>About</h4>
+                    <p className={`text-xs sm:text-sm leading-relaxed transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>
+                      Humbl AI is an advanced conversational assistant designed to help you research, analyze images, and get precise answers in real time. It combines internet search, voice input, and safe educational filtering to deliver concise, helpful responses.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right column: Features + Developer */}
+                <div className="space-y-6">
+                  <div>
+                    <h3 className={`text-xs sm:text-sm mb-2 transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Features</h3>
+                    <ul className={`list-disc pl-5 space-y-1 text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>
+                      <li>Voice input and text-to-speech</li>
+                      <li>Image analysis capabilities</li>
+                      <li>Internet search integration</li>
+                      <li>Educational content filtering</li>
+                      <li>Real-time conversation</li>
+                    </ul>
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-200' : 'text-black'}`}>Developer</h3>
+                    <div className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>EH — Emmanuel Humbling</div>
+                    <div className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-gray-300' : 'text-black'}`}>AI Developer, AIDEL</div>
+                    <div className="pt-2">
+                      <a
+                        href="https://www.linkedin.com/in/edhumbling"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-xs sm:text-sm transition-colors duration-300 ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+                      >
+                        LinkedIn Profile
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar */}
       <Sidebar
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         theme={theme}
         setTheme={setTheme}
-        onShowInfo={() => {}}
+        onShowInfo={() => setShowInfo(true)}
         user={user}
         onNewConversation={startNewConversation}
         onSelectConversation={(id) => {
@@ -924,9 +1011,15 @@ export default function SharedConversationPage() {
         .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
         .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
         .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
-        /* Hide scrollbar for share modal */
+        /* Hide scrollbar for share modal horizontal scroll */
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
+        /* Share modal vertical scrollbar */
+        .share-modal-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .share-modal-scroll::-webkit-scrollbar { width: 8px; }
+        .share-modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .share-modal-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 4px; }
+        .share-modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.5); }
       `}</style>
     </div>
   );

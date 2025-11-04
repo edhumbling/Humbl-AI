@@ -1415,7 +1415,7 @@ export default function Home() {
 
       {/* Info Modal */}
       {showInfo && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[60]">
           <div
             className="absolute inset-0 transition-colors duration-300"
             style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)' }}
@@ -1508,7 +1508,7 @@ export default function Home() {
             onClick={() => setShowShareModal(false)}
           >
             <div
-              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6"
+              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto share-modal-scroll"
               style={{
                 backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                 border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -1587,7 +1587,10 @@ export default function Home() {
                   className="flex flex-col items-center justify-center min-w-[60px] transition-opacity hover:opacity-80"
                   title="Share on WhatsApp"
                 >
-                  <img src="https://static.whatsapp.net/rsrc.php/y7/r/ujty9NX7jR3.png" alt="WhatsApp" className="w-10 h-10 mb-1.5" />
+                  <img src="https://static.whatsapp.net/rsrc.php/v3/yL/r/ujTY9BX_Jk7.png" alt="WhatsApp" className="w-10 h-10 mb-1.5" onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTcuNDcyIDguNzA0Yy0uMjI5LS4xMjMtLjQ5LS4yMTktLjcyLS4yODlBMjAuMjA4IDIwLjIwOCAwIDAgMCAxMy4wMyA3Ljk4Yy0uMjQ4LS4wMTQtLjQ5OC0uMDIxLS43NS0uMDIxYTEwLjk3IDEwLjk3IDAgMCAwLTcuNDkyIDMuMzA0QTExLjExIDExLjExIDAgMCAwIDIgMTMuMjYxYTExLjE4IDExLjE4IDAgMCAwIDEuODIxIDYuMDI2bC0xLjYyOCA0LjkyNmE0LjgyIDQuODIgMCAwIDAgNS44NTggMy4wMTJsNC44MjktMS42ODRhMTEgMTEgMCAwIDAgNS4yOTguNjI1YzEuODkzLjE2NyAzLjgwNi41MyA1LjU2NiAxLjEwNmExLjQ4IDEuNDggMCAwIDAgMS41ODUtLjMyNGwxLjM2Mi0xLjE2NGEuNzUuNzUgMCAwIDAgLjEtLjEwOGwzLjE0MS0yLjY1MWEuNzUuNzUgMCAwIDAgLjEtLjEwOGMuMTI2LS4xMjMuMjQ3LS4yNS4zNjEtLjM3OGEuNzUuNzUgMCAwIDAgLjEtLjA4NmMyLjA3LTIuMjA0IDMuMTUzLTQuOTg1IDMuMTUzLTcuNzgyIDAtMi4xOTItLjkxNC00LjI3MS0yLjUyOC01Ljc2NnoiIGZpbGw9IiMyNUQzNjYiLz48L3N2Zz4=';
+                  }} />
                   <span className="text-xs" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>WhatsApp</span>
                 </button>
 
@@ -2744,6 +2747,15 @@ export default function Home() {
         .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
         .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
         .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
+        /* Hide scrollbar for share modal horizontal scroll */
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        /* Share modal vertical scrollbar */
+        .share-modal-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
+        .share-modal-scroll::-webkit-scrollbar { width: 8px; }
+        .share-modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .share-modal-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 4px; }
+        .share-modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.5); }
         /* Recording waveform */
         .sound-wave .bar { width: 2px; margin: 0 1px; height: 10px; background: #f1d08c; animation-name: wave-lg; animation-iteration-count: infinite; animation-timing-function: ease-in-out; animation-direction: alternate; }
         .sound-wave .bar:nth-child(-n + 7), .sound-wave .bar:nth-last-child(-n + 7) { animation-name: wave-md; }
