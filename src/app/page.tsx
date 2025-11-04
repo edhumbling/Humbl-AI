@@ -740,8 +740,10 @@ export default function Home() {
                       return;
                     }
               
-              if (data.content) {
-                fullResponse += data.content;
+              if (data.content !== undefined && data.content !== null) {
+                // Convert content to string to handle numeric values
+                const contentStr = String(data.content);
+                fullResponse += contentStr;
                 setStreamingResponse(fullResponse);
                 // Update last AI message for streaming
                 updateLastAIMessage(fullResponse);

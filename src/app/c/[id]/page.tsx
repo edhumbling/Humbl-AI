@@ -182,8 +182,10 @@ export default function SharedConversationPage() {
           if (line.startsWith('data: ')) {
             try {
               const data = JSON.parse(line.slice(6));
-              if (data.content) {
-                fullResponse += data.content;
+              if (data.content !== undefined && data.content !== null) {
+                // Convert content to string to handle numeric values
+                const contentStr = String(data.content);
+                fullResponse += contentStr;
                 setStreamingResponse(fullResponse);
               }
               if (data.done) break;
