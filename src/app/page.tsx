@@ -224,6 +224,11 @@ export default function Home() {
 
     setCurrentConversationId(conversationId);
     
+    // Update URL to show conversation ID in address bar without page reload
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', `/c/${conversationId}`);
+    }
+    
     try {
       const response = await fetch(`/api/conversations/${conversationId}`);
       
