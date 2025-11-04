@@ -19,7 +19,9 @@ export default function SharedConversationPage() {
     conversationStarted,
     getConversationHistory,
     addUserMessage, 
-    addAIMessage, 
+    addAIMessage,
+    updateLastAIMessage,
+    updateMessageAt,
     clearConversation,
     startConversation,
     removeMessage
