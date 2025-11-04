@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { conversationDb, query } from '@/lib/db';
+import { conversationDb, query, userDb } from '@/lib/db';
+import { stackServerApp } from '@/stack/server';
 
 // GET /api/message-shares/[id]/public - Get a message share publicly (no user check)
 export async function GET(
@@ -28,7 +29,27 @@ export async function GET(
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ conversation }, { status: 200 });
+    // Check if current user owns this conversation (optional - user might not be logged in)
+    let isOwner = false;
+    try {
+      const user = await stackServerApp.getUser();
+      if (user) {
+        const dbUser = await userDb.upsertUser(
+          user.id,
+          user.primaryEmail || '',
+          user.displayName || undefined,
+          user.profileImageUrl || undefined
+        );
+        isOwner = dbUser.id === conversation.user_id;
+      }
+    } catch (e) {
+      // User not logged in or error fetching user - that's fine, isOwner stays false
+    }
+
+    return NextResponse.json({ 
+      conversation,
+      isOwner 
+    }, { status: 200 });
   } catch (error) {
     console.error('Error fetching message share:', error);
     return NextResponse.json(

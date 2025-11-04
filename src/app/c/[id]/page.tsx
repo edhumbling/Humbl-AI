@@ -53,6 +53,7 @@ export default function SharedConversationPage() {
   const [sharedMessageIndex, setSharedMessageIndex] = useState<number | null>(null);
   const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
   const [isGeneratingMessageShareLink, setIsGeneratingMessageShareLink] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +87,17 @@ export default function SharedConversationPage() {
         const data = await response.json();
         setConversation(data.conversation);
         
+        // Check if current user owns this conversation (from API response)
+        const ownerStatus = data.isOwner || false;
+        setIsOwner(ownerStatus);
+        
+        // If user owns the conversation, use the original conversation ID
+        if (ownerStatus) {
+          setContinuationConversationId(conversationId);
+          // Update URL to use the original conversation
+          window.history.replaceState({}, '', `/c/${conversationId}`);
+        }
+        
         // Load messages into conversation context
         clearConversation();
         const messages = data.conversation.messages || [];
@@ -104,7 +116,8 @@ export default function SharedConversationPage() {
         startConversation();
         
         // Check if user has a continuation conversation for this shared conversation
-        if (user) {
+        // Only if user is NOT the owner
+        if (user && !ownerStatus) {
           const continuationKey = `continuation_${conversationId}`;
           const existingContinuationId = sessionStorage.getItem(continuationKey);
           if (existingContinuationId) {
@@ -199,49 +212,82 @@ export default function SharedConversationPage() {
       
       // Save continuation if user is logged in
       if (user) {
-        const continuationKey = `continuation_${conversationId}`;
-        let newConversationId = sessionStorage.getItem(continuationKey);
-        
-        try {
-          if (!newConversationId) {
-            const response = await fetch('/api/conversations', {
+        // If user owns the conversation, save directly to original conversation
+        if (isOwner) {
+          try {
+            await fetch(`/api/conversations/${conversationId}/messages`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                title: `Continuation: ${conversation?.title || 'Shared Conversation'}` 
+              body: JSON.stringify({
+                role: 'user',
+                content: queryToUse,
+                images: attachedImages,
+                mode: 'default'
               }),
             });
             
-            if (response.ok) {
-              const data = await response.json();
-              newConversationId = data.conversation.id;
-              if (newConversationId) {
-                sessionStorage.setItem(continuationKey, newConversationId);
-                setContinuationConversationId(newConversationId); // Store in state for sharing
-                
-                // Save all original messages
-                const originalMessages = conversation?.messages || [];
-                for (const msg of originalMessages) {
-                  await fetch(`/api/conversations/${newConversationId}/messages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      role: msg.role,
-                      content: msg.content,
-                      images: msg.images || [],
-                      citations: msg.citations || [],
-                      mode: 'default'
-                    }),
-                  });
+            await fetch(`/api/conversations/${conversationId}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                role: 'assistant',
+                content: fullResponse,
+                images: [],
+                citations: [],
+                mode: 'default'
+              }),
+            });
+          } catch (err) {
+            console.error('Failed to save message:', err);
+          }
+        } else {
+          // User doesn't own it, create continuation
+          const continuationKey = `continuation_${conversationId}`;
+          let newConversationId = sessionStorage.getItem(continuationKey);
+          
+          try {
+            if (!newConversationId) {
+              const response = await fetch('/api/conversations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                  title: `Continuation: ${conversation?.title || 'Shared Conversation'}` 
+                }),
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                newConversationId = data.conversation.id;
+                if (newConversationId) {
+                  sessionStorage.setItem(continuationKey, newConversationId);
+                  setContinuationConversationId(newConversationId); // Store in state for sharing
+                  
+                  // Save all original messages
+                  const originalMessages = conversation?.messages || [];
+                  for (const msg of originalMessages) {
+                    await fetch(`/api/conversations/${newConversationId}/messages`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        role: msg.role,
+                        content: msg.content,
+                        images: msg.images || [],
+                        citations: msg.citations || [],
+                        mode: 'default'
+                      }),
+                    });
+                  }
                 }
               }
+            } else {
+              // If continuation already exists, use it
+              setContinuationConversationId(newConversationId);
             }
-          } else {
-            // If continuation already exists, use it
-            setContinuationConversationId(newConversationId);
+          } catch (err) {
+            console.error('Failed to create continuation:', err);
           }
           
-          // Save new messages
+          // Save new messages to continuation
           if (newConversationId) {
             await fetch(`/api/conversations/${newConversationId}/messages`, {
               method: 'POST',
@@ -266,8 +312,6 @@ export default function SharedConversationPage() {
               }),
             });
           }
-        } catch (err) {
-          console.error('Failed to save continuation:', err);
         }
       }
     } catch (error) {
