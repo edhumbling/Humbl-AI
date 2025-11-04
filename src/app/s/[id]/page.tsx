@@ -41,6 +41,8 @@ export default function MessageSharePage() {
   const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
   const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
+  const [imageEditRemixMode, setImageEditRemixMode] = useState<'edit' | 'remix' | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -59,6 +61,13 @@ export default function MessageSharePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamReaderRef = useRef<ReadableStreamDefaultReader | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -721,6 +730,158 @@ export default function MessageSharePage() {
     }
   };
 
+  const handleStartEditImage = (index: number) => {
+    setImageEditRemixMode('edit');
+    setSelectedImageIndex(index);
+    setImageIconDropdownOpen(false);
+    // Focus search bar
+    setTimeout(() => {
+      const textarea = document.querySelector('.humbl-textarea') as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    }, 100);
+  };
+
+  const handleStartRemixImage = (index: number) => {
+    setImageEditRemixMode('remix');
+    setSelectedImageIndex(index);
+    setImageIconDropdownOpen(false);
+    // Focus search bar
+    setTimeout(() => {
+      const textarea = document.querySelector('.humbl-textarea') as HTMLTextAreaElement;
+      if (textarea) textarea.focus();
+    }, 100);
+  };
+
+  const handleCancelImageEditRemix = () => {
+    setImageEditRemixMode(null);
+    setSelectedImageIndex(null);
+    setSearchQuery('');
+  };
+
+  const startVisualizer = (stream: MediaStream) => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const audioCtx = audioContextRef.current!;
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const canvas = waveCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const render = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const width = canvas.clientWidth * dpr;
+        const height = canvas.clientHeight * dpr;
+        if (canvas.width !== width) canvas.width = width;
+        if (canvas.height !== height) canvas.height = height;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+        ctx.clearRect(0, 0, width, height);
+        const bars = 64;
+        const barWidth = Math.max(2 * dpr, Math.floor(width / (bars * 1.5)));
+        const gap = 2 * dpr;
+        let x = 0;
+        for (let i = 0; i < bars; i++) {
+          const v = dataArray[Math.floor((i / bars) * bufferLength)] / 255;
+          const barHeight = Math.max(2 * dpr, v * height);
+          ctx.fillStyle = '#8b8b8a';
+          ctx.fillRect(x, (height - barHeight) / 2, barWidth, barHeight);
+          x += barWidth + gap;
+        }
+        animationRef.current = requestAnimationFrame(render);
+      };
+      render();
+    } catch (e) {
+      // fail silently if visualizer can't start
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      // Reuse microphone stream within the same browsing session to avoid repeated prompts
+      let stream = micStreamRef.current;
+      if (!stream) {
+        // Check Permissions API when available
+        if (navigator.permissions && 'query' in navigator.permissions) {
+          try {
+            const status = await (navigator.permissions as any).query({ name: 'microphone' });
+            if (status.state === 'denied') {
+              console.warn('Microphone permission denied by the user');
+              return;
+            }
+          } catch {
+            // ignore - not all browsers support permissions query for microphone
+          }
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        micStreamRef.current = stream;
+        // Mark permission as granted for this tab session
+        try { sessionStorage.setItem('humblai_mic_granted', 'true'); } catch {}
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      // Start waveform visualizer
+      startVisualizer(stream);
+      recordedChunksRef.current = [];
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      mediaRecorder.onstop = async () => {
+        // Stop visualizer and clear canvas
+        if (animationRef.current) cancelAnimationFrame(animationRef.current);
+        const c = waveCanvasRef.current;
+        if (c) {
+          const ctx = c.getContext('2d');
+          if (ctx) ctx.clearRect(0, 0, c.width, c.height);
+        }
+        const blob = new Blob(recordedChunksRef.current, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', blob, 'recording.webm');
+        try {
+          setIsTranscribing(true);
+          const res = await fetch('/api/transcribe', { method: 'POST', body: formData });
+          const json = await res.json();
+          if (json?.text) {
+            setSearchQuery(prev => (prev ? prev + ' ' : '') + json.text);
+          }
+        } catch (e) {
+          console.error('Transcription request failed', e);
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Microphone permission/recording error:', err);
+    }
+  };
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== 'inactive') {
+      mr.stop();
+    }
+    // Stop all audio tracks
+    const micStream = micStreamRef.current;
+    if (micStream) {
+      micStream.getTracks().forEach(track => track.stop());
+      micStreamRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
   const handleMessageShare = async (messageIndex: number) => {
     if (!continuationConversationId && !shareId) return;
     const convIdToUse = continuationConversationId || shareId;
@@ -1204,34 +1365,124 @@ export default function MessageSharePage() {
                           </>
                         )}
                       </div>
-                      <div className="ml-2 relative">
-                        <button
-                          onClick={handleToggleImageMode}
-                          className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 rounded-full px-3`}
-                          style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
-                          title="Create image"
-                        >
-                          <ImageIcon size={16} className="w-4 h-4" />
-                        </button>
+                      {/* Create Image button with dropdown */}
+                      <div className="ml-2 relative image-icon-dropdown-container">
+                        <div className="flex items-center">
+                          <button
+                            onClick={handleToggleImageMode}
+                            className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 ${imageGenerationMode && attachedImages.length > 0 ? 'rounded-l-full pl-3 pr-2' : 'rounded-full px-3'}`}
+                            style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                            title="Create image"
+                          >
+                            <ImageIcon size={16} className="w-4 h-4" />
+                          </button>
+                          {imageGenerationMode && attachedImages.length > 0 && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setImageIconDropdownOpen(!imageIconDropdownOpen);
+                                }}
+                                className="h-8 w-6 rounded-r-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                                style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                                title="Image actions"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                              {imageIconDropdownOpen && (
+                                <div className="absolute bottom-full right-0 mb-1 rounded-lg shadow-lg overflow-hidden z-30" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartEditImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <Edit2 size={12} />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartRemixImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <ImageIcon size={12} />
+                                    Remix
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
-                      <button
-                        onClick={handleToggleImageMode}
-                        className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 rounded-full px-3`}
-                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
-                        title="Create image"
-                      >
-                        <ImageIcon size={16} className="w-4 h-4" />
-                      </button>
+                      <div className="relative image-icon-dropdown-container">
+                        <div className="flex items-center">
+                          <button
+                            onClick={handleToggleImageMode}
+                            className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 ${imageGenerationMode && attachedImages.length > 0 ? 'rounded-l-full pl-3 pr-2' : 'rounded-full px-3'}`}
+                            style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                            title="Create image"
+                          >
+                            <ImageIcon size={16} className="w-4 h-4" />
+                          </button>
+                          {imageGenerationMode && attachedImages.length > 0 && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setImageIconDropdownOpen(!imageIconDropdownOpen);
+                                }}
+                                className="h-8 w-6 rounded-r-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                                style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                                title="Image actions"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                              {imageIconDropdownOpen && (
+                                <div className="absolute bottom-full right-0 mb-1 rounded-lg shadow-lg overflow-hidden z-30" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartEditImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <Edit2 size={12} />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartRemixImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <ImageIcon size={12} />
+                                    Remix
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center">
                     <button
-                      onClick={() => setIsRecording(!isRecording)}
+                      onClick={() => (isRecording ? stopRecording() : startRecording())}
                       className="mr-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors hover:bg-opacity-80"
                       style={{ backgroundColor: '#2a2a29' }}
                       title={isRecording ? 'Stop dictation' : 'Dictate'}

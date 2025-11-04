@@ -1624,20 +1624,6 @@ export default function SharedConversationPage() {
 
                 {/* Bottom controls row */}
                 <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
-                  {/* Desktop/tablet: center absolute */}
-                  {isRecording && (
-                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
-                      <SoundWave bars={80} />
-                    </div>
-                  )}
-                  {/* Mobile: place waveform between left and right groups */}
-                  <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
-                    {isRecording && (
-                      <div className="w-28">
-                        <SoundWave bars={36} />
-                      </div>
-                    )}
-                  </div>
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClickLower}
@@ -1727,30 +1713,134 @@ export default function SharedConversationPage() {
                           </>
                         )}
                       </div>
-                      <div className="ml-2 relative">
-                        <button
-                          onClick={handleToggleImageMode}
-                          className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 rounded-full px-3`}
-                          style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
-                          title="Create image"
-                        >
-                          <ImageIcon size={16} className="w-4 h-4" />
-                        </button>
+                      {/* Create Image button with dropdown */}
+                      <div className="ml-2 relative image-icon-dropdown-container">
+                        <div className="flex items-center">
+                          <button
+                            onClick={handleToggleImageMode}
+                            className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 ${imageGenerationMode && attachedImages.length > 0 ? 'rounded-l-full pl-3 pr-2' : 'rounded-full px-3'}`}
+                            style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                            title="Create image"
+                          >
+                            <ImageIcon size={16} className="w-4 h-4" />
+                          </button>
+                          {imageGenerationMode && attachedImages.length > 0 && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setImageIconDropdownOpen(!imageIconDropdownOpen);
+                                }}
+                                className="h-8 w-6 rounded-r-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                                style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                                title="Image actions"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                              {imageIconDropdownOpen && (
+                                <div className="absolute bottom-full right-0 mb-1 rounded-lg shadow-lg overflow-hidden z-30" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartEditImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <Edit2 size={12} />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartRemixImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <ImageIcon size={12} />
+                                    Remix
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    {/* Mobile icons only */}
                     <div className="ml-2 flex sm:hidden items-center gap-2">
                       <button onClick={() => { setMode(prev => (prev === 'search' ? 'default' : 'search')); if (mode !== 'search') setImageGenerationMode(false); }} className={"w-8 h-8 rounded-full flex items-center justify-center transition-colors " + (mode==='search' ? '' : 'hover:bg-opacity-80')} style={{ backgroundColor: mode==='search' ? '#f1d08c' : '#2a2a29', color: mode==='search' ? '#000000' : '#ffffff' }} title="Search the web">
                         <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" strokeWidth="2" strokeLinecap="round"/></svg>
                       </button>
-                      <button
-                        onClick={handleToggleImageMode}
-                        className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 rounded-full px-3`}
-                        style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
-                        title="Create image"
-                      >
-                        <ImageIcon size={16} className="w-4 h-4" />
-                      </button>
+                      <div className="relative image-icon-dropdown-container">
+                        <div className="flex items-center">
+                          <button
+                            onClick={handleToggleImageMode}
+                            className={`h-8 flex items-center justify-center transition-colors hover:bg-opacity-80 ${imageGenerationMode && attachedImages.length > 0 ? 'rounded-l-full pl-3 pr-2' : 'rounded-full px-3'}`}
+                            style={{ backgroundColor: imageGenerationMode ? '#f1d08c' : '#2a2a29', color: imageGenerationMode ? '#000000' : '#ffffff' }}
+                            title="Create image"
+                          >
+                            <ImageIcon size={16} className="w-4 h-4" />
+                          </button>
+                          {imageGenerationMode && attachedImages.length > 0 && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setImageIconDropdownOpen(!imageIconDropdownOpen);
+                                }}
+                                className="h-8 w-6 rounded-r-full flex items-center justify-center transition-colors hover:bg-opacity-80"
+                                style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                                title="Image actions"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                              {imageIconDropdownOpen && (
+                                <div className="absolute bottom-full right-0 mb-1 rounded-lg shadow-lg overflow-hidden z-30" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartEditImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <Edit2 size={12} />
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleStartRemixImage(0);
+                                      setImageIconDropdownOpen(false);
+                                    }}
+                                    className="w-full px-3 py-2 text-left text-white text-sm hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                  >
+                                    <ImageIcon size={12} />
+                                    Remix
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
+                  </div>
+                  {/* Desktop/tablet: center absolute */}
+                  {isRecording && (
+                    <div className="hidden sm:block absolute left-1/2 -translate-x-1/2 bottom-1 pointer-events-none">
+                      <SoundWave bars={80} />
+                    </div>
+                  )}
+                  {/* Mobile: place waveform between left and right groups */}
+                  <div className="sm:hidden flex-1 flex justify-center pointer-events-none">
+                    {isRecording && (
+                      <div className="w-28">
+                        <SoundWave bars={36} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center">
                     <button
