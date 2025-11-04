@@ -375,8 +375,30 @@ export default function SharedConversationPage() {
     return (
       <div className="h-screen flex items-center justify-center" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-t-transparent mx-auto mb-4" style={{ borderColor: '#f1d08c' }} />
+          <div className="relative w-12 h-12 mx-auto mb-4">
+            <div className="absolute inset-0 flex items-center justify-center">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-1 h-3 rounded-full origin-bottom"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#ffffff' : '#000000',
+                    transform: `rotate(${i * 30}deg) translateY(-18px)`,
+                    opacity: 0.3,
+                    animation: `spin-fade 1.2s linear infinite`,
+                    animationDelay: `${i * 0.1}s`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
           <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Loading conversation...</p>
+          <style jsx>{`
+            @keyframes spin-fade {
+              0%, 100% { opacity: 0.3; }
+              50% { opacity: 1; }
+            }
+          `}</style>
         </div>
       </div>
     );
