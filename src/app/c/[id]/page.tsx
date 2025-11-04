@@ -431,6 +431,15 @@ export default function SharedConversationPage() {
             </div>
 
             {/* Center: Logo when conversation is active */}
+            {/* Mobile: Small favicon */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 md:hidden">
+              {conversationStarted && (
+                <button onClick={startNewConversation} className="cursor-pointer hover:opacity-80 transition-opacity" title="New conversation">
+                  <Image src="/small favicon.png" alt="Humbl AI" width={32} height={32} className="h-8 w-8 opacity-90" />
+                </button>
+              )}
+            </div>
+            {/* Desktop: Full logo */}
             <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:block">
               {conversationStarted && (
                 <button onClick={startNewConversation} className="cursor-pointer hover:opacity-80 transition-opacity" title="New conversation">
