@@ -324,6 +324,7 @@ export default function Home() {
   const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
+  const [dailyPrompts, setDailyPrompts] = useState<string[]>([]);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -1201,6 +1202,22 @@ export default function Home() {
       removeMessage(conversationHistory.length - 1);
     }
   };
+
+  // Fetch daily prompts
+  useEffect(() => {
+    const fetchDailyPrompts = async () => {
+      try {
+        const response = await fetch('/api/daily-prompts');
+        if (response.ok) {
+          const data = await response.json();
+          setDailyPrompts(data.prompts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching daily prompts:', error);
+      }
+    };
+    fetchDailyPrompts();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -2453,7 +2470,66 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Desktop Title removed per request */}
+          {/* Prompt Suggestions */}
+          {dailyPrompts.length > 0 && (
+            <div className="w-full max-w-xl lg:max-w-3xl mx-auto mb-4 sm:mb-6 relative">
+              {/* Fade gradients */}
+              <div className="absolute left-0 top-0 bottom-0 w-16 sm:w-24 z-10 pointer-events-none" style={{
+                background: `linear-gradient(to right, ${theme === 'dark' ? '#151514' : '#ffffff'}, transparent)`
+              }} />
+              <div className="absolute right-0 top-0 bottom-0 w-16 sm:w-24 z-10 pointer-events-none" style={{
+                background: `linear-gradient(to left, ${theme === 'dark' ? '#151514' : '#ffffff'}, transparent)`
+              }} />
+              
+              {/* Scrollable container */}
+              <div className="overflow-x-auto scrollbar-hide" style={{
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                WebkitOverflowScrolling: 'touch',
+                maskImage: `linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)`,
+                WebkitMaskImage: `linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%)`
+              }}>
+                <div className="flex gap-2 sm:gap-3 px-4 animate-scroll" style={{
+                  animation: 'scroll 30s linear infinite',
+                  width: 'max-content'
+                }}>
+                  {/* Duplicate prompts for seamless loop */}
+                  {[...dailyPrompts, ...dailyPrompts].map((prompt, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        const cleanPrompt = prompt.replace(/[✨💡🎨🍕🌍🤖🎵📚🏃🧪🎬🍀🌈🐾🌊🎯🍯⚡🎭🌱🧠🎪🏔️🌙🦋]/g, '').trim();
+                        setSearchQuery(cleanPrompt);
+                        handleSearch();
+                      }}
+                      className="flex-shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 whitespace-nowrap"
+                      style={{
+                        backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+                        border: `1px solid ${theme === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}`,
+                        color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                        fontSize: '0.7rem',
+                        boxShadow: theme === 'dark' 
+                          ? '0 2px 8px rgba(0, 0, 0, 0.2)' 
+                          : '0 2px 8px rgba(0, 0, 0, 0.1)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = theme === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.12)' 
+                          : 'rgba(0, 0, 0, 0.08)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = theme === 'dark' 
+                          ? 'rgba(255, 255, 255, 0.08)' 
+                          : 'rgba(0, 0, 0, 0.04)';
+                      }}
+                    >
+                      <span className="text-[0.65rem] sm:text-xs">{prompt}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Search Bar */}
           <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
@@ -3565,6 +3641,26 @@ export default function Home() {
           0% { opacity: 0.1; }
           50% { opacity: 1; }
           100% { opacity: 0.1; }
+        }
+        @keyframes scroll {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        @media (max-width: 640px) {
+          .animate-scroll {
+            animation-duration: 25s !important;
+          }
         }
         /* Table row striping - dark mode default */
         table tbody tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.3); }
