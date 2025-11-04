@@ -306,6 +306,8 @@ export default function Home() {
   const [showMessageShareModal, setShowMessageShareModal] = useState(false);
   const [messageShareId, setMessageShareId] = useState<string | null>(null);
   const [sharedMessageIndex, setSharedMessageIndex] = useState<number | null>(null);
+  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
+  const [isGeneratingMessageShareLink, setIsGeneratingMessageShareLink] = useState(false);
   const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
@@ -775,6 +777,8 @@ export default function Home() {
   const handleMessageShare = async (messageIndex: number) => {
     if (!currentConversationId || !user) return;
     
+    setIsGeneratingMessageShareLink(true);
+    
     try {
       const response = await fetch('/api/message-shares', {
         method: 'POST',
@@ -789,12 +793,15 @@ export default function Home() {
         const data = await response.json();
         setMessageShareId(data.shareId);
         setSharedMessageIndex(messageIndex);
+        setIsGeneratingMessageShareLink(false);
         setShowMessageShareModal(true);
       } else {
         console.error('Failed to create message share');
+        setIsGeneratingMessageShareLink(false);
       }
     } catch (error) {
       console.error('Error creating message share:', error);
+      setIsGeneratingMessageShareLink(false);
     }
   };
 
@@ -1435,8 +1442,12 @@ export default function Home() {
             {conversationStarted && currentConversationId && (
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (currentConversationId) {
+                      setIsGeneratingShareLink(true);
+                      // Small delay for UX consistency
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                      setIsGeneratingShareLink(false);
                       setShowShareModal(true);
                     }
                   }}
@@ -1539,6 +1550,50 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generating Link Loading Overlay */}
+      {(isGeneratingShareLink || isGeneratingMessageShareLink) && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center" style={{ backdropFilter: 'blur(8px)' }}>
+          <div 
+            className="rounded-2xl shadow-2xl p-8 flex flex-col items-center"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+            }}
+          >
+            {/* 12-segment spinner */}
+            <div className="relative w-16 h-16 mb-4">
+              {Array.from({ length: 12 }).map((_, i) => {
+                const angle = (i * 30) * (Math.PI / 180);
+                const radius = 20;
+                const x = Math.sin(angle) * radius;
+                const y = -Math.cos(angle) * radius;
+                return (
+                  <div
+                    key={i}
+                    className="absolute rounded-full"
+                    style={{
+                      width: '3px',
+                      height: '8px',
+                      left: `calc(50% + ${x}px)`,
+                      top: `calc(50% + ${y}px)`,
+                      transform: `rotate(${i * 30 + 90}deg)`,
+                      transformOrigin: 'center',
+                      backgroundColor: theme === 'dark' ? '#ffffff' : '#000000',
+                      opacity: 0.2 + (i / 12) * 0.8,
+                      animation: 'spin-segment 1.2s linear infinite',
+                      animationDelay: `${i * 0.1}s`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <p className="text-lg font-medium" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+              Generating link...
+            </p>
           </div>
         </div>
       )}
@@ -3397,6 +3452,11 @@ export default function Home() {
         @keyframes wave-sm { 0% { opacity: 0.35; height: 10px; } 100% { opacity: 1; height: 18px; } }
         @keyframes wave-md { 0% { opacity: 0.35; height: 14px; } 100% { opacity: 1; height: 34px; } }
         @keyframes wave-lg { 0% { opacity: 0.35; height: 16px; } 100% { opacity: 1; height: 44px; } }
+        @keyframes spin-segment {
+          0% { opacity: 0.1; }
+          50% { opacity: 1; }
+          100% { opacity: 0.1; }
+        }
         /* Table row striping - dark mode default */
         table tbody tr:nth-child(even) { background-color: rgba(17, 24, 39, 0.3); }
         /* Light mode striping */

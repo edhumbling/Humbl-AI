@@ -51,6 +51,8 @@ export default function SharedConversationPage() {
   const [showMessageShareModal, setShowMessageShareModal] = useState(false);
   const [messageShareId, setMessageShareId] = useState<string | null>(null);
   const [sharedMessageIndex, setSharedMessageIndex] = useState<number | null>(null);
+  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
+  const [isGeneratingMessageShareLink, setIsGeneratingMessageShareLink] = useState(false);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -476,6 +478,8 @@ export default function SharedConversationPage() {
     const convIdToUse = continuationConversationId || conversationId;
     if (!convIdToUse || !user) return;
     
+    setIsGeneratingMessageShareLink(true);
+    
     try {
       const response = await fetch('/api/message-shares', {
         method: 'POST',
@@ -490,19 +494,26 @@ export default function SharedConversationPage() {
         const data = await response.json();
         setMessageShareId(data.shareId);
         setSharedMessageIndex(messageIndex);
+        setIsGeneratingMessageShareLink(false);
         setShowMessageShareModal(true);
       } else {
         console.error('Failed to create message share');
+        setIsGeneratingMessageShareLink(false);
       }
     } catch (error) {
       console.error('Error creating message share:', error);
+      setIsGeneratingMessageShareLink(false);
     }
   };
 
-  const handleShare = () => {
+  const handleShare = async () => {
     // Use continuation conversation ID if it exists (user's own conversation), otherwise use original shared ID
     const shareId = continuationConversationId || conversationId;
     if (shareId) {
+      setIsGeneratingShareLink(true);
+      // Small delay for UX consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsGeneratingShareLink(false);
       setShowShareModal(true);
     }
   };
@@ -1000,6 +1011,50 @@ export default function SharedConversationPage() {
             {/* Disclaimer */}
             <p className="text-center mt-2 text-xs text-gray-500/60">
               AI can make mistakes, kindly fact check if possible.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Generating Link Loading Overlay */}
+      {(isGeneratingShareLink || isGeneratingMessageShareLink) && (
+        <div className="fixed inset-0 z-[55] flex items-center justify-center" style={{ backdropFilter: 'blur(8px)' }}>
+          <div 
+            className="rounded-2xl shadow-2xl p-8 flex flex-col items-center"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+            }}
+          >
+            {/* 12-segment spinner */}
+            <div className="relative w-16 h-16 mb-4">
+              {Array.from({ length: 12 }).map((_, i) => {
+                const angle = (i * 30) * (Math.PI / 180);
+                const radius = 20;
+                const x = Math.sin(angle) * radius;
+                const y = -Math.cos(angle) * radius;
+                return (
+                  <div
+                    key={i}
+                    className="absolute rounded-full"
+                    style={{
+                      width: '3px',
+                      height: '8px',
+                      left: `calc(50% + ${x}px)`,
+                      top: `calc(50% + ${y}px)`,
+                      transform: `rotate(${i * 30 + 90}deg)`,
+                      transformOrigin: 'center',
+                      backgroundColor: theme === 'dark' ? '#ffffff' : '#000000',
+                      opacity: 0.2 + (i / 12) * 0.8,
+                      animation: 'spin-segment 1.2s linear infinite',
+                      animationDelay: `${i * 0.1}s`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <p className="text-lg font-medium" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+              Generating link...
             </p>
           </div>
         </div>
@@ -1844,6 +1899,11 @@ export default function SharedConversationPage() {
         .share-modal-scroll::-webkit-scrollbar-track { background: transparent; }
         .share-modal-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.3); border-radius: 4px; }
         .share-modal-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.5); }
+        @keyframes spin-segment {
+          0% { opacity: 0.1; }
+          50% { opacity: 1; }
+          100% { opacity: 0.1; }
+        }
       `}</style>
     </div>
   );
