@@ -818,7 +818,7 @@ export default function SharedConversationPage() {
                 <div className="space-y-4 max-h-[400px]">
                   {conversationHistory.slice(0, 4).map((message, index) => (
                     <div key={index} className="flex flex-col">
-                      {message.role === 'user' && (
+                      {message.type === 'user' && (
                         <div className="flex justify-end mb-2">
                           <div 
                             className="max-w-[80%] rounded-2xl px-4 py-2.5"
@@ -831,7 +831,7 @@ export default function SharedConversationPage() {
                           </div>
                         </div>
                       )}
-                      {message.role === 'assistant' && message.content && (
+                      {message.type === 'ai' && message.content && (
                         <div className="flex justify-start mb-2">
                           <div 
                             className="max-w-[80%] rounded-2xl px-4 py-2.5"
