@@ -119,14 +119,70 @@ export default function MessageSharePage() {
         // Mark conversation as started
         startConversation();
         
-        // Check if user has a continuation conversation for this shared message
-        // Only if user is NOT the owner
-        if (user && !ownerStatus) {
-          const continuationKey = `continuation_${shareId}`;
-          const existingContinuationId = sessionStorage.getItem(continuationKey);
-          if (existingContinuationId) {
-            setContinuationConversationId(existingContinuationId);
+        // Check for continuation conversation (works for both logged in and anonymous users)
+        const continuationKey = `continuation_${shareId}`;
+        const continuationMessagesKey = `continuation_messages_${shareId}`;
+        const existingContinuationId = localStorage.getItem(continuationKey);
+        
+        // Check for localStorage continuation messages (for anonymous users)
+        const localStorageMessages = localStorage.getItem(continuationMessagesKey);
+        if (localStorageMessages && !ownerStatus) {
+          try {
+            const continuationMessages = JSON.parse(localStorageMessages);
+            // Add continuation messages to the conversation
+            continuationMessages.forEach((msg: any) => {
+              if (msg.role === 'user') {
+                addUserMessage(msg.content || '', msg.images || []);
+              } else {
+                addAIMessage(msg.content || '', msg.images || [], msg.citations || []);
+              }
+            });
+          } catch (err) {
+            console.error('Error loading localStorage continuation:', err);
+            localStorage.removeItem(continuationMessagesKey);
           }
+        }
+        
+        // Check for database continuation (for logged-in users)
+        if (existingContinuationId && !ownerStatus) {
+          // Fetch continuation conversation messages
+          try {
+            const continuationResponse = await fetch(`/api/conversations/${existingContinuationId}/public`);
+            if (continuationResponse.ok) {
+              const continuationData = await continuationResponse.json();
+              const continuationMessages = continuationData.conversation?.messages || [];
+              
+              // Find where original messages end and continuation starts
+              const continuationStartIndex = messages.length;
+              
+              // Add continuation messages (skip the original messages that were already saved)
+              for (let i = continuationStartIndex; i < continuationMessages.length; i++) {
+                const msg = continuationMessages[i];
+                if (msg.role === 'user') {
+                  addUserMessage(msg.content || '', msg.images || []);
+                } else {
+                  addAIMessage(msg.content || '', msg.images || [], msg.citations || []);
+                }
+              }
+              
+              setContinuationConversationId(existingContinuationId);
+            }
+          } catch (err) {
+            console.error('Error fetching continuation:', err);
+            // If continuation fetch fails, clear it from localStorage
+            localStorage.removeItem(continuationKey);
+          }
+        }
+        
+        // If user is logged in and owns the conversation, use the original conversation ID
+        if (ownerStatus) {
+          const conversationId = data.conversation.id;
+          setContinuationConversationId(conversationId);
+          // Update URL to use the original conversation
+          window.history.replaceState({}, '', `/c/${conversationId}`);
+        } else if (user && existingContinuationId) {
+          // If user is logged in and has a continuation, set it
+          setContinuationConversationId(existingContinuationId);
         }
         
       } catch (err) {
@@ -139,6 +195,82 @@ export default function MessageSharePage() {
       fetchMessageShare();
     }
   }, [shareId, clearConversation, addUserMessage, addAIMessage, startConversation, user]);
+
+  // Migrate continuations when user logs in
+  useEffect(() => {
+    if (user && shareId && !isOwner) {
+      const continuationKey = `continuation_${shareId}`;
+      const continuationMessagesKey = `continuation_messages_${shareId}`;
+      
+      // Check if there are localStorage continuation messages to migrate
+      const localStorageMessages = localStorage.getItem(continuationMessagesKey);
+      if (localStorageMessages) {
+        const migrateContinuation = async () => {
+          try {
+            const messages = JSON.parse(localStorageMessages);
+            
+            // Create a new conversation in the database
+            const response = await fetch('/api/conversations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                title: `Continuation: ${conversation?.title || 'Shared Message'}` 
+              }),
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const newConversationId = data.conversation.id;
+              
+              if (newConversationId) {
+                // Save conversation ID to localStorage
+                localStorage.setItem(continuationKey, newConversationId);
+                setContinuationConversationId(newConversationId);
+                
+                // Save all original messages first
+                const originalMessages = conversation?.messages || [];
+                for (const msg of originalMessages) {
+                  await fetch(`/api/conversations/${newConversationId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      role: msg.role,
+                      content: msg.content,
+                      images: msg.images || [],
+                      citations: msg.citations || [],
+                      mode: 'default'
+                    }),
+                  });
+                }
+                
+                // Save continuation messages to database
+                for (const msg of messages) {
+                  await fetch(`/api/conversations/${newConversationId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      role: msg.role,
+                      content: msg.content,
+                      images: msg.images || [],
+                      citations: msg.citations || [],
+                      mode: msg.mode || 'default'
+                    }),
+                  });
+                }
+                
+                // Clear localStorage continuation messages
+                localStorage.removeItem(continuationMessagesKey);
+              }
+            }
+          } catch (err) {
+            console.error('Error migrating continuation:', err);
+          }
+        };
+        
+        migrateContinuation();
+      }
+    }
+  }, [user, shareId, isOwner, conversation]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim() && attachedImages.length === 0) return;
@@ -285,7 +417,7 @@ export default function MessageSharePage() {
         } else {
           // User doesn't own it, create continuation
           const continuationKey = `continuation_${shareId}`;
-          let newConversationId = sessionStorage.getItem(continuationKey);
+          let newConversationId = localStorage.getItem(continuationKey);
           
           try {
             if (!newConversationId) {
@@ -301,7 +433,7 @@ export default function MessageSharePage() {
                 const data = await response.json();
                 newConversationId = data.conversation.id;
                 if (newConversationId) {
-                  sessionStorage.setItem(continuationKey, newConversationId);
+                  localStorage.setItem(continuationKey, newConversationId);
                   setContinuationConversationId(newConversationId);
                   
                   // Save all original messages
@@ -354,6 +486,36 @@ export default function MessageSharePage() {
             });
           }
         }
+      } else {
+        // Anonymous user: store continuation messages in localStorage
+        const continuationKey = `continuation_${shareId}`;
+        const continuationMessagesKey = `continuation_messages_${shareId}`;
+        
+        // Get existing continuation messages from localStorage
+        const existingMessages = JSON.parse(localStorage.getItem(continuationMessagesKey) || '[]');
+        
+        // Add new messages
+        const newMessages = [
+          ...existingMessages,
+          {
+            role: 'user',
+            content: queryToUse,
+            images: attachedImages,
+            mode: 'default',
+            timestamp: Date.now()
+          },
+          {
+            role: 'assistant',
+            content: finalResponse,
+            images: [],
+            citations: [],
+            mode: 'default',
+            timestamp: Date.now()
+          }
+        ];
+        
+        // Save to localStorage
+        localStorage.setItem(continuationMessagesKey, JSON.stringify(newMessages));
       }
     } catch (error) {
       console.error('Error:', error);

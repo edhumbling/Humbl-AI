@@ -131,14 +131,71 @@ export default function SharedConversationPage() {
         // Mark conversation as started
         startConversation();
         
-        // Check if user has a continuation conversation for this shared conversation
-        // Only if user is NOT the owner
-        if (user && !ownerStatus) {
-          const continuationKey = `continuation_${conversationId}`;
-          const existingContinuationId = sessionStorage.getItem(continuationKey);
-          if (existingContinuationId) {
-            setContinuationConversationId(existingContinuationId);
+        // Check for continuation conversation (works for both logged in and anonymous users)
+        const continuationKey = `continuation_${conversationId}`;
+        const continuationMessagesKey = `continuation_messages_${conversationId}`;
+        const existingContinuationId = localStorage.getItem(continuationKey);
+        
+        // Check for localStorage continuation messages (for anonymous users)
+        const localStorageMessages = localStorage.getItem(continuationMessagesKey);
+        if (localStorageMessages && !ownerStatus) {
+          try {
+            const continuationMessages = JSON.parse(localStorageMessages);
+            // Add continuation messages to the conversation
+            continuationMessages.forEach((msg: any) => {
+              if (msg.role === 'user') {
+                addUserMessage(msg.content || '', msg.images || []);
+              } else {
+                addAIMessage(msg.content || '', msg.images || [], msg.citations || []);
+              }
+            });
+          } catch (err) {
+            console.error('Error loading localStorage continuation:', err);
+            localStorage.removeItem(continuationMessagesKey);
           }
+        }
+        
+        // Check for database continuation (for logged-in users)
+        if (existingContinuationId && !ownerStatus) {
+          // Fetch continuation conversation messages
+          try {
+            const continuationResponse = await fetch(`/api/conversations/${existingContinuationId}/public`);
+            if (continuationResponse.ok) {
+              const continuationData = await continuationResponse.json();
+              const continuationMessages = continuationData.conversation?.messages || [];
+              
+              // Find where original messages end and continuation starts
+              // We'll append continuation messages that come after the original count
+              const continuationStartIndex = messages.length;
+              
+              // Add continuation messages (skip the original messages that were already saved)
+              // Only add messages that were added after the continuation was created
+              for (let i = continuationStartIndex; i < continuationMessages.length; i++) {
+                const msg = continuationMessages[i];
+                if (msg.role === 'user') {
+                  addUserMessage(msg.content || '', msg.images || []);
+                } else {
+                  addAIMessage(msg.content || '', msg.images || [], msg.citations || []);
+                }
+              }
+              
+              setContinuationConversationId(existingContinuationId);
+            }
+          } catch (err) {
+            console.error('Error fetching continuation:', err);
+            // If continuation fetch fails, clear it from localStorage
+            localStorage.removeItem(continuationKey);
+          }
+        }
+        
+        // If user is logged in and owns the conversation, use the original conversation ID
+        if (ownerStatus) {
+          setContinuationConversationId(conversationId);
+          // Update URL to use the original conversation
+          window.history.replaceState({}, '', `/c/${conversationId}`);
+        } else if (user && existingContinuationId) {
+          // If user is logged in and has a continuation, set it
+          setContinuationConversationId(existingContinuationId);
         }
         
       } catch (err) {
@@ -151,6 +208,103 @@ export default function SharedConversationPage() {
       fetchConversation();
     }
   }, [conversationId, clearConversation, addUserMessage, addAIMessage, startConversation, user]);
+
+  // Migrate continuations when user logs in
+  useEffect(() => {
+    if (user && conversationId && !isOwner) {
+      const continuationKey = `continuation_${conversationId}`;
+      const continuationMessagesKey = `continuation_messages_${conversationId}`;
+      
+      // Check if there are localStorage continuation messages to migrate
+      const localStorageMessages = localStorage.getItem(continuationMessagesKey);
+      if (localStorageMessages) {
+        const migrateContinuation = async () => {
+          try {
+            const messages = JSON.parse(localStorageMessages);
+            
+            // Create a new conversation in the database
+            const response = await fetch('/api/conversations', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                title: `Continuation: ${conversation?.title || 'Shared Conversation'}` 
+              }),
+            });
+            
+            if (response.ok) {
+              const data = await response.json();
+              const newConversationId = data.conversation.id;
+              
+              if (newConversationId) {
+                // Save conversation ID to localStorage
+                localStorage.setItem(continuationKey, newConversationId);
+                setContinuationConversationId(newConversationId);
+                
+                // Save all original messages first
+                const originalMessages = conversation?.messages || [];
+                for (const msg of originalMessages) {
+                  await fetch(`/api/conversations/${newConversationId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      role: msg.role,
+                      content: msg.content,
+                      images: msg.images || [],
+                      citations: msg.citations || [],
+                      mode: 'default'
+                    }),
+                  });
+                }
+                
+                // Save continuation messages to database
+                for (const msg of messages) {
+                  await fetch(`/api/conversations/${newConversationId}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      role: msg.role,
+                      content: msg.content,
+                      images: msg.images || [],
+                      citations: msg.citations || [],
+                      mode: msg.mode || 'default'
+                    }),
+                  });
+                }
+                
+                // Clear localStorage continuation messages
+                localStorage.removeItem(continuationMessagesKey);
+              }
+            }
+          } catch (err) {
+            console.error('Error migrating continuation:', err);
+          }
+        };
+        
+        migrateContinuation();
+      }
+      
+      // Also check if there's an existing continuation ID that needs to be verified
+      const existingContinuationId = localStorage.getItem(continuationKey);
+      if (existingContinuationId) {
+        const verifyContinuation = async () => {
+          try {
+            const response = await fetch(`/api/conversations/${existingContinuationId}/public`);
+            if (response.ok) {
+              const data = await response.json();
+              // If continuation doesn't belong to current user, it will be handled by the API
+              // But we should update it if needed
+              // If continuation exists and belongs to current user, we're good
+              // Otherwise, if localStorage messages exist, they'll be migrated above
+            }
+          } catch (err) {
+            console.error('Error verifying continuation:', err);
+          }
+        };
+        
+        verifyContinuation();
+      }
+    }
+  }, [user, conversationId, isOwner, conversation]);
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -389,7 +543,7 @@ export default function SharedConversationPage() {
         } else {
           // User doesn't own it, create continuation
           const continuationKey = `continuation_${conversationId}`;
-          let newConversationId = sessionStorage.getItem(continuationKey);
+          let newConversationId = localStorage.getItem(continuationKey);
           
           try {
             if (!newConversationId) {
@@ -405,7 +559,7 @@ export default function SharedConversationPage() {
                 const data = await response.json();
                 newConversationId = data.conversation.id;
                 if (newConversationId) {
-                  sessionStorage.setItem(continuationKey, newConversationId);
+                  localStorage.setItem(continuationKey, newConversationId);
                   setContinuationConversationId(newConversationId); // Store in state for sharing
                   
                   // Save all original messages
@@ -459,6 +613,36 @@ export default function SharedConversationPage() {
             });
           }
         }
+      } else {
+        // Anonymous user: store continuation messages in localStorage
+        const continuationKey = `continuation_${conversationId}`;
+        const continuationMessagesKey = `continuation_messages_${conversationId}`;
+        
+        // Get existing continuation messages from localStorage
+        const existingMessages = JSON.parse(localStorage.getItem(continuationMessagesKey) || '[]');
+        
+        // Add new messages
+        const newMessages = [
+          ...existingMessages,
+          {
+            role: 'user',
+            content: queryToUse,
+            images: attachedImages,
+            mode: 'default',
+            timestamp: Date.now()
+          },
+          {
+            role: 'assistant',
+            content: finalResponse,
+            images: [],
+            citations: [],
+            mode: 'default',
+            timestamp: Date.now()
+          }
+        ];
+        
+        // Save to localStorage
+        localStorage.setItem(continuationMessagesKey, JSON.stringify(newMessages));
       }
     } catch (error) {
       console.error('Error:', error);
