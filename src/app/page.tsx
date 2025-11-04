@@ -336,6 +336,9 @@ export default function Home() {
   const suggestionSelectedRef = useRef<boolean>(false);
   const initialSearchRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const streamReaderRef = useRef<ReadableStreamDefaultReader | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleImagePickClick = () => {
     if (fileInputRef.current) fileInputRef.current.click();
@@ -389,6 +392,9 @@ export default function Home() {
     // Ensure conversation exists in database
     const convId = await ensureConversation();
 
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     setError(null);
     setSearchResult(null);
@@ -435,6 +441,7 @@ export default function Home() {
           return prev + Math.random() * 15;
         });
       }, 500);
+      progressIntervalRef.current = progressInterval;
       
       try {
         const response = await fetch('/api/generate-image', {
@@ -443,6 +450,7 @@ export default function Home() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ prompt: queryToUse }),
+          signal: abortControllerRef.current?.signal,
         });
 
         if (!response.ok) {
@@ -522,18 +530,38 @@ export default function Home() {
             setIsLoading(false);
             setIsGeneratingImage(false);
             setImageGenerationProgress(0);
-            clearInterval(progressInterval);
+            if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+            progressIntervalRef.current = null;
             setImageGenerationMode(false); // Reset mode after generation
           }, 300);
           return;
         }
       } catch (err: any) {
+        // Check if aborted
+        if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+          setIsGeneratingImage(false);
+          setImageGenerationProgress(0);
+          if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+          removeMessage(conversationHistory.length - 1);
+          setIsLoading(false);
+          setImageGenerationMode(false);
+          return;
+        }
         console.error('Failed to generate image:', err);
         setError(err.message || 'Failed to generate image');
         setIsLoading(false);
         setIsGeneratingImage(false);
         setImageGenerationProgress(0);
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
         // Remove the placeholder AI message on error
         removeMessage(conversationHistory.length - 1);
         return;
@@ -603,6 +631,7 @@ export default function Home() {
           mode: modeToUse,
           conversationHistory: historyForAPI,
         }),
+        signal: abortControllerRef.current?.signal,
       });
 
       if (!response.ok) {
@@ -616,6 +645,9 @@ export default function Home() {
         throw new Error('No response body');
       }
 
+      // Store reader reference for cancellation
+      streamReaderRef.current = reader;
+
       let fullResponse = '';
       let finalCitations: Array<{ title: string; url: string }> | undefined = undefined;
       let aiMessageInitialized = false;
@@ -623,10 +655,11 @@ export default function Home() {
       // Initialize AI message placeholder for streaming
       updateLastAIMessage('', undefined);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
@@ -758,13 +791,69 @@ export default function Home() {
           }
         }
       }
-          } catch (err) {
-            setError('Failed to search. Please try again.');
-            console.error('Search error:', err);
-            setIsLoading(false);
-            setThinkingText('');
-            clearInterval((window as any).thinkingInterval);
+      } catch (err: any) {
+        // Check if aborted
+        if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+          // User cancelled, finalize with current response
+          if (fullResponse) {
+            const lastIndex = conversationHistory.length - 1;
+            if (lastIndex >= 0 && aiMessageInitialized) {
+              updateMessageAt(lastIndex, {
+                content: fullResponse,
+                citations: finalCitations,
+                originalQuery: queryToUse,
+                originalImages: imagesToUse.slice(0, 3),
+                originalMode: modeToUse,
+              });
+            } else {
+              addAIMessage(
+                fullResponse,
+                undefined,
+                finalCitations,
+                queryToUse,
+                imagesToUse.slice(0, 3),
+                modeToUse
+              );
+            }
           }
+          setStreamingResponse('');
+          setIsLoading(false);
+          setThinkingText('');
+          clearInterval((window as any).thinkingInterval);
+          return;
+        }
+        setError('Failed to search. Please try again.');
+        console.error('Search error:', err);
+        setIsLoading(false);
+        setThinkingText('');
+        clearInterval((window as any).thinkingInterval);
+      } finally {
+        // Clean up refs
+        streamReaderRef.current = null;
+      }
+  };
+
+  const stopStreaming = () => {
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    // Cancel the reader
+    if (streamReaderRef.current) {
+      streamReaderRef.current.cancel().catch(() => {});
+      streamReaderRef.current = null;
+    }
+    // Clear progress interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setIsLoading(false);
+    setIsGeneratingImage(false);
+    setImageGenerationProgress(0);
+    setStreamingResponse('');
+    setThinkingText('');
+    clearInterval((window as any).thinkingInterval);
   };
 
   const handleRetry = (message: any, messageIndex: number) => {
@@ -1041,6 +1130,7 @@ export default function Home() {
         return prev + Math.random() * 15;
       });
     }, 500);
+    progressIntervalRef.current = progressInterval;
 
     try {
       const endpoint = mode === 'edit' ? '/api/edit-image' : '/api/remix-image';
@@ -1054,6 +1144,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
+        signal: abortControllerRef.current?.signal,
       });
 
       if (!response.ok) {
@@ -1072,7 +1163,10 @@ export default function Home() {
           updateLastAIMessage(`Image ${mode === 'edit' ? 'edited' : 'remixed'} successfully!`, [data.imageUrl]);
           setIsGeneratingImage(false);
           setImageGenerationProgress(0);
-          clearInterval(progressInterval);
+          if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
           
           // Remove the original image from attached images (only for edit)
           if (mode === 'edit') {
@@ -1089,7 +1183,10 @@ export default function Home() {
       setError(err.message || `Failed to ${mode} image`);
       setIsGeneratingImage(false);
       setImageGenerationProgress(0);
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       // Remove the placeholder AI message on error
       removeMessage(conversationHistory.length - 1);
     }
@@ -2732,8 +2829,8 @@ export default function Home() {
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
                     <button
-                        onClick={() => handleSearch()}
-                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                        onClick={() => isLoading ? stopStreaming() : handleSearch()}
+                      disabled={!isLoading && (!searchQuery.trim() && attachedImages.length === 0)}
                       className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}
@@ -3359,8 +3456,8 @@ export default function Home() {
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
                     <button
-                        onClick={() => handleSearch()}
-                      disabled={isLoading || (!searchQuery.trim() && attachedImages.length === 0)}
+                        onClick={() => isLoading ? stopStreaming() : handleSearch()}
+                      disabled={!isLoading && (!searchQuery.trim() && attachedImages.length === 0)}
                       className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isLoading || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isLoading || canSend) ? '#e8c377' : '#2a2a29'}

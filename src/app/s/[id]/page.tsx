@@ -59,6 +59,9 @@ export default function MessageSharePage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const streamReaderRef = useRef<ReadableStreamDefaultReader | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -142,13 +145,19 @@ export default function MessageSharePage() {
     if (isStreaming) return;
 
     const queryToUse = searchQuery.trim();
+    const imagesToUse = attachedImages;
     setSearchQuery('');
-    addUserMessage(queryToUse, attachedImages);
+    addUserMessage(queryToUse, imagesToUse);
     setAttachedImages([]);
     setImageGenerationMode(false);
 
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     setIsStreaming(true);
     setStreamingResponse('');
+
+    const modeToUse = mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
 
     try {
       const historyForAPI = getConversationHistory()
@@ -164,10 +173,11 @@ export default function MessageSharePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: queryToUse, 
-          images: attachedImages.slice(0, 3), 
+          images: imagesToUse.slice(0, 3), 
           mode: modeToUse,
           conversationHistory: historyForAPI,
         }),
+        signal: abortControllerRef.current?.signal,
       });
 
       if (!response.ok) throw new Error('Search failed');
@@ -176,29 +186,46 @@ export default function MessageSharePage() {
       const decoder = new TextDecoder();
       if (!reader) throw new Error('No response body');
 
+      // Store reader reference for cancellation
+      streamReaderRef.current = reader;
+
       let fullResponse = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.content !== undefined && data.content !== null) {
-                // Convert content to string to handle numeric values
-                const contentStr = String(data.content);
-                fullResponse += contentStr;
-                setStreamingResponse(fullResponse);
-              }
-              if (data.done) break;
-            } catch (e) {}
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.content !== undefined && data.content !== null) {
+                  // Convert content to string to handle numeric values
+                  const contentStr = String(data.content);
+                  fullResponse += contentStr;
+                  setStreamingResponse(fullResponse);
+                }
+                if (data.done) break;
+              } catch (e) {}
+            }
           }
         }
+      } catch (err: any) {
+        // Check if aborted
+        if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+          // User cancelled, finalize with current response
+          if (fullResponse) {
+            addAIMessage(fullResponse);
+          }
+          setStreamingResponse('');
+          setIsStreaming(false);
+          return;
+        }
+        throw err;
       }
 
       addAIMessage(fullResponse);
@@ -315,7 +342,28 @@ export default function MessageSharePage() {
       addAIMessage('Sorry, I encountered an error. Please try again.');
     } finally {
       setIsStreaming(false);
+      // Clean up refs
+      streamReaderRef.current = null;
     }
+  };
+
+  const stopStreaming = () => {
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    // Cancel the reader
+    if (streamReaderRef.current) {
+      streamReaderRef.current.cancel().catch(() => {});
+      streamReaderRef.current = null;
+    }
+    // Clear progress interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setIsStreaming(false);
+    setStreamingResponse('');
   };
 
   const modeToUse = mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
@@ -1015,8 +1063,8 @@ export default function MessageSharePage() {
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
                       <button
-                        onClick={handleSearch}
-                        disabled={isStreaming || (!searchQuery.trim() && attachedImages.length === 0)}
+                        onClick={() => isStreaming ? stopStreaming() : handleSearch()}
+                      disabled={!isStreaming && (!searchQuery.trim() && attachedImages.length === 0)}
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isStreaming || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#e8c377' : '#2a2a29'}

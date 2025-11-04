@@ -71,6 +71,9 @@ export default function SharedConversationPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
   const waveCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const streamReaderRef = useRef<ReadableStreamDefaultReader | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -175,6 +178,9 @@ export default function SharedConversationPage() {
     setAttachedImages([]);
     setImageGenerationMode(false);
 
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     setIsStreaming(true);
     setStreamingResponse('');
 
@@ -196,6 +202,7 @@ export default function SharedConversationPage() {
           return prev + Math.random() * 15;
         });
       }, 500);
+      progressIntervalRef.current = progressInterval;
       
       try {
         const response = await fetch('/api/generate-image', {
@@ -204,6 +211,7 @@ export default function SharedConversationPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ prompt: queryToUse }),
+          signal: abortControllerRef.current?.signal,
         });
 
         if (!response.ok) {
@@ -222,15 +230,33 @@ export default function SharedConversationPage() {
             updateLastAIMessage('Image generated successfully!', [imageData.imageUrl]);
             setIsGeneratingImage(false);
             setImageGenerationProgress(0);
-            clearInterval(progressInterval);
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
           }, 300);
         }
       } catch (err: any) {
+        // Check if aborted
+        if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+          setIsGeneratingImage(false);
+          setImageGenerationProgress(0);
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+          removeMessage(conversationHistory.length - 1);
+          setIsStreaming(false);
+          return;
+        }
         console.error('Failed to generate image:', err);
         setError(err.message || 'Failed to generate image');
         setIsGeneratingImage(false);
         setImageGenerationProgress(0);
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         // Remove the placeholder AI message on error
         removeMessage(conversationHistory.length - 1);
       }
@@ -256,6 +282,7 @@ export default function SharedConversationPage() {
           mode: modeToUse,
           conversationHistory: historyForAPI,
         }),
+        signal: abortControllerRef.current?.signal,
       });
 
       if (!response.ok) throw new Error('Search failed');
@@ -264,29 +291,46 @@ export default function SharedConversationPage() {
       const decoder = new TextDecoder();
       if (!reader) throw new Error('No response body');
 
+      // Store reader reference for cancellation
+      streamReaderRef.current = reader;
+
       let fullResponse = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              if (data.content !== undefined && data.content !== null) {
-                // Convert content to string to handle numeric values
-                const contentStr = String(data.content);
-                fullResponse += contentStr;
-                setStreamingResponse(fullResponse);
-              }
-              if (data.done) break;
-            } catch (e) {}
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.content !== undefined && data.content !== null) {
+                  // Convert content to string to handle numeric values
+                  const contentStr = String(data.content);
+                  fullResponse += contentStr;
+                  setStreamingResponse(fullResponse);
+                }
+                if (data.done) break;
+              } catch (e) {}
+            }
           }
         }
+      } catch (err: any) {
+        // Check if aborted
+        if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+          // User cancelled, finalize with current response
+          if (fullResponse) {
+            addAIMessage(fullResponse);
+          }
+          setStreamingResponse('');
+          setIsStreaming(false);
+          return;
+        }
+        throw err;
       }
 
       addAIMessage(fullResponse);
@@ -401,7 +445,30 @@ export default function SharedConversationPage() {
       addAIMessage('Sorry, I encountered an error. Please try again.');
     } finally {
       setIsStreaming(false);
+      // Clean up refs
+      streamReaderRef.current = null;
     }
+  };
+
+  const stopStreaming = () => {
+    // Abort the fetch request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    // Cancel the reader
+    if (streamReaderRef.current) {
+      streamReaderRef.current.cancel().catch(() => {});
+      streamReaderRef.current = null;
+    }
+    // Clear progress interval
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    setIsStreaming(false);
+    setIsGeneratingImage(false);
+    setImageGenerationProgress(0);
+    setStreamingResponse('');
   };
 
   const modeToUse = mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
@@ -733,6 +800,9 @@ export default function SharedConversationPage() {
     // Start conversation to ensure UI is visible
     startConversation();
 
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     // Capture index and mode before clearing state
     const imageIndex = selectedImageIndex;
     const mode = imageEditRemixMode;
@@ -774,6 +844,7 @@ export default function SharedConversationPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(body),
+        signal: abortControllerRef.current?.signal,
       });
 
       if (!response.ok) {
@@ -793,6 +864,7 @@ export default function SharedConversationPage() {
           setIsGeneratingImage(false);
           setImageGenerationProgress(0);
           clearInterval(progressInterval);
+          progressIntervalRef.current = null;
           
           // Remove the original image from attached images (only for edit)
           if (mode === 'edit') {
@@ -805,11 +877,25 @@ export default function SharedConversationPage() {
         }, 300);
       }
     } catch (err: any) {
+      // Check if aborted
+      if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
+        setIsGeneratingImage(false);
+        setImageGenerationProgress(0);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        removeMessage(conversationHistory.length - 1);
+        return;
+      }
       console.error(`Failed to ${mode} image:`, err);
       setError(err.message || `Failed to ${mode} image`);
       setIsGeneratingImage(false);
       setImageGenerationProgress(0);
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       // Remove the placeholder AI message on error
       removeMessage(conversationHistory.length - 1);
     }
@@ -1476,8 +1562,8 @@ export default function SharedConversationPage() {
                         <span className="absolute -inset-1 rounded-full border-2 border-transparent border-t-[#f1d08c] animate-spin" />
                       )}
                       <button
-                        onClick={handleSearch}
-                        disabled={isStreaming || !canSend}
+                        onClick={() => isStreaming ? stopStreaming() : handleSearch()}
+                      disabled={!isStreaming && !canSend}
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ backgroundColor: (isStreaming || canSend) ? '#f1d08c' : '#1a1a19' }}
                         onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = (isStreaming || canSend) ? '#e8c377' : '#2a2a29'}
