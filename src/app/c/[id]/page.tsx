@@ -1092,19 +1092,20 @@ export default function SharedConversationPage() {
                       try {
                         await navigator.clipboard.writeText(shareUrl);
                         const toast = document.createElement('div');
-                        toast.textContent = 'Link copied to clipboard!';
+                        toast.textContent = 'Copied';
                         toast.style.cssText = `
                           position: fixed;
                           top: 20px;
-                          right: 20px;
-                          background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
-                          color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
-                          padding: 12px 20px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: #22c55e;
+                          color: #ffffff;
+                          padding: 12px 24px;
                           border-radius: 8px;
                           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                           z-index: 9999;
                           font-size: 14px;
-                          border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+                          font-weight: 500;
                         `;
                         document.body.appendChild(toast);
                         setTimeout(() => {
@@ -1431,19 +1432,20 @@ export default function SharedConversationPage() {
                       try {
                         await navigator.clipboard.writeText(shareUrl);
                         const toast = document.createElement('div');
-                        toast.textContent = 'Link copied to clipboard!';
+                        toast.textContent = 'Copied';
                         toast.style.cssText = `
                           position: fixed;
                           top: 20px;
-                          right: 20px;
-                          background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
-                          color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
-                          padding: 12px 20px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: #22c55e;
+                          color: #ffffff;
+                          padding: 12px 24px;
                           border-radius: 8px;
                           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                           z-index: 9999;
                           font-size: 14px;
-                          border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+                          font-weight: 500;
                         `;
                         document.body.appendChild(toast);
                         setTimeout(() => {

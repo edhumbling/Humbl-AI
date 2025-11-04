@@ -1636,19 +1636,20 @@ export default function Home() {
                       try {
                         await navigator.clipboard.writeText(shareUrl);
                         const toast = document.createElement('div');
-                        toast.textContent = 'Link copied to clipboard!';
+                        toast.textContent = 'Copied';
                         toast.style.cssText = `
                           position: fixed;
                           top: 20px;
-                          right: 20px;
-                          background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
-                          color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
-                          padding: 12px 20px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: #22c55e;
+                          color: #ffffff;
+                          padding: 12px 24px;
                           border-radius: 8px;
                           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                           z-index: 9999;
                           font-size: 14px;
-                          border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+                          font-weight: 500;
                         `;
                         document.body.appendChild(toast);
                         setTimeout(() => {
@@ -1988,19 +1989,20 @@ export default function Home() {
                       try {
                         await navigator.clipboard.writeText(shareUrl);
                         const toast = document.createElement('div');
-                        toast.textContent = 'Link copied to clipboard!';
+                        toast.textContent = 'Copied';
                         toast.style.cssText = `
                           position: fixed;
                           top: 20px;
-                          right: 20px;
-                          background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
-                          color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
-                          padding: 12px 20px;
+                          left: 50%;
+                          transform: translateX(-50%);
+                          background: #22c55e;
+                          color: #ffffff;
+                          padding: 12px 24px;
                           border-radius: 8px;
                           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                           z-index: 9999;
                           font-size: 14px;
-                          border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+                          font-weight: 500;
                         `;
                         document.body.appendChild(toast);
                         setTimeout(() => {
@@ -3330,10 +3332,10 @@ export default function Home() {
 
       {/* Copied notification */}
       {showCopied && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-200 opacity-100">
-          <div className="px-4 py-2 rounded-lg shadow-lg border-2 flex items-center gap-2" style={{ backgroundColor: '#f1d08c', borderColor: '#f1d08c' }}>
-            <CopyIcon size={16} className="text-black" />
-            <span className="text-sm font-medium text-black">Copied!</span>
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-200 opacity-100">
+          <div className="px-4 py-2 rounded-lg shadow-lg flex items-center gap-2" style={{ backgroundColor: '#22c55e' }}>
+            <CopyIcon size={16} className="text-white" />
+            <span className="text-sm font-medium text-white">Copied</span>
           </div>
         </div>
       )}
