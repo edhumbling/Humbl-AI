@@ -1515,9 +1515,207 @@ export default function Home() {
           <div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={() => setShowShareModal(false)}
+            style={{ backdropFilter: 'blur(8px)' }}
           >
             <div
-              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto share-modal-scroll"
+              className="relative rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden hidden md:flex flex-col"
+              style={{
+                backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}>
+                <h3 className="text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
+                  {conversationHistory.length > 0 && conversationHistory[0].originalQuery 
+                    ? conversationHistory[0].originalQuery.length > 50 
+                      ? conversationHistory[0].originalQuery.substring(0, 50) + '...'
+                      : conversationHistory[0].originalQuery
+                    : 'Share Conversation'}
+                </h3>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="p-2 rounded-lg transition-all hover:scale-110"
+                  style={{
+                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Conversation Preview */}
+              <div className="flex-1 overflow-y-auto share-modal-scroll px-6 py-4" style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb' }}>
+                <div className="space-y-4 max-h-[400px]">
+                  {conversationHistory.slice(0, 4).map((message, index) => (
+                    <div key={index} className="flex flex-col">
+                      {message.role === 'user' && (
+                        <div className="flex justify-end mb-2">
+                          <div 
+                            className="max-w-[80%] rounded-2xl px-4 py-2.5"
+                            style={{ 
+                              backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb',
+                              color: theme === 'dark' ? '#ffffff' : '#111827'
+                            }}
+                          >
+                            <p className="text-sm whitespace-pre-wrap break-words">{message.originalQuery || message.content}</p>
+                          </div>
+                        </div>
+                      )}
+                      {message.role === 'assistant' && message.content && (
+                        <div className="flex justify-start mb-2">
+                          <div 
+                            className="max-w-[80%] rounded-2xl px-4 py-2.5"
+                            style={{ 
+                              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                              color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                            }}
+                          >
+                            <p className="text-sm whitespace-pre-wrap break-words line-clamp-4">
+                              {message.content.length > 300 ? message.content.substring(0, 300) + '...' : message.content}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {/* Watermark */}
+                  <div className="relative mt-4">
+                    <div className="absolute bottom-2 right-2 opacity-20">
+                      <span className="text-xs font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}>Humbl AI</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sharing Options Footer */}
+              <div className="px-6 py-5 border-t" style={{ borderColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}>
+                <div className="flex items-center justify-center gap-6 flex-wrap">
+                  {/* Copy Link */}
+                  <button
+                    onClick={async () => {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      try {
+                        await navigator.clipboard.writeText(shareUrl);
+                        const toast = document.createElement('div');
+                        toast.textContent = 'Link copied to clipboard!';
+                        toast.style.cssText = `
+                          position: fixed;
+                          top: 20px;
+                          right: 20px;
+                          background: ${theme === 'dark' ? '#1f1f1f' : '#ffffff'};
+                          color: ${theme === 'dark' ? '#e5e7eb' : '#111827'};
+                          padding: 12px 20px;
+                          border-radius: 8px;
+                          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                          z-index: 9999;
+                          font-size: 14px;
+                          border: 1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'};
+                        `;
+                        document.body.appendChild(toast);
+                        setTimeout(() => {
+                          toast.style.opacity = '0';
+                          toast.style.transition = 'opacity 0.3s';
+                          setTimeout(() => document.body.removeChild(toast), 300);
+                        }, 2000);
+                        setShowShareModal(false);
+                      } catch (err) {
+                        prompt('Copy this link:', shareUrl);
+                      }
+                    }}
+                    className="flex flex-col items-center justify-center transition-all hover:scale-105"
+                    title="Copy link"
+                  >
+                    <CopyIcon size={24} style={{ color: theme === 'dark' ? '#ffffff' : '#111827', marginBottom: '6px' }} />
+                    <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>Copy link</span>
+                  </button>
+
+                  {/* X (formerly Twitter) */}
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      const text = encodeURIComponent('Check out this conversation!');
+                      window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(shareUrl)}`, '_blank');
+                      setShowShareModal(false);
+                    }}
+                    className="flex flex-col items-center justify-center transition-all hover:scale-105"
+                    title="Share on X"
+                  >
+                    <img src="https://abs.twimg.com/favicons/twitter.3.ico" alt="X" className="w-6 h-6 mb-1.5" />
+                    <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>X</span>
+                  </button>
+
+                  {/* Facebook */}
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, '_blank');
+                      setShowShareModal(false);
+                    }}
+                    className="flex flex-col items-center justify-center transition-all hover:scale-105"
+                    title="Share on Facebook"
+                  >
+                    <img src="https://www.facebook.com/images/fb_icon_325x325.png" alt="Facebook" className="w-6 h-6 mb-1.5" />
+                    <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>Facebook</span>
+                  </button>
+
+                  {/* LinkedIn */}
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`, '_blank');
+                      setShowShareModal(false);
+                    }}
+                    className="flex flex-col items-center justify-center transition-all hover:scale-105"
+                    title="Share on LinkedIn"
+                  >
+                    <img src="https://static.licdn.com/sc/h/al2o9zrvru7aqj8e1x2rzsrca" alt="LinkedIn" className="w-6 h-6 mb-1.5" />
+                    <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>LinkedIn</span>
+                  </button>
+
+                  {/* WhatsApp */}
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      const text = encodeURIComponent('Check out this conversation!');
+                      window.open(`https://wa.me/?text=${text}%20${encodeURIComponent(shareUrl)}`, '_blank');
+                      setShowShareModal(false);
+                    }}
+                    className="flex flex-col items-center justify-center transition-all hover:scale-105"
+                    title="Share on WhatsApp"
+                  >
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-6 h-6 mb-1.5" onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = 'https://commons.wikimedia.org/wiki/Special:FilePath/WhatsApp.svg';
+                    }} />
+                    <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>WhatsApp</span>
+                  </button>
+
+                  {/* Telegram */}
+                  <button
+                    onClick={() => {
+                      const shareUrl = `${window.location.origin}/c/${currentConversationId}`;
+                      const text = encodeURIComponent('Check out this conversation!');
+                      window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${text}`, '_blank');
+                      setShowShareModal(false);
+                    }}
+                    className="flex flex-col items-center justify-center transition-all hover:scale-105"
+                    title="Share on Telegram"
+                  >
+                    <img src="https://web.telegram.org/a/icon-192x192.png" alt="Telegram" className="w-6 h-6 mb-1.5" />
+                    <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>Telegram</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile Share Modal - Keep original design */}
+            <div
+              className="relative rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 max-h-[90vh] overflow-y-auto share-modal-scroll md:hidden"
               style={{
                 backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                 border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -1531,9 +1729,7 @@ export default function Home() {
                 <button
                   onClick={() => setShowShareModal(false)}
                   className="p-1 rounded-lg transition-colors"
-                  style={{
-                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
-                  }}
+                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
