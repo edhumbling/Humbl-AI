@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -21,7 +21,8 @@ export default function SharedConversationPage() {
     addUserMessage, 
     addAIMessage, 
     clearConversation,
-    startConversation 
+    startConversation,
+    removeMessage
   } = useConversation();
   
   const [conversation, setConversation] = useState<any>(null);
@@ -44,11 +45,15 @@ export default function SharedConversationPage() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
+  const [originalMessageCount, setOriginalMessageCount] = useState(0);
+  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [showCopied, setShowCopied] = useState(false);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef2 = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -86,6 +91,9 @@ export default function SharedConversationPage() {
             addAIMessage(msg.content || '', msg.images || [], msg.citations || []);
           }
         });
+        
+        // Store the original message count (before user continues)
+        setOriginalMessageCount(messages.length);
         
         // Mark conversation as started
         startConversation();
@@ -266,6 +274,111 @@ export default function SharedConversationPage() {
   const modeToUse = mode === 'search' ? 'search' : webSearchMode === 'on' ? 'search' : webSearchMode === 'auto' ? 'auto' : 'default';
   const canSend = searchQuery.trim().length > 0 || attachedImages.length > 0;
   const placeholderText = imageGenerationMode ? 'Describe the image you want to generate...' : 'Ask anything...';
+
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShowCopied(true);
+      setTimeout(() => setShowCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  const handleRetry = (message: any, messageIndex: number) => {
+    if (message.originalQuery !== undefined || message.originalImages?.length) {
+      // Remove the old AI response from conversation history
+      removeMessage(messageIndex);
+      // Then generate new response
+      handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default');
+    }
+  };
+
+  const handleTTS = async (text: string, messageId: string) => {
+    // If this audio is already playing, stop it
+    if (playingAudioId === messageId && audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setPlayingAudioId(null);
+      return;
+    }
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    try {
+      // Generate TTS audio
+      const response = await fetch('/api/tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      // Check content type first
+      const contentType = response.headers.get('content-type');
+      
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = 'Failed to generate audio';
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = `Failed to generate audio (${response.status})`;
+          }
+        } else {
+          errorMessage = `Failed to generate audio (${response.status})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Verify response is actually audio
+      if (contentType && !contentType.startsWith('audio/')) {
+        // Response might be an error JSON even if status is ok
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Invalid response format');
+        } catch (jsonError: any) {
+          throw new Error(jsonError.message || 'Invalid response format');
+        }
+      }
+
+      // Create audio element and play
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Clean up old audio if exists
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+      
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setPlayingAudioId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audio.onerror = () => {
+        setPlayingAudioId(null);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      setPlayingAudioId(messageId);
+      await audio.play();
+    } catch (error: any) {
+      console.error('TTS error:', error);
+      setPlayingAudioId(null);
+    }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -522,6 +635,73 @@ export default function SharedConversationPage() {
                       {message.content && <ResponseRenderer content={message.content} theme={theme} />}
                     </div>
                   )}
+                  {/* Action buttons for AI responses - Only show for messages after user continues */}
+                  {message.type === 'ai' && index >= originalMessageCount && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                      <button
+                        onClick={() => handleCopy(message.content)}
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Copy response"
+                      >
+                        <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                      {message.originalQuery !== undefined && (
+                        <div className="relative flex flex-col items-center group">
+                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
+                            <div className="bg-gray-900 text-gray-200 text-xs px-2 py-1 rounded-lg whitespace-nowrap relative">
+                              Try again
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRetry(message, index)}
+                            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                            title="Try again"
+                          >
+                            <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Upvote"
+                      >
+                        <ThumbsUp size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                      <button
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Downvote"
+                      >
+                        <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                      <button
+                        onClick={() => handleTTS(message.content, `msg-${index}`)}
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title={playingAudioId === `msg-${index}` ? "Stop audio" : "Play audio"}
+                      >
+                        {playingAudioId === `msg-${index}` ? (
+                          <VolumeX size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        ) : (
+                          <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                  {/* Sources footer */}
+                  {message.citations && message.citations.length > 0 && (
+                    <div className="mt-3 border-t border-gray-800/60 pt-2">
+                      <details>
+                        <summary className="text-xs text-gray-400 cursor-pointer">Sources</summary>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {message.citations.map((c:any, i:number) => (
+                            <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-full border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
+                              {c.title || c.url}
+                            </a>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
+                  )}
                 </div>
               ))}
 
@@ -529,6 +709,41 @@ export default function SharedConversationPage() {
               {streamingResponse && (
                 <div className="w-full">
                   <ResponseRenderer content={streamingResponse} isLoading={isStreaming} theme={theme} />
+                  {/* Action buttons for streaming response - Only show after user continues */}
+                  {!isStreaming && originalMessageCount < conversationHistory.length && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                      <button
+                        onClick={() => handleCopy(streamingResponse)}
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Copy response"
+                      >
+                        <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                      <button
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Upvote"
+                      >
+                        <ThumbsUp size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                      <button
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Downvote"
+                      >
+                        <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                      <button
+                        onClick={() => handleTTS(streamingResponse, 'streaming')}
+                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title={playingAudioId === 'streaming' ? "Stop audio" : "Play audio"}
+                      >
+                        {playingAudioId === 'streaming' ? (
+                          <VolumeX size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        ) : (
+                          <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
