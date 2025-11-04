@@ -597,6 +597,13 @@ export default function Sidebar({
   // Group conversations by time period
   const groupConversationsByTime = (convs: Conversation[]) => {
     const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const thisWeekStart = new Date(today);
+    thisWeekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    
     const groups: { [key: string]: Conversation[] } = {
       Today: [],
       Yesterday: [],
@@ -607,18 +614,16 @@ export default function Sidebar({
 
     convs.forEach(conv => {
       const date = new Date(conv.updated_at);
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-      const diffInDays = diffInHours / 24;
-      const diffInWeeks = diffInDays / 7;
-      const diffInMonths = diffInDays / 30;
-
-      if (diffInHours < 24) {
+      const convDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      
+      // Check if same calendar day
+      if (convDate.getTime() === today.getTime()) {
         groups['Today'].push(conv);
-      } else if (diffInHours < 48) {
+      } else if (convDate.getTime() === yesterday.getTime()) {
         groups['Yesterday'].push(conv);
-      } else if (diffInDays < 7) {
+      } else if (date >= thisWeekStart) {
         groups['This Week'].push(conv);
-      } else if (diffInMonths < 1) {
+      } else if (date >= thisMonthStart) {
         groups['This Month'].push(conv);
       } else {
         groups['Earlier'].push(conv);
