@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
@@ -16,6 +17,7 @@ interface SearchResult {
 }
 
 export default function Home() {
+  const router = useRouter();
   const user = useUser();
   const {
     conversationHistory,
@@ -190,16 +192,22 @@ export default function Home() {
         clearInterval((window as any).thinkingInterval);
       }
     } catch {}
-
+    
+    // Clear conversation state and reset URL
     endConversation();
     clearConversation();
-    setCurrentConversationId(undefined); // Clear conversation ID
-    firstAIMessageRef.current = false; // Reset first AI message flag
+    setCurrentConversationId(undefined);
+    firstAIMessageRef.current = false;
     setSearchQuery('');
     setSearchResult(null);
     setStreamingResponse('');
     setError(null);
     setThinkingText('');
+    
+    // Reset URL to home page
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', '/');
+    }
   };
 
   // Load a conversation from database
@@ -269,8 +277,15 @@ export default function Home() {
 
       if (response.ok) {
         const data = await response.json();
-        setCurrentConversationId(data.conversation.id);
-        return data.conversation.id;
+        const newConversationId = data.conversation.id;
+        setCurrentConversationId(newConversationId);
+        
+        // Update URL to show conversation ID in address bar without page reload
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, '', `/c/${newConversationId}`);
+        }
+        
+        return newConversationId;
       }
     } catch (error) {
       console.error('Failed to create conversation:', error);
