@@ -285,12 +285,16 @@ export default function SharedConversationPage() {
     }
   };
 
-  const handleRetry = (message: any, messageIndex: number) => {
+  const handleRetry = async (message: any, messageIndex: number) => {
     if (message.originalQuery !== undefined || message.originalImages?.length) {
       // Remove the old AI response from conversation history
       removeMessage(messageIndex);
+      // Set state for retry and then trigger search
+      setSearchQuery(message.originalQuery || '');
+      setAttachedImages(message.originalImages || []);
+      setMode(message.originalMode || 'default');
       // Then generate new response
-      handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default');
+      await handleSearch();
     }
   };
 
