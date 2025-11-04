@@ -775,7 +775,7 @@ export default function SharedConversationPage() {
                 </button>
               </div>
               
-              <div className="flex gap-4 overflow-x-auto pb-2 mb-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <div className="flex gap-4 overflow-x-auto pb-2 mb-4 share-modal-horizontal-scroll">
                 {/* X (formerly Twitter) */}
                 <button
                   onClick={() => {
@@ -1011,9 +1011,37 @@ export default function SharedConversationPage() {
         .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
         .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
         .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
-        /* Hide scrollbar for share modal horizontal scroll */
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        /* Share modal horizontal scrollbar - desktop only */
+        @media (min-width: 640px) {
+          .share-modal-horizontal-scroll { 
+            scrollbar-width: thin; 
+            scrollbar-color: rgba(0,0,0,0.4) transparent; 
+          }
+          .share-modal-horizontal-scroll::-webkit-scrollbar { 
+            height: 6px; 
+          }
+          .share-modal-horizontal-scroll::-webkit-scrollbar-track { 
+            background: transparent; 
+            border-radius: 3px;
+          }
+          .share-modal-horizontal-scroll::-webkit-scrollbar-thumb { 
+            background: rgba(0,0,0,0.4); 
+            border-radius: 3px; 
+          }
+          .share-modal-horizontal-scroll::-webkit-scrollbar-thumb:hover { 
+            background: rgba(0,0,0,0.6); 
+          }
+        }
+        /* Hide horizontal scrollbar on mobile */
+        @media (max-width: 639px) {
+          .share-modal-horizontal-scroll { 
+            -ms-overflow-style: none; 
+            scrollbar-width: none; 
+          }
+          .share-modal-horizontal-scroll::-webkit-scrollbar { 
+            display: none; 
+          }
+        }
         /* Share modal vertical scrollbar */
         .share-modal-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.3) transparent; }
         .share-modal-scroll::-webkit-scrollbar { width: 8px; }
