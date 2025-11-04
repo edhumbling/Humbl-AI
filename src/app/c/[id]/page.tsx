@@ -670,8 +670,8 @@ export default function SharedConversationPage() {
                       {message.content && <ResponseRenderer content={message.content} theme={theme} />}
                     </div>
                   )}
-                  {/* Action buttons for AI responses - Only show for messages after user continues */}
-                  {message.type === 'ai' && index >= originalMessageCount && (
+                  {/* Action buttons for AI responses */}
+                  {message.type === 'ai' && (
                     <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       <button
                         onClick={() => handleCopy(message.content)}
@@ -720,7 +720,7 @@ export default function SharedConversationPage() {
                           <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                         )}
                       </button>
-                      {message.type === 'ai' && index >= originalMessageCount && (continuationConversationId || conversationId) && (
+                      {message.type === 'ai' && (
                         <button
                           onClick={() => handleMessageShare(index)}
                           className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
@@ -753,8 +753,8 @@ export default function SharedConversationPage() {
               {streamingResponse && (
                 <div className="w-full">
                   <ResponseRenderer content={streamingResponse} isLoading={isStreaming} theme={theme} />
-                  {/* Action buttons for streaming response - Only show after user continues */}
-                  {!isStreaming && originalMessageCount < conversationHistory.length && (
+                  {/* Action buttons for streaming response */}
+                  {!isStreaming && (
                     <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       <button
                         onClick={() => handleCopy(streamingResponse)}
@@ -785,6 +785,13 @@ export default function SharedConversationPage() {
                         ) : (
                           <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                         )}
+                      </button>
+                      <button
+                        onClick={() => handleMessageShare(conversationHistory.length - 1)}
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Share this message"
+                      >
+                        <Share2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                     </div>
                   )}
