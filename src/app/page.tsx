@@ -282,6 +282,7 @@ export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSidebar, setShowSidebar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [mode, setMode] = useState<'default' | 'search' | 'study' | 'image'>('default');
   const [webSearchMode, setWebSearchMode] = useState<'auto' | 'on' | 'off'>('auto');
   const [imageGenerationMode, setImageGenerationMode] = useState(false);
