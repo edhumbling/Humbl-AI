@@ -3194,9 +3194,8 @@ export default function Home() {
                               ))}
                             </div>
                           )}
-                          {message.content && <ResponseRenderer key={`${index}-${message.currentRetryIndex ?? 0}`} content={getDisplayedContent(message)} theme={theme} />}
-                          {/* Show streaming response inline if this is the message being retried */}
-                          {streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index && (
+                          {/* Show streaming response during retry, otherwise show regular content */}
+                          {streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index ? (
                             <>
                               <ResponseRenderer content={streamingResponse} isLoading={isLoading} theme={theme} />
                               {isLoading && (
@@ -3206,11 +3205,13 @@ export default function Home() {
                                 </div>
                               )}
                             </>
+                          ) : (
+                            message.content && <ResponseRenderer key={`${index}-${message.currentRetryIndex ?? 0}`} content={getDisplayedContent(message)} theme={theme} />
                           )}
                         </>
                       )}
-                      {/* Action buttons for AI responses */}
-                      {message.type === 'ai' && (
+                      {/* Action buttons for AI responses - Only show when not streaming a retry for this message */}
+                      {message.type === 'ai' && !(streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index) && (
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
                       {/* Version Navigation - Show if retry versions exist */}
                       {message.retryVersions && message.retryVersions.length > 0 && (
