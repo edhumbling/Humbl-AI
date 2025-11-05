@@ -991,8 +991,13 @@ export default function Home() {
       return message.content;
     }
     
-    const retryVersion = message.retryVersions[currentIndex - 1];
-    return retryVersion?.content || message.content;
+    // Ensure currentIndex is valid
+    if (currentIndex > 0 && currentIndex <= message.retryVersions.length) {
+      const retryVersion = message.retryVersions[currentIndex - 1];
+      return retryVersion?.content || message.content;
+    }
+    
+    return message.content;
   };
 
   // Get current displayed citations for a message (handles retry versions)
@@ -3167,7 +3172,7 @@ export default function Home() {
                               ))}
                             </div>
                           )}
-                          {message.content && <ResponseRenderer content={getDisplayedContent(message)} theme={theme} />}
+                          {message.content && <ResponseRenderer key={`${index}-${message.currentRetryIndex ?? 0}`} content={getDisplayedContent(message)} theme={theme} />}
                         </>
                       )}
                       {/* Action buttons for AI responses */}
