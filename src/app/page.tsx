@@ -911,14 +911,29 @@ export default function Home() {
     setRetryDropdownOpen(null); // Close dropdown
     setRetryCustomPrompt(''); // Clear custom prompt
     
-    if (!message.originalQuery && !message.originalImages?.length && !customPrompt) {
-      // If no original query exists, we can't retry
+    // Get the original query from the message or find the previous user message
+    let query = message.originalQuery || '';
+    let images = message.originalImages || [];
+    let mode = message.originalMode || 'default';
+    
+    // If no originalQuery, try to find the previous user message
+    if (!query && !customPrompt) {
+      // Look backwards from this message to find the user query
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        const prevMessage = conversationHistory[i];
+        if (prevMessage && prevMessage.type === 'user') {
+          query = prevMessage.content;
+          images = prevMessage.images || [];
+          break;
+        }
+      }
+    }
+    
+    // If still no query and no custom prompt, we can't retry
+    if (!query && !customPrompt && images.length === 0) {
+      console.warn('Cannot retry: No query found');
       return;
     }
-
-    const query = message.originalQuery || '';
-    const images = message.originalImages || [];
-    const mode = message.originalMode || 'default';
     
     let modifiedQuery = query;
     let modifiedMode = mode;
