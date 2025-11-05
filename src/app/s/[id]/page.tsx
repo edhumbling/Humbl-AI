@@ -1588,12 +1588,12 @@ export default function MessageSharePage() {
         .humbl-textarea::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 8px; }
         .humbl-textarea::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.35); }
         .humbl-textarea { scrollbar-color: rgba(255,255,255,0.25) rgba(0,0,0,0.2); scrollbar-width: thin; }
-        /* Conversation scroll: dark, faded scrollbar */
-        .humbl-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.6) transparent; }
+        /* Conversation scroll: cream colored scrollbar */
+        .humbl-scroll { scrollbar-width: thin; scrollbar-color: #f1d08c transparent; }
         .humbl-scroll::-webkit-scrollbar { width: 10px; }
-        .humbl-scroll::-webkit-scrollbar-track { background: linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.45)); border-radius: 8px; }
-        .humbl-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.6); border-radius: 8px; border: 2px solid rgba(0,0,0,0.2); }
-        .humbl-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.7); }
+        .humbl-scroll::-webkit-scrollbar-track { background: transparent; border-radius: 8px; }
+        .humbl-scroll::-webkit-scrollbar-thumb { background: #f1d08c; border-radius: 8px; border: 2px solid transparent; }
+        .humbl-scroll::-webkit-scrollbar-thumb:hover { background: #e8c377; }
         /* Share modal horizontal scrollbar - desktop only */
         @media (min-width: 640px) {
           .share-modal-horizontal-scroll { 
