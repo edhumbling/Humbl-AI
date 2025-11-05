@@ -655,8 +655,10 @@ export default function Home() {
       let finalCitations: Array<{ title: string; url: string }> | undefined = undefined;
       let aiMessageInitialized = false;
 
-      // Initialize AI message placeholder for streaming
-      updateLastAIMessage('', undefined);
+      // Initialize AI message placeholder for streaming (only if not retrying)
+      if (!retryStateRef.current) {
+        updateLastAIMessage('', undefined);
+      }
 
       try {
         while (true) {
@@ -681,64 +683,87 @@ export default function Home() {
                 }
                 
                 if (data.done) {
-                  // Finalize AI response - update with metadata if streaming happened, or add new if not
-                  if (aiMessageInitialized && fullResponse) {
-                    // Check if this is a retry
-                    if (retryStateRef.current) {
-                      const retryMessageIndex = retryStateRef.current.messageIndex;
-                      // Get fresh message from history using ref to avoid stale closure
-                      const currentHistory = getConversationHistory();
-                      const retryMessage = currentHistory[retryMessageIndex];
-                      
-                      if (retryMessage && retryMessage.type === 'ai') {
-                        // Add as retry version instead of replacing
-                        const newRetryVersions = [
-                          ...(retryMessage.retryVersions || []),
-                          {
-                            content: fullResponse,
-                            citations: data.citations || finalCitations,
-                            timestamp: new Date().toISOString()
-                          }
-                        ];
-                        
-                        updateMessageAt(retryMessageIndex, {
-                          retryVersions: newRetryVersions,
-                          currentRetryIndex: newRetryVersions.length, // Show the new retry version
-                          originalQuery: retryMessage.originalQuery || queryToUse,
-                          originalImages: retryMessage.originalImages || imagesToUse.slice(0, 3),
-                          originalMode: retryMessage.originalMode || modeToUse,
-                        });
-                        
-                        // Remove the temporary streaming message that was created
-                        const currentHistoryAfterUpdate = getConversationHistory();
-                        const lastIndex = currentHistoryAfterUpdate.length - 1;
-                        if (lastIndex >= 0 && lastIndex !== retryMessageIndex) {
-                          // Check if last message is the temporary retry message
-                          const lastMsg = currentHistoryAfterUpdate[lastIndex];
-                          if (lastMsg.type === 'ai') {
-                            // Remove temporary message - it could be empty or have streaming content
-                            removeMessage(lastIndex);
-                          }
-                        }
-                        
-                        retryStateRef.current = null; // Clear retry state
-                      }
-                    } else {
-                      // Normal response - update the existing streaming message with final metadata
-                      const lastIndex = conversationHistory.length - 1;
-                      if (lastIndex >= 0) {
-                        updateMessageAt(lastIndex, {
+                  // Check if this is a retry FIRST (before checking aiMessageInitialized)
+                  if (retryStateRef.current && fullResponse) {
+                    const retryMessageIndex = retryStateRef.current.messageIndex;
+                    // Get fresh message from history using ref to avoid stale closure
+                    const currentHistory = getConversationHistory();
+                    const retryMessage = currentHistory[retryMessageIndex];
+                    
+                    if (retryMessage && retryMessage.type === 'ai') {
+                      // Add as retry version instead of replacing
+                      const newRetryVersions = [
+                        ...(retryMessage.retryVersions || []),
+                        {
+                          content: String(fullResponse),
                           citations: data.citations || finalCitations,
-                          originalQuery: queryToUse,
-                          originalImages: imagesToUse.slice(0, 3),
-                          originalMode: modeToUse,
-                        });
+                          timestamp: new Date().toISOString()
+                        }
+                      ];
+                      
+                      updateMessageAt(retryMessageIndex, {
+                        retryVersions: newRetryVersions,
+                        currentRetryIndex: newRetryVersions.length, // Show the new retry version
+                        originalQuery: retryMessage.originalQuery || queryToUse,
+                        originalImages: retryMessage.originalImages || imagesToUse.slice(0, 3),
+                        originalMode: retryMessage.originalMode || modeToUse,
+                      });
+                      
+                      // Remove any temporary streaming message that might have been created
+                      const currentHistoryAfterUpdate = getConversationHistory();
+                      const lastIndex = currentHistoryAfterUpdate.length - 1;
+                      if (lastIndex >= 0 && lastIndex !== retryMessageIndex) {
+                        // Check if last message is a temporary retry message (empty or duplicate)
+                        const lastMsg = currentHistoryAfterUpdate[lastIndex];
+                        if (lastMsg.type === 'ai' && (!lastMsg.content || lastMsg.content.trim() === '')) {
+                          // Remove temporary message
+                          removeMessage(lastIndex);
+                        }
+                      }
+                      
+                      retryStateRef.current = null; // Clear retry state
+                      setStreamingResponse(''); // Clear streaming response
+                    } else {
+                      // Retry message not found, fall back to normal handling
+                      retryStateRef.current = null;
+                      if (aiMessageInitialized && fullResponse) {
+                        const lastIndex = conversationHistory.length - 1;
+                        if (lastIndex >= 0) {
+                          updateMessageAt(lastIndex, {
+                            content: String(fullResponse),
+                            citations: data.citations || finalCitations,
+                            originalQuery: queryToUse,
+                            originalImages: imagesToUse.slice(0, 3),
+                            originalMode: modeToUse,
+                          });
+                        }
+                      } else {
+                        addAIMessage(
+                          String(fullResponse),
+                          undefined,
+                          data.citations || finalCitations,
+                          queryToUse,
+                          imagesToUse.slice(0, 3),
+                          modeToUse
+                        );
                       }
                     }
-                  } else {
+                  } else if (aiMessageInitialized && fullResponse) {
+                    // Normal response - update the existing streaming message with final metadata
+                    const lastIndex = conversationHistory.length - 1;
+                    if (lastIndex >= 0) {
+                      updateMessageAt(lastIndex, {
+                        content: String(fullResponse),
+                        citations: data.citations || finalCitations,
+                        originalQuery: queryToUse,
+                        originalImages: imagesToUse.slice(0, 3),
+                        originalMode: modeToUse,
+                      });
+                    }
+                  } else if (fullResponse) {
                     // No streaming happened, add new message
                     addAIMessage(
-                      fullResponse,
+                      String(fullResponse),
                       undefined,
                       data.citations || finalCitations,
                       queryToUse,
