@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2 } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -60,6 +60,8 @@ export default function SharedConversationPage() {
   const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
   const [imageEditRemixMode, setImageEditRemixMode] = useState<'edit' | 'remix' | null>(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const [retryDropdownOpen, setRetryDropdownOpen] = useState<number | null>(null);
+  const [retryCustomPrompt, setRetryCustomPrompt] = useState('');
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -76,6 +78,8 @@ export default function SharedConversationPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamReaderRef = useRef<ReadableStreamDefaultReader | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const retryStateRef = useRef<{ messageIndex: number } | null>(null);
+  const retryDropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -313,7 +317,24 @@ export default function SharedConversationPage() {
     }
   }, [conversationHistory, streamingResponse]);
 
-  const handleSearch = async () => {
+  // Close retry dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (retryDropdownRef.current && !retryDropdownRef.current.contains(event.target as Node)) {
+        setRetryDropdownOpen(null);
+        setRetryCustomPrompt('');
+      }
+    };
+
+    if (retryDropdownOpen !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [retryDropdownOpen]);
+
+  const handleSearch = async (query?: string, images?: string[], mode?: 'default' | 'search' | 'image', isRetry?: boolean) => {
     // Handle image edit/remix mode
     if (imageEditRemixMode && selectedImageIndex !== null) {
       const instruction = searchQuery;
@@ -421,7 +442,17 @@ export default function SharedConversationPage() {
     }
 
     try {
-      const historyForAPI = getConversationHistory()
+      // Build conversation history for API context
+      let historyToUse = getConversationHistory();
+      
+      if (isRetry && retryStateRef.current) {
+        // For retry, exclude the last AI message we're retrying
+        historyToUse = historyToUse.filter((msg, idx) => {
+          return !(idx === retryStateRef.current!.messageIndex && msg.type === 'ai');
+        });
+      }
+      
+      const historyForAPI = historyToUse
         .filter(msg => msg.content && msg.content.trim() !== '')
         .map(msg => ({
           role: msg.type === 'user' ? 'user' : 'assistant',
@@ -447,10 +478,14 @@ export default function SharedConversationPage() {
       const decoder = new TextDecoder();
       if (!reader) throw new Error('No response body');
 
-      // Store reader reference for cancellation
-      streamReaderRef.current = reader;
-
       let fullResponse = '';
+      let finalCitations: Array<{ title: string; url: string }> | undefined = undefined;
+      let aiMessageInitialized = false;
+
+      // Initialize AI message placeholder for streaming (only if not retrying)
+      if (!retryStateRef.current) {
+        updateLastAIMessage('', undefined);
+      }
 
       try {
         while (true) {
@@ -472,17 +507,116 @@ export default function SharedConversationPage() {
                   return;
                 }
                 
+                if (data.done) {
+                  // Check if this is a retry FIRST (before checking aiMessageInitialized)
+                  if (retryStateRef.current && fullResponse) {
+                    const retryMessageIndex = retryStateRef.current.messageIndex;
+                    // Get fresh message from history using ref to avoid stale closure
+                    const currentHistory = getConversationHistory();
+                    const retryMessage = currentHistory[retryMessageIndex];
+                    
+                    if (retryMessage && retryMessage.type === 'ai') {
+                      // Add as retry version instead of replacing
+                      const newRetryVersions = [
+                        ...(retryMessage.retryVersions || []),
+                        {
+                          content: String(fullResponse),
+                          citations: data.citations || finalCitations,
+                          timestamp: new Date().toISOString()
+                        }
+                      ];
+                      
+                      updateMessageAt(retryMessageIndex, {
+                        retryVersions: newRetryVersions,
+                        currentRetryIndex: newRetryVersions.length, // Show the new retry version
+                        originalQuery: retryMessage.originalQuery || queryToUse,
+                        originalImages: retryMessage.originalImages || imagesToUse.slice(0, 3),
+                        originalMode: retryMessage.originalMode || (modeToUse === 'auto' ? 'default' : modeToUse),
+                      });
+                      
+                      // Remove any temporary streaming message that might have been created
+                      const currentHistoryAfterUpdate = getConversationHistory();
+                      const lastIndex = currentHistoryAfterUpdate.length - 1;
+                      if (lastIndex >= 0 && lastIndex !== retryMessageIndex) {
+                        // Check if last message is a temporary retry message (empty or duplicate)
+                        const lastMsg = currentHistoryAfterUpdate[lastIndex];
+                        if (lastMsg.type === 'ai' && (!lastMsg.content || lastMsg.content.trim() === '')) {
+                          // Remove temporary message
+                          removeMessage(lastIndex);
+                        }
+                      }
+                      
+                      retryStateRef.current = null; // Clear retry state
+                      setStreamingResponse(''); // Clear streaming response
+                    } else {
+                      // Retry message not found, fall back to normal handling
+                      retryStateRef.current = null;
+                      if (aiMessageInitialized && fullResponse) {
+                        const lastIndex = conversationHistory.length - 1;
+                        if (lastIndex >= 0) {
+                          updateMessageAt(lastIndex, {
+                            content: String(fullResponse),
+                            citations: data.citations || finalCitations,
+                            originalQuery: queryToUse,
+                            originalImages: imagesToUse.slice(0, 3),
+                            originalMode: modeToUse === 'auto' ? 'default' : modeToUse,
+                          });
+                        }
+                      } else {
+                        addAIMessage(
+                          String(fullResponse),
+                          undefined,
+                          data.citations || finalCitations,
+                          queryToUse,
+                          imagesToUse.slice(0, 3),
+                          modeToUse === 'auto' ? 'default' : modeToUse
+                        );
+                      }
+                    }
+                  } else if (aiMessageInitialized && fullResponse) {
+                    // Normal response - update the existing streaming message with final metadata
+                    const lastIndex = conversationHistory.length - 1;
+                    if (lastIndex >= 0) {
+                      updateMessageAt(lastIndex, {
+                        content: String(fullResponse),
+                        citations: data.citations || finalCitations,
+                        originalQuery: queryToUse,
+                        originalImages: imagesToUse.slice(0, 3),
+                        originalMode: modeToUse === 'auto' ? 'default' : modeToUse,
+                      });
+                    }
+                  } else if (fullResponse) {
+                    // No streaming happened, add new message
+                    addAIMessage(
+                      String(fullResponse),
+                      undefined,
+                      data.citations || finalCitations,
+                      queryToUse,
+                      imagesToUse.slice(0, 3),
+                      modeToUse === 'auto' ? 'default' : modeToUse
+                    );
+                  }
+                  
+                  // Ensure fullResponse is a string before finalizing
+                  const finalResponse = String(fullResponse || '');
+                  break;
+                }
+                
                 if (data.content !== undefined && data.content !== null) {
                   // Convert content to string to handle numeric values
                   const contentStr = String(data.content);
                   fullResponse += contentStr;
                   setStreamingResponse(fullResponse);
+                  // Only update message if not retrying (retries will be added as versions when done)
+                  if (!retryStateRef.current) {
+                    // Update last AI message for streaming
+                    updateLastAIMessage(fullResponse);
+                    aiMessageInitialized = true;
+                  }
+                  // For retries, we just update streamingResponse state - no temporary message needed
                 }
-                
-                if (data.done) {
-                  // Ensure fullResponse is a string before finalizing
-                  const finalResponse = String(fullResponse || '');
-                  break;
+                if (data.citations) {
+                  finalCitations = data.citations;
                 }
               } catch (e) {
                 // Skip invalid JSON lines
@@ -495,8 +629,25 @@ export default function SharedConversationPage() {
         if (err.name === 'AbortError' || abortControllerRef.current?.signal.aborted) {
           // User cancelled, finalize with current response
           if (fullResponse) {
-            const finalResponse = String(fullResponse || '');
-            addAIMessage(finalResponse);
+            const lastIndex = conversationHistory.length - 1;
+            if (lastIndex >= 0 && aiMessageInitialized) {
+              updateMessageAt(lastIndex, {
+                content: String(fullResponse),
+                citations: finalCitations,
+                originalQuery: queryToUse,
+                originalImages: imagesToUse.slice(0, 3),
+                originalMode: modeToUse === 'auto' ? 'default' : modeToUse,
+              });
+            } else {
+              addAIMessage(
+                String(fullResponse),
+                undefined,
+                finalCitations,
+                queryToUse,
+                imagesToUse.slice(0, 3),
+                modeToUse === 'auto' ? 'default' : modeToUse
+              );
+            }
           }
           setStreamingResponse('');
           setIsStreaming(false);
@@ -505,148 +656,153 @@ export default function SharedConversationPage() {
         throw err;
       }
 
-      // Ensure fullResponse is a string before adding to conversation
-      const finalResponse = String(fullResponse || '');
-      addAIMessage(finalResponse);
-      setStreamingResponse('');
-      
-      // Save continuation if user is logged in
-      if (user) {
-        // If user owns the conversation, save directly to original conversation
-        if (isOwner) {
-          try {
-            await fetch(`/api/conversations/${conversationId}/messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                role: 'user',
-                content: queryToUse,
-                images: attachedImages,
-                mode: 'default'
-              }),
-            });
-            
-            await fetch(`/api/conversations/${conversationId}/messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                role: 'assistant',
-                content: finalResponse,
-                images: [],
-                citations: [],
-                mode: 'default'
-              }),
-            });
-          } catch (err) {
-            console.error('Failed to save message:', err);
-          }
-        } else {
-          // User doesn't own it, create continuation
-          const continuationKey = `continuation_${conversationId}`;
-          let newConversationId = localStorage.getItem(continuationKey);
-          
-          try {
-            if (!newConversationId) {
-              const response = await fetch('/api/conversations', {
+      // Ensure fullResponse is a string before adding to conversation (only for non-retry)
+      if (!retryStateRef.current && fullResponse) {
+        const finalResponse = String(fullResponse || '');
+        // Message already added above in data.done block
+        setStreamingResponse('');
+        
+        // Save continuation if user is logged in
+        if (user && !isRetry) {
+          // If user owns the conversation, save directly to original conversation
+          if (isOwner) {
+            try {
+              await fetch(`/api/conversations/${conversationId}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  title: `Continuation: ${conversation?.title || 'Shared Conversation'}` 
+                body: JSON.stringify({
+                  role: 'user',
+                  content: queryToUse,
+                  images: imagesToUse,
+                  mode: modeToUse
                 }),
               });
               
-              if (response.ok) {
-                const data = await response.json();
-                newConversationId = data.conversation.id;
-                if (newConversationId) {
-                  localStorage.setItem(continuationKey, newConversationId);
-                  setContinuationConversationId(newConversationId); // Store in state for sharing
-                  
-                  // Save all original messages
-                  const originalMessages = conversation?.messages || [];
-                  for (const msg of originalMessages) {
-                    await fetch(`/api/conversations/${newConversationId}/messages`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        role: msg.role,
-                        content: msg.content,
-                        images: msg.images || [],
-                        citations: msg.citations || [],
-                        mode: 'default'
-                      }),
-                    });
+              await fetch(`/api/conversations/${conversationId}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  role: 'assistant',
+                  content: finalResponse,
+                  images: [],
+                  citations: finalCitations || [],
+                  mode: modeToUse
+                }),
+              });
+            } catch (err) {
+              console.error('Failed to save message:', err);
+            }
+          } else {
+            // User doesn't own it, create continuation
+            const continuationKey = `continuation_${conversationId}`;
+            let newConversationId = localStorage.getItem(continuationKey);
+            
+            try {
+              if (!newConversationId) {
+                const response = await fetch('/api/conversations', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    title: `Continuation: ${conversation?.title || 'Shared Conversation'}` 
+                  }),
+                });
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  newConversationId = data.conversation.id;
+                  if (newConversationId) {
+                    localStorage.setItem(continuationKey, newConversationId);
+                    setContinuationConversationId(newConversationId); // Store in state for sharing
+                    
+                    // Save all original messages
+                    const originalMessages = conversation?.messages || [];
+                    for (const msg of originalMessages) {
+                      await fetch(`/api/conversations/${newConversationId}/messages`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          role: msg.role,
+                          content: msg.content,
+                          images: msg.images || [],
+                          citations: msg.citations || [],
+                          mode: 'default'
+                        }),
+                      });
+                    }
                   }
                 }
+              } else {
+                // If continuation already exists, use it
+                setContinuationConversationId(newConversationId);
               }
-            } else {
-              // If continuation already exists, use it
-              setContinuationConversationId(newConversationId);
+            } catch (err) {
+              console.error('Failed to create continuation:', err);
             }
-          } catch (err) {
-            console.error('Failed to create continuation:', err);
-          }
-          
-          // Save new messages to continuation
-          if (newConversationId) {
-            await fetch(`/api/conversations/${newConversationId}/messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                role: 'user',
-                content: queryToUse,
-                images: attachedImages,
-                mode: 'default'
-              }),
-            });
             
-            await fetch(`/api/conversations/${newConversationId}/messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                role: 'assistant',
-                content: finalResponse,
-                images: [],
-                citations: [],
-                mode: 'default'
-              }),
-            });
+            // Save new messages to continuation
+            if (newConversationId) {
+              await fetch(`/api/conversations/${newConversationId}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  role: 'user',
+                  content: queryToUse,
+                  images: imagesToUse,
+                  mode: modeToUse
+                }),
+              });
+              
+              await fetch(`/api/conversations/${newConversationId}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  role: 'assistant',
+                  content: finalResponse,
+                  images: [],
+                  citations: finalCitations || [],
+                  mode: modeToUse
+                }),
+              });
+            }
           }
+        } else if (!user && !isRetry) {
+          // Anonymous user: store continuation messages in localStorage
+          const continuationKey = `continuation_${conversationId}`;
+          const continuationMessagesKey = `continuation_messages_${conversationId}`;
+          
+          // Get existing continuation messages from localStorage
+          const existingMessages = JSON.parse(localStorage.getItem(continuationMessagesKey) || '[]');
+          
+          // Add new messages
+          const newMessages = [
+            ...existingMessages,
+            {
+              role: 'user',
+              content: queryToUse,
+              images: imagesToUse,
+              mode: modeToUse,
+              timestamp: Date.now()
+            },
+            {
+              role: 'assistant',
+              content: finalResponse,
+              images: [],
+              citations: finalCitations || [],
+              mode: modeToUse,
+              timestamp: Date.now()
+            }
+          ];
+          
+          // Save to localStorage
+          localStorage.setItem(continuationMessagesKey, JSON.stringify(newMessages));
         }
-      } else {
-        // Anonymous user: store continuation messages in localStorage
-        const continuationKey = `continuation_${conversationId}`;
-        const continuationMessagesKey = `continuation_messages_${conversationId}`;
-        
-        // Get existing continuation messages from localStorage
-        const existingMessages = JSON.parse(localStorage.getItem(continuationMessagesKey) || '[]');
-        
-        // Add new messages
-        const newMessages = [
-          ...existingMessages,
-          {
-            role: 'user',
-            content: queryToUse,
-            images: attachedImages,
-            mode: 'default',
-            timestamp: Date.now()
-          },
-          {
-            role: 'assistant',
-            content: finalResponse,
-            images: [],
-            citations: [],
-            mode: 'default',
-            timestamp: Date.now()
-          }
-        ];
-        
-        // Save to localStorage
-        localStorage.setItem(continuationMessagesKey, JSON.stringify(newMessages));
       }
     } catch (error) {
       console.error('Error:', error);
-      addAIMessage('Sorry, I encountered an error. Please try again.');
+      if (!retryStateRef.current) {
+        addAIMessage('Sorry, I encountered an error. Please try again.');
+      }
+      setError('Failed to search. Please try again.');
     } finally {
       setIsStreaming(false);
       // Clean up refs
@@ -693,17 +849,127 @@ export default function SharedConversationPage() {
     }
   };
 
-  const handleRetry = async (message: any, messageIndex: number) => {
-    if (message.originalQuery !== undefined || message.originalImages?.length) {
-      // Remove the old AI response from conversation history
-      removeMessage(messageIndex);
-      // Set state for retry and then trigger search
-      setSearchQuery(message.originalQuery || '');
-      setAttachedImages(message.originalImages || []);
-      setMode(message.originalMode || 'default');
-      // Then generate new response
-      await handleSearch();
+  const handleRetry = async (message: any, messageIndex: number, retryType: 'try-again' | 'add-details' | 'more-concise' | 'search-web' | 'think-longer' | 'custom' = 'try-again', customPrompt?: string) => {
+    setRetryDropdownOpen(null); // Close dropdown
+    setRetryCustomPrompt(''); // Clear custom prompt
+    
+    // Get the original query from the message or find the previous user message
+    let query = message.originalQuery || '';
+    let images = message.originalImages || [];
+    let mode = message.originalMode || 'default';
+    
+    // If no originalQuery, try to find the previous user message
+    if (!query && !customPrompt) {
+      // Look backwards from this message to find the user query
+      for (let i = messageIndex - 1; i >= 0; i--) {
+        const prevMessage = conversationHistory[i];
+        if (prevMessage && prevMessage.type === 'user') {
+          query = prevMessage.content;
+          images = prevMessage.images || [];
+          break;
+        }
+      }
     }
+    
+    // If still no query and no custom prompt, we can't retry
+    if (!query && !customPrompt && images.length === 0) {
+      console.warn('Cannot retry: No query found');
+      return;
+    }
+    
+    let modifiedQuery = query;
+    let modifiedMode = mode;
+    
+    switch (retryType) {
+      case 'try-again':
+        // Just regenerate with same query
+        break;
+      case 'add-details':
+        modifiedQuery = `${query}\n\nPlease provide more details and expand on this topic.`;
+        break;
+      case 'more-concise':
+        modifiedQuery = `${query}\n\nPlease provide a more concise response.`;
+        break;
+      case 'search-web':
+        modifiedMode = 'search';
+        break;
+      case 'think-longer':
+        modifiedQuery = `${query}\n\nPlease think step by step and provide a thorough analysis.`;
+        break;
+      case 'custom':
+        modifiedQuery = customPrompt || query;
+        break;
+    }
+
+    // Set retry state BEFORE calling handleSearch
+    retryStateRef.current = { messageIndex };
+    
+    // Set loading state
+    setIsStreaming(true);
+    setStreamingResponse('');
+    setError(null);
+    
+    try {
+      // Generate new response - pass isRetry=true to prevent adding user message
+      await handleSearch(modifiedQuery, images, modifiedMode, true);
+    } catch (err) {
+      setError('Failed to retry. Please try again.');
+      setIsStreaming(false);
+      retryStateRef.current = null;
+    }
+  };
+
+  // Handle retry version navigation
+  const handleRetryVersionChange = (messageIndex: number, direction: 'prev' | 'next') => {
+    const message = conversationHistory[messageIndex];
+    if (!message || message.type !== 'ai' || !message.retryVersions || message.retryVersions.length === 0) return;
+    
+    const currentIndex = message.currentRetryIndex ?? 0;
+    const totalVersions = message.retryVersions.length + 1; // +1 for original
+    
+    let newIndex = currentIndex;
+    if (direction === 'prev') {
+      newIndex = Math.max(0, currentIndex - 1);
+    } else {
+      newIndex = Math.min(totalVersions - 1, currentIndex + 1);
+    }
+    
+    updateMessageAt(messageIndex, { currentRetryIndex: newIndex });
+  };
+
+  // Get current displayed content for a message (handles retry versions)
+  const getDisplayedContent = (message: any) => {
+    if (message.type !== 'ai' || !message.retryVersions || message.retryVersions.length === 0) {
+      return message.content;
+    }
+    
+    const currentIndex = message.currentRetryIndex ?? 0;
+    if (currentIndex === 0) {
+      return message.content;
+    }
+    
+    // Ensure currentIndex is valid
+    if (currentIndex > 0 && currentIndex <= message.retryVersions.length) {
+      const retryVersion = message.retryVersions[currentIndex - 1];
+      return retryVersion?.content || message.content;
+    }
+    
+    return message.content;
+  };
+
+  // Get current displayed citations for a message (handles retry versions)
+  const getDisplayedCitations = (message: any) => {
+    if (message.type !== 'ai' || !message.retryVersions || message.retryVersions.length === 0) {
+      return message.citations;
+    }
+    
+    const currentIndex = message.currentRetryIndex ?? 0;
+    if (currentIndex === 0) {
+      return message.citations;
+    }
+    
+    const retryVersion = message.retryVersions[currentIndex - 1];
+    return retryVersion?.citations || message.citations;
   };
 
   const handleTTS = async (text: string, messageId: string) => {
@@ -1376,38 +1642,152 @@ export default function SharedConversationPage() {
                               ))}
                             </div>
                           )}
-                          {message.content && <ResponseRenderer content={message.content} theme={theme} />}
+                          {/* Show streaming response during retry, otherwise show regular content */}
+                          {streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index ? (
+                            <>
+                              <ResponseRenderer content={streamingResponse} isLoading={isStreaming} theme={theme} />
+                            </>
+                          ) : (
+                            message.content && <ResponseRenderer key={`${index}-${message.currentRetryIndex ?? 0}`} content={getDisplayedContent(message)} theme={theme} />
+                          )}
                         </>
                       )}
                     </div>
                   )}
-                  {/* Action buttons for AI responses */}
-                  {message.type === 'ai' && (
+                  {/* Action buttons for AI responses - Only show when not streaming a retry for this message */}
+                  {message.type === 'ai' && !(streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index) && (
                     <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                      {/* Version Navigation - Show if retry versions exist */}
+                      {message.retryVersions && message.retryVersions.length > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)' }}>
+                          <button
+                            onClick={() => handleRetryVersionChange(index, 'prev')}
+                            disabled={(message.currentRetryIndex ?? 0) === 0}
+                            className="p-0.5 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Previous version"
+                          >
+                            <ChevronLeft size={14} className="text-gray-400" />
+                          </button>
+                          <span className="text-xs text-gray-400 px-1">
+                            {((message.currentRetryIndex ?? 0) + 1)}/{message.retryVersions.length + 1}
+                          </span>
+                          <button
+                            onClick={() => handleRetryVersionChange(index, 'next')}
+                            disabled={(message.currentRetryIndex ?? 0) >= message.retryVersions.length}
+                            className="p-0.5 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Next version"
+                          >
+                            <ChevronRight size={14} className="text-gray-400" />
+                          </button>
+                        </div>
+                      )}
                       <button
-                        onClick={() => handleCopy(message.content)}
+                        onClick={() => handleCopy(getDisplayedContent(message))}
                         className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Copy response"
                       >
                         <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
-                      {message.originalQuery !== undefined && (
-                        <div className="relative flex flex-col items-center group">
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
-                            <div className="bg-gray-900 text-gray-200 text-xs px-2 py-1 rounded-lg whitespace-nowrap relative">
-                              Try again
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      {/* Retry button with dropdown - Show for all AI messages */}
+                      <div className="relative" ref={retryDropdownOpen === index ? retryDropdownRef : null}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRetryDropdownOpen(retryDropdownOpen === index ? null : index);
+                          }}
+                          className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                          title="Retry response"
+                        >
+                          <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        </button>
+                        {/* Retry Dropdown Menu */}
+                        {retryDropdownOpen === index && (
+                          <div
+                            className="absolute bottom-full left-0 mb-2 w-56 rounded-lg shadow-xl z-50 overflow-hidden"
+                            style={{
+                              backgroundColor: theme === 'dark' ? '#2a2a29' : '#ffffff',
+                              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                            }}
+                          >
+                            {/* Custom prompt input */}
+                            <div className="px-3 py-2 border-b" style={{ borderColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  placeholder="Ask to change response"
+                                  value={retryCustomPrompt}
+                                  onChange={(e) => setRetryCustomPrompt(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && retryCustomPrompt.trim()) {
+                                      handleRetry(message, index, 'custom', retryCustomPrompt.trim());
+                                    }
+                                  }}
+                                  className="w-full px-3 py-1.5 pr-8 rounded-lg text-sm border-none outline-none"
+                                  style={{
+                                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                                  }}
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (retryCustomPrompt.trim()) {
+                                      handleRetry(message, index, 'custom', retryCustomPrompt.trim());
+                                    }
+                                  }}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-700/50 transition-colors"
+                                  disabled={!retryCustomPrompt.trim()}
+                                >
+                                  <ArrowUp size={14} className="text-gray-400" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Retry options */}
+                            <div className="py-1">
+                              <button
+                                onClick={() => handleRetry(message, index, 'try-again')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <RefreshCw size={16} className="text-gray-400" />
+                                <span>Try again</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'add-details')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Maximize2 size={16} className="text-gray-400" />
+                                <span>Add details</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'more-concise')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Minimize2 size={16} className="text-gray-400" />
+                                <span>More concise</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'search-web')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Globe size={16} className="text-gray-400" />
+                                <span>Search the web</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'think-longer')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Lightbulb size={16} className="text-gray-400" />
+                                <span>Think longer</span>
+                              </button>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleRetry(message, index)}
-                            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                            title="Try again"
-                          >
-                            <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       <button
                         className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Upvote"
@@ -1421,7 +1801,7 @@ export default function SharedConversationPage() {
                         <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       <button
-                        onClick={() => handleTTS(message.content, `msg-${index}`)}
+                        onClick={() => handleTTS(getDisplayedContent(message), `msg-${index}`)}
                         className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title={playingAudioId === `msg-${index}` ? "Stop audio" : "Play audio"}
                       >
@@ -1443,12 +1823,12 @@ export default function SharedConversationPage() {
                     </div>
                   )}
                   {/* Sources footer */}
-                  {message.citations && message.citations.length > 0 && (
+                  {getDisplayedCitations(message) && getDisplayedCitations(message)!.length > 0 && (
                     <div className="mt-3 border-t border-gray-800/60 pt-2">
                       <details>
                         <summary className="text-xs text-gray-400 cursor-pointer">Sources</summary>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {message.citations.map((c:any, i:number) => (
+                          {getDisplayedCitations(message)!.map((c:any, i:number) => (
                             <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-full border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
                               {c.title || c.url}
                             </a>
@@ -1460,8 +1840,8 @@ export default function SharedConversationPage() {
                 </div>
               ))}
 
-              {/* Streaming Response */}
-              {streamingResponse && (
+              {/* Streaming Response - Only show for NEW messages (not retries) */}
+              {streamingResponse && !retryStateRef.current && (
                 <div className="w-full">
                   <ResponseRenderer content={streamingResponse} isLoading={isStreaming} theme={theme} />
                   {/* Action buttons for streaming response */}
