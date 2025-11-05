@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2 } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
@@ -327,9 +327,10 @@ export default function Home() {
   const [dailyPrompts, setDailyPrompts] = useState<string[]>([]);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [retryDropdownOpen, setRetryDropdownOpen] = useState<number | null>(null);
+  const [retryCustomPrompt, setRetryCustomPrompt] = useState('');
+  const retryDropdownRef = useRef<HTMLDivElement | null>(null);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-
-  // Autocomplete state
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
@@ -337,6 +338,7 @@ export default function Home() {
   const suggestionSelectedRef = useRef<boolean>(false);
   const initialSearchRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
+  const retryStateRef = useRef<{ messageIndex: number } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const streamReaderRef = useRef<ReadableStreamDefaultReader | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -681,16 +683,43 @@ export default function Home() {
                 if (data.done) {
                   // Finalize AI response - update with metadata if streaming happened, or add new if not
                   if (aiMessageInitialized && fullResponse) {
-                    // Update the existing streaming message with final metadata
-                    // The content is already set via updateLastAIMessage
-                    const lastIndex = conversationHistory.length - 1;
-                    if (lastIndex >= 0) {
-                      updateMessageAt(lastIndex, {
-                        citations: data.citations || finalCitations,
-                        originalQuery: queryToUse,
-                        originalImages: imagesToUse.slice(0, 3),
-                        originalMode: modeToUse,
-                      });
+                    // Check if this is a retry
+                    if (retryStateRef.current) {
+                      const retryMessageIndex = retryStateRef.current.messageIndex;
+                      const retryMessage = conversationHistory[retryMessageIndex];
+                      
+                      if (retryMessage && retryMessage.type === 'ai') {
+                        // Add as retry version instead of replacing
+                        const newRetryVersions = [
+                          ...(retryMessage.retryVersions || []),
+                          {
+                            content: fullResponse,
+                            citations: data.citations || finalCitations,
+                            timestamp: new Date().toISOString()
+                          }
+                        ];
+                        
+                        updateMessageAt(retryMessageIndex, {
+                          retryVersions: newRetryVersions,
+                          currentRetryIndex: newRetryVersions.length, // Show the new retry version
+                          originalQuery: retryMessage.originalQuery || queryToUse,
+                          originalImages: retryMessage.originalImages || imagesToUse.slice(0, 3),
+                          originalMode: retryMessage.originalMode || modeToUse,
+                        });
+                        
+                        retryStateRef.current = null; // Clear retry state
+                      }
+                    } else {
+                      // Normal response - update the existing streaming message with final metadata
+                      const lastIndex = conversationHistory.length - 1;
+                      if (lastIndex >= 0) {
+                        updateMessageAt(lastIndex, {
+                          citations: data.citations || finalCitations,
+                          originalQuery: queryToUse,
+                          originalImages: imagesToUse.slice(0, 3),
+                          originalMode: modeToUse,
+                        });
+                      }
                     }
                   } else {
                     // No streaming happened, add new message
@@ -781,9 +810,20 @@ export default function Home() {
                   const contentStr = String(data.content);
                   fullResponse += contentStr;
                   setStreamingResponse(fullResponse);
-                  // Update last AI message for streaming
-                  updateLastAIMessage(fullResponse);
-                  aiMessageInitialized = true;
+                  // Only update message if not retrying (retries will be added as versions when done)
+                  // But we still need to initialize a message for display during retry streaming
+                  if (!retryStateRef.current) {
+                    // Update last AI message for streaming
+                    updateLastAIMessage(fullResponse);
+                    aiMessageInitialized = true;
+                  } else {
+                    // When retrying, create a temporary message for streaming display
+                    if (!aiMessageInitialized) {
+                      addAIMessage('', undefined, undefined, queryToUse, imagesToUse.slice(0, 3), modeToUse);
+                      aiMessageInitialized = true;
+                    }
+                    updateLastAIMessage(fullResponse);
+                  }
                 }
                 if (data.citations) {
                   finalCitations = data.citations;
@@ -867,14 +907,123 @@ export default function Home() {
     clearInterval((window as any).thinkingInterval);
   };
 
-  const handleRetry = (message: any, messageIndex: number) => {
-    if (message.originalQuery !== undefined || message.originalImages?.length) {
-      // Remove the old AI response from conversation history
-      removeMessage(messageIndex);
-      // Then generate new response
-      handleSearch(message.originalQuery || '', message.originalImages || [], message.originalMode || 'default', true);
+  const handleRetry = async (message: any, messageIndex: number, retryType: 'try-again' | 'add-details' | 'more-concise' | 'search-web' | 'think-longer' | 'custom' = 'try-again', customPrompt?: string) => {
+    setRetryDropdownOpen(null); // Close dropdown
+    setRetryCustomPrompt(''); // Clear custom prompt
+    
+    if (!message.originalQuery && !message.originalImages?.length && !customPrompt) {
+      // If no original query exists, we can't retry
+      return;
+    }
+
+    const query = message.originalQuery || '';
+    const images = message.originalImages || [];
+    const mode = message.originalMode || 'default';
+    
+    let modifiedQuery = query;
+    let modifiedMode = mode;
+    
+    switch (retryType) {
+      case 'try-again':
+        // Just regenerate with same query
+        break;
+      case 'add-details':
+        modifiedQuery = `${query}\n\nPlease provide more details and expand on this topic.`;
+        break;
+      case 'more-concise':
+        modifiedQuery = `${query}\n\nPlease provide a more concise response.`;
+        break;
+      case 'search-web':
+        modifiedMode = 'search';
+        break;
+      case 'think-longer':
+        modifiedQuery = `${query}\n\nPlease think step by step and provide a thorough analysis.`;
+        break;
+      case 'custom':
+        modifiedQuery = customPrompt || query;
+        break;
+    }
+
+    // Set retry state BEFORE calling handleSearch
+    retryStateRef.current = { messageIndex };
+    
+    // Set loading state
+    setIsLoading(true);
+    setStreamingResponse('');
+    setError(null);
+    
+    try {
+      // Generate new response - pass isRetry=true to prevent adding user message
+      await handleSearch(modifiedQuery, images, modifiedMode, true);
+    } catch (err) {
+      setError('Failed to retry. Please try again.');
+      setIsLoading(false);
+      retryStateRef.current = null;
     }
   };
+
+  // Handle retry version navigation
+  const handleRetryVersionChange = (messageIndex: number, direction: 'prev' | 'next') => {
+    const message = conversationHistory[messageIndex];
+    if (!message || message.type !== 'ai' || !message.retryVersions || message.retryVersions.length === 0) return;
+    
+    const currentIndex = message.currentRetryIndex ?? 0;
+    const totalVersions = message.retryVersions.length + 1; // +1 for original
+    
+    let newIndex = currentIndex;
+    if (direction === 'prev') {
+      newIndex = Math.max(0, currentIndex - 1);
+    } else {
+      newIndex = Math.min(totalVersions - 1, currentIndex + 1);
+    }
+    
+    updateMessageAt(messageIndex, { currentRetryIndex: newIndex });
+  };
+
+  // Get current displayed content for a message (handles retry versions)
+  const getDisplayedContent = (message: any) => {
+    if (message.type !== 'ai' || !message.retryVersions || message.retryVersions.length === 0) {
+      return message.content;
+    }
+    
+    const currentIndex = message.currentRetryIndex ?? 0;
+    if (currentIndex === 0) {
+      return message.content;
+    }
+    
+    const retryVersion = message.retryVersions[currentIndex - 1];
+    return retryVersion?.content || message.content;
+  };
+
+  // Get current displayed citations for a message (handles retry versions)
+  const getDisplayedCitations = (message: any) => {
+    if (message.type !== 'ai' || !message.retryVersions || message.retryVersions.length === 0) {
+      return message.citations;
+    }
+    
+    const currentIndex = message.currentRetryIndex ?? 0;
+    if (currentIndex === 0) {
+      return message.citations;
+    }
+    
+    const retryVersion = message.retryVersions[currentIndex - 1];
+    return retryVersion?.citations || message.citations;
+  };
+
+  // Close retry dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (retryDropdownRef.current && !retryDropdownRef.current.contains(event.target as Node)) {
+        setRetryDropdownOpen(null);
+        setRetryCustomPrompt('');
+      }
+    };
+
+    if (retryDropdownOpen !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [retryDropdownOpen]);
 
   const handleMessageShare = async (messageIndex: number) => {
     if (!currentConversationId || !user) return;
@@ -3018,36 +3167,143 @@ export default function Home() {
                               ))}
                             </div>
                           )}
-                          {message.content && <ResponseRenderer content={message.content} theme={theme} />}
+                          {message.content && <ResponseRenderer content={getDisplayedContent(message)} theme={theme} />}
                         </>
                       )}
                       {/* Action buttons for AI responses */}
                       {message.type === 'ai' && (
                       <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
+                      {/* Version Navigation - Show if retry versions exist */}
+                      {message.retryVersions && message.retryVersions.length > 0 && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded-lg" style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)' }}>
+                          <button
+                            onClick={() => handleRetryVersionChange(index, 'prev')}
+                            disabled={(message.currentRetryIndex ?? 0) === 0}
+                            className="p-0.5 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Previous version"
+                          >
+                            <ChevronLeft size={14} className="text-gray-400" />
+                          </button>
+                          <span className="text-xs text-gray-400 px-1">
+                            {((message.currentRetryIndex ?? 0) + 1)}/{message.retryVersions.length + 1}
+                          </span>
+                          <button
+                            onClick={() => handleRetryVersionChange(index, 'next')}
+                            disabled={(message.currentRetryIndex ?? 0) >= message.retryVersions.length}
+                            className="p-0.5 rounded hover:bg-gray-700/50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="Next version"
+                          >
+                            <ChevronRight size={14} className="text-gray-400" />
+                          </button>
+                        </div>
+                      )}
                       <button
-                        onClick={() => handleCopy(message.content)}
+                        onClick={() => handleCopy(getDisplayedContent(message))}
                         className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Copy response"
                       >
                         <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
-                      {message.originalQuery !== undefined && (
-                        <div className="relative flex flex-col items-center group">
-                          <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden sm:block">
-                            <div className="bg-gray-900 text-gray-200 text-xs px-2 py-1 rounded-lg whitespace-nowrap relative">
-                              Try again
-                              <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                      {/* Retry button with dropdown - Show for all AI messages */}
+                      <div className="relative" ref={retryDropdownOpen === index ? retryDropdownRef : null}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRetryDropdownOpen(retryDropdownOpen === index ? null : index);
+                          }}
+                          className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                          title="Retry response"
+                        >
+                          <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        </button>
+                        {/* Retry Dropdown Menu */}
+                        {retryDropdownOpen === index && (
+                          <div
+                            className="absolute bottom-full left-0 mb-2 w-56 rounded-lg shadow-xl z-50 overflow-hidden"
+                            style={{
+                              backgroundColor: theme === 'dark' ? '#2a2a29' : '#ffffff',
+                              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                            }}
+                          >
+                            {/* Custom prompt input */}
+                            <div className="px-3 py-2 border-b" style={{ borderColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}>
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  placeholder="Ask to change response"
+                                  value={retryCustomPrompt}
+                                  onChange={(e) => setRetryCustomPrompt(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && retryCustomPrompt.trim()) {
+                                      handleRetry(message, index, 'custom', retryCustomPrompt.trim());
+                                    }
+                                  }}
+                                  className="w-full px-3 py-1.5 pr-8 rounded-lg text-sm border-none outline-none"
+                                  style={{
+                                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                                  }}
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => {
+                                    if (retryCustomPrompt.trim()) {
+                                      handleRetry(message, index, 'custom', retryCustomPrompt.trim());
+                                    }
+                                  }}
+                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-gray-700/50 transition-colors"
+                                  disabled={!retryCustomPrompt.trim()}
+                                >
+                                  <ArrowUp size={14} className="text-gray-400" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Retry options */}
+                            <div className="py-1">
+                              <button
+                                onClick={() => handleRetry(message, index, 'try-again')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <RefreshCw size={16} className="text-gray-400" />
+                                <span>Try again</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'add-details')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Maximize2 size={16} className="text-gray-400" />
+                                <span>Add details</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'more-concise')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Minimize2 size={16} className="text-gray-400" />
+                                <span>More concise</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'search-web')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Globe size={16} className="text-gray-400" />
+                                <span>Search the web</span>
+                              </button>
+                              <button
+                                onClick={() => handleRetry(message, index, 'think-longer')}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Lightbulb size={16} className="text-gray-400" />
+                                <span>Think longer</span>
+                              </button>
                             </div>
                           </div>
-                      <button
-                            onClick={() => handleRetry(message, index)}
-                            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                            title="Try again"
-                          >
-                            <RefreshCw size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       <button
                         className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Upvote"
@@ -3061,7 +3317,7 @@ export default function Home() {
                         <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       <button
-                        onClick={() => handleTTS(message.content, `msg-${index}`)}
+                        onClick={() => handleTTS(getDisplayedContent(message), `msg-${index}`)}
                         className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title={playingAudioId === `msg-${index}` ? "Stop audio" : "Play audio"}
                       >
@@ -3083,12 +3339,12 @@ export default function Home() {
                       </div>
                       )}
                       {/* Sources footer */}
-                      {message.citations && message.citations.length > 0 && (
+                      {getDisplayedCitations(message) && getDisplayedCitations(message)!.length > 0 && (
                         <div className="mt-3 border-t border-gray-800/60 pt-2">
                           <details>
                             <summary className="text-xs text-gray-400 cursor-pointer">Sources</summary>
                             <div className="mt-2 flex flex-wrap gap-2">
-                              {message.citations.map((c:any, i:number) => (
+                              {getDisplayedCitations(message)!.map((c:any, i:number) => (
                                 <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-full border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500">
                                   {c.title || c.url}
                                 </a>

@@ -11,6 +11,8 @@ export interface ConversationMessage {
   originalQuery?: string;
   originalImages?: string[];
   originalMode?: 'default' | 'search' | 'study' | 'image';
+  retryVersions?: Array<{ content: string; citations?: Array<{ title: string; url: string }>; timestamp: string }>;
+  currentRetryIndex?: number; // Index of currently displayed retry version (0 = original)
 }
 
 interface ConversationContextType {
