@@ -686,7 +686,9 @@ export default function Home() {
                     // Check if this is a retry
                     if (retryStateRef.current) {
                       const retryMessageIndex = retryStateRef.current.messageIndex;
-                      const retryMessage = conversationHistory[retryMessageIndex];
+                      // Get fresh message from history using ref to avoid stale closure
+                      const currentHistory = getConversationHistory();
+                      const retryMessage = currentHistory[retryMessageIndex];
                       
                       if (retryMessage && retryMessage.type === 'ai') {
                         // Add as retry version instead of replacing
@@ -706,6 +708,18 @@ export default function Home() {
                           originalImages: retryMessage.originalImages || imagesToUse.slice(0, 3),
                           originalMode: retryMessage.originalMode || modeToUse,
                         });
+                        
+                        // Remove the temporary streaming message that was created
+                        const currentHistoryAfterUpdate = getConversationHistory();
+                        const lastIndex = currentHistoryAfterUpdate.length - 1;
+                        if (lastIndex >= 0 && lastIndex !== retryMessageIndex) {
+                          // Check if last message is the temporary retry message
+                          const lastMsg = currentHistoryAfterUpdate[lastIndex];
+                          if (lastMsg.type === 'ai') {
+                            // Remove temporary message - it could be empty or have streaming content
+                            removeMessage(lastIndex);
+                          }
+                        }
                         
                         retryStateRef.current = null; // Clear retry state
                       }
@@ -811,19 +825,12 @@ export default function Home() {
                   fullResponse += contentStr;
                   setStreamingResponse(fullResponse);
                   // Only update message if not retrying (retries will be added as versions when done)
-                  // But we still need to initialize a message for display during retry streaming
                   if (!retryStateRef.current) {
                     // Update last AI message for streaming
                     updateLastAIMessage(fullResponse);
                     aiMessageInitialized = true;
-                  } else {
-                    // When retrying, create a temporary message for streaming display
-                    if (!aiMessageInitialized) {
-                      addAIMessage('', undefined, undefined, queryToUse, imagesToUse.slice(0, 3), modeToUse);
-                      aiMessageInitialized = true;
-                    }
-                    updateLastAIMessage(fullResponse);
                   }
+                  // For retries, we just update streamingResponse state - no temporary message needed
                 }
                 if (data.citations) {
                   finalCitations = data.citations;
@@ -3188,6 +3195,18 @@ export default function Home() {
                             </div>
                           )}
                           {message.content && <ResponseRenderer key={`${index}-${message.currentRetryIndex ?? 0}`} content={getDisplayedContent(message)} theme={theme} />}
+                          {/* Show streaming response inline if this is the message being retried */}
+                          {streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index && (
+                            <>
+                              <ResponseRenderer content={streamingResponse} isLoading={isLoading} theme={theme} />
+                              {isLoading && (
+                                <div className="flex items-center space-x-2 mt-2 text-gray-300">
+                                  <PendulumDots />
+                                  <span className="text-sm animate-pulse">Generating...</span>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </>
                       )}
                       {/* Action buttons for AI responses */}
@@ -3388,8 +3407,8 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Streaming Response */}
-              {streamingResponse && (
+              {/* Streaming Response - Only show for NEW messages (not retries) */}
+              {streamingResponse && !retryStateRef.current && (
                 <div className="w-full">
                   <div ref={responseStartRef} />
                   <ResponseRenderer content={streamingResponse} isLoading={isLoading} theme={theme} />
