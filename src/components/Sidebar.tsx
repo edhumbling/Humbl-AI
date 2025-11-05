@@ -87,23 +87,19 @@ export default function Sidebar({
     }
   }, []);
 
-  // Fetch conversations and folders - only if stale or missing
+  // Fetch conversations and folders - always fetch when user is available, not just when sidebar is open
   useEffect(() => {
-    if (isOpen && user) {
+    if (user) {
       const now = Date.now();
       const timeSinceLastFetch = now - lastFetchTimeRef.current;
       const hasCachedData = conversationsCacheRef.current.length > 0 || foldersCacheRef.current.length > 0;
       const isStale = timeSinceLastFetch > STALE_TIME;
 
-      // Only show loading if we don't have cached data
-      if (!hasCachedData) {
-        setIsLoading(true);
-      }
-
-      // Fetch if no cache or stale
+      // Never show loading spinner - always use cache if available
+      // Fetch in background if no cache or stale
       if (!hasCachedData || isStale) {
-        fetchConversations();
-        fetchFolders();
+        fetchConversations(true); // always background fetch
+        fetchFolders(true);
       }
 
       // Set up background refresh interval
@@ -124,7 +120,7 @@ export default function Sidebar({
         }
       };
     }
-  }, [isOpen, user]);
+  }, [user]); // Changed from [isOpen, user] to just [user]
 
   // Filter conversations based on search query
   useEffect(() => {
@@ -146,9 +142,7 @@ export default function Sidebar({
   const fetchConversations = async (background = false) => {
     if (!user) return;
     
-    if (!background) {
-      setIsLoading(true);
-    }
+    // Never set loading state - always fetch in background
     try {
       const response = await fetch('/api/conversations');
       if (response.ok) {
@@ -164,17 +158,13 @@ export default function Sidebar({
         conversationsCacheRef.current = normalizedConversations;
         lastFetchTimeRef.current = Date.now();
         
-        // Update state
+        // Update state silently
         setConversations(normalizedConversations);
         setFilteredConversations(normalizedConversations);
         return normalizedConversations;
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
-    } finally {
-      if (!background) {
-        setIsLoading(false);
-      }
     }
   };
 
@@ -732,51 +722,7 @@ export default function Sidebar({
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
           {user ? (
-            isLoading ? (
-              <>
-                <style dangerouslySetInnerHTML={{__html: `
-                  @keyframes shimmer {
-                    0% {
-                      background-position: -200% 0;
-                    }
-                    100% {
-                      background-position: 200% 0;
-                    }
-                  }
-                  .shimmer-animation {
-                    animation: shimmer 1.5s ease-in-out infinite;
-                  }
-                `}} />
-                <div className="px-4 py-4 space-y-3">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="space-y-2">
-                      <div 
-                        className="h-4 rounded shimmer-animation"
-                        style={{ 
-                          backgroundColor: theme === 'dark' ? 'rgba(156, 163, 175, 0.2)' : 'rgba(192, 192, 192, 0.3)',
-                          backgroundImage: theme === 'dark' 
-                            ? 'linear-gradient(90deg, rgba(156, 163, 175, 0.2) 0%, rgba(209, 213, 219, 0.4) 50%, rgba(156, 163, 175, 0.2) 100%)'
-                            : 'linear-gradient(90deg, rgba(192, 192, 192, 0.3) 0%, rgba(230, 230, 230, 0.6) 50%, rgba(192, 192, 192, 0.3) 100%)',
-                          backgroundSize: '200% 100%',
-                          animationDelay: `${i * 0.1}s`
-                        }}
-                      />
-                      <div 
-                        className="h-3 rounded w-3/4 shimmer-animation"
-                        style={{ 
-                          backgroundColor: theme === 'dark' ? 'rgba(156, 163, 175, 0.15)' : 'rgba(192, 192, 192, 0.25)',
-                          backgroundImage: theme === 'dark' 
-                            ? 'linear-gradient(90deg, rgba(156, 163, 175, 0.15) 0%, rgba(209, 213, 219, 0.3) 50%, rgba(156, 163, 175, 0.15) 100%)'
-                            : 'linear-gradient(90deg, rgba(192, 192, 192, 0.25) 0%, rgba(230, 230, 230, 0.5) 50%, rgba(192, 192, 192, 0.25) 100%)',
-                          backgroundSize: '200% 100%',
-                          animationDelay: `${i * 0.1}s`
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : filteredConversations.length === 0 ? (
+            filteredConversations.length === 0 ? (
               <div
                 className="text-center py-8 text-sm"
                 style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
