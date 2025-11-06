@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Archive, Flag, Folder, Trash2, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreHorizontal, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Archive, Flag, Folder, Trash2, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -24,6 +24,7 @@ export default function SharedConversationPage() {
     updateMessageAt,
     clearConversation,
     startConversation,
+    endConversation,
     removeMessage
   } = useConversation();
   
@@ -65,6 +66,9 @@ export default function SharedConversationPage() {
   const [showThreeDotsMenu, setShowThreeDotsMenu] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMoveToProjectModal, setShowMoveToProjectModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
+  const [showDeleteSuccessModal, setShowDeleteSuccessModal] = useState(false);
+  const [showReportSuccessModal, setShowReportSuccessModal] = useState(false);
   const [reportStep, setReportStep] = useState(1);
   const [reportCategory, setReportCategory] = useState<string>('');
   const [reportSubCategory, setReportSubCategory] = useState<string>('');
@@ -1499,19 +1503,29 @@ export default function SharedConversationPage() {
 
       if (response.ok) {
         setShowThreeDotsMenu(false);
-        // Optionally redirect or show success message
+        // Clear conversation state before redirecting
+        clearConversation();
+        endConversation();
+        setConversation(null);
+        setContinuationConversationId(null);
+        // Redirect to home page
         router.push('/');
+        // Force a hard refresh to ensure clean state
+        router.refresh();
       }
     } catch (error) {
       console.error('Error archiving conversation:', error);
     }
   };
 
-  const handleDelete = async () => {
+  const handleDeleteClick = () => {
+    setShowThreeDotsMenu(false);
+    setShowDeleteConfirmModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     const convId = continuationConversationId || conversationId;
     if (!convId || !user) return;
-
-    if (!confirm('Are you sure you want to delete this conversation?')) return;
 
     try {
       const response = await fetch(`/api/conversations/${convId}`, {
@@ -1519,8 +1533,20 @@ export default function SharedConversationPage() {
       });
 
       if (response.ok) {
-        setShowThreeDotsMenu(false);
-        router.push('/');
+        setShowDeleteConfirmModal(false);
+        // Show success modal first
+        setShowDeleteSuccessModal(true);
+        // Clear conversation state before redirecting
+        clearConversation();
+        endConversation();
+        setConversation(null);
+        setContinuationConversationId(null);
+        setError(null);
+        // Redirect to home page after a short delay
+        setTimeout(() => {
+          router.push('/');
+          router.refresh();
+        }, 1500);
       }
     } catch (error) {
       console.error('Error deleting conversation:', error);
@@ -1563,8 +1589,8 @@ export default function SharedConversationPage() {
         setReportCategory('');
         setReportSubCategory('');
         setReportDetails('');
-        // Show success message
-        alert('Report submitted successfully');
+        // Show success modal
+        setShowReportSuccessModal(true);
       }
     } catch (error) {
       console.error('Error submitting report:', error);
@@ -1669,8 +1695,8 @@ export default function SharedConversationPage() {
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
                 
-                {/* Three dots menu - only show for logged-in users */}
-                {user && (
+                {/* Three dots menu - only show for logged-in users who own the conversation */}
+                {user && (isOwner || continuationConversationId || conversation) && (
                   <div className="relative" ref={threeDotsMenuRef}>
                     <button
                       onClick={() => setShowThreeDotsMenu(!showThreeDotsMenu)}
@@ -1680,7 +1706,8 @@ export default function SharedConversationPage() {
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                       title="More options"
                     >
-                      <MoreVertical size={18} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                      <MoreHorizontal size={18} className="hidden sm:block" style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                      <MoreVertical size={18} className="block sm:hidden" style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
                     </button>
                     
                     {showThreeDotsMenu && (
@@ -1735,7 +1762,7 @@ export default function SharedConversationPage() {
                           <span className="truncate">Report</span>
                         </button>
                         <button
-                          onClick={handleDelete}
+                          onClick={handleDeleteClick}
                           className="w-full flex items-center space-x-2 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm transition-colors duration-200 text-left text-red-500"
                           onMouseEnter={(e) =>
                             (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')
@@ -2122,7 +2149,8 @@ export default function SharedConversationPage() {
                               style={{ backgroundColor: '#f1d08c' }}
                               title="Image options"
                             >
-                              <MoreVertical size={10} className="text-black" />
+                              <MoreHorizontal size={10} className="text-black hidden sm:block" />
+                              <MoreVertical size={10} className="text-black block sm:hidden" />
                             </button>
                             {imageMenuOpen === idx && (
                               <div className="absolute bottom-full left-0 mb-1 rounded-lg shadow-lg overflow-hidden z-20" style={{ backgroundColor: '#1f1f1f', border: '1px solid #3a3a39' }} onClick={(e) => e.stopPropagation()}>
@@ -3584,6 +3612,154 @@ export default function SharedConversationPage() {
                 }}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowDeleteConfirmModal(false)}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transition-colors duration-300 flex flex-col mx-4 sm:mx-0"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5">
+              <h3 className="text-lg font-semibold mb-2 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Delete chat?
+              </h3>
+              <p className="text-base mb-1 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                This will delete <strong>{conversation?.title || 'this conversation'}</strong>.
+              </p>
+              <p className="text-sm mt-3 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Visit <span className="underline cursor-pointer" onClick={() => router.push('/')}>settings</span> to delete any memories saved during this chat.
+              </p>
+            </div>
+            <div className="px-6 py-4 flex gap-3 border-t transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <button
+                onClick={() => setShowDeleteConfirmModal(false)}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)')
+                }
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-white"
+                style={{
+                  backgroundColor: '#ef4444',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Success Modal */}
+      {showDeleteSuccessModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowDeleteSuccessModal(false)}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transition-colors duration-300 flex flex-col mx-4 sm:mx-0"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)' }}>
+                  <Check size={24} style={{ color: '#22c55e' }} />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Chat deleted
+              </h3>
+              <p className="text-sm transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                The conversation has been successfully deleted.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Success Modal */}
+      {showReportSuccessModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowReportSuccessModal(false)}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transition-colors duration-300 flex flex-col mx-4 sm:mx-0"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-5 text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)' }}>
+                  <Check size={24} style={{ color: '#22c55e' }} />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Report submitted
+              </h3>
+              <p className="text-sm transition-colors duration-300 mb-6"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Thank you for your report. We'll review it and take appropriate action.
+              </p>
+              <button
+                onClick={() => setShowReportSuccessModal(false)}
+                className="w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: '#f1d08c',
+                  color: '#000000',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
+              >
+                OK
               </button>
             </div>
           </div>
