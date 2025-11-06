@@ -1783,8 +1783,8 @@ export default function Home() {
               )}
             </div>
 
-            {/* Right: Share button (only when conversation is active) */}
-            {conversationStarted && currentConversationId && (
+            {/* Right: Share button (only when conversation is active and user is logged in) OR Login button (when not logged in) */}
+            {conversationStarted && currentConversationId && user ? (
               <div className="flex items-center space-x-2">
                 <button
                   onClick={async () => {
@@ -1806,7 +1806,20 @@ export default function Home() {
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
               </div>
-            )}
+            ) : !user ? (
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => router.push('/handler/login')}
+                  className="px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105"
+                  style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e8c377'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1d08c'}
+                  title="Login to save conversations"
+                >
+                  Login
+                </button>
+              </div>
+            ) : null}
 
           </div>
         </div>
