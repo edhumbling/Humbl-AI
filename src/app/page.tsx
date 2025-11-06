@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Folder, Archive, Flag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
@@ -326,6 +326,10 @@ export default function Home() {
   const [showCopied, setShowCopied] = useState(false);
   const [dailyPrompts, setDailyPrompts] = useState<string[]>([]);
   const [votesByIndex, setVotesByIndex] = useState<Record<number, 'up' | 'down' | null>>({});
+  const [showConversationMenu, setShowConversationMenu] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showMoveToFolderModal, setShowMoveToFolderModal] = useState(false);
+  const [folders, setFolders] = useState<any[]>([]);
 
   const handleVote = async (messageIndex: number, vote: 'up' | 'down') => {
     setVotesByIndex(prev => {
@@ -343,6 +347,59 @@ export default function Home() {
       }
     } catch {}
   };
+
+  // Fetch folders when user is available
+  useEffect(() => {
+    const fetchFolders = async () => {
+      if (!user) return;
+      try {
+        const response = await fetch('/api/folders');
+        if (response.ok) {
+          const data = await response.json();
+          setFolders(data.folders || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch folders:', error);
+      }
+    };
+    fetchFolders();
+  }, [user]);
+
+  const handleArchiveConversation = async () => {
+    if (!currentConversationId || !user) return;
+    try {
+      const response = await fetch(`/api/conversations/${currentConversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_archived: true }),
+      });
+      if (response.ok) {
+        setShowArchiveModal(false);
+        setShowConversationMenu(false);
+        startNewConversation();
+      }
+    } catch (error) {
+      console.error('Failed to archive conversation:', error);
+    }
+  };
+
+  const handleMoveToFolder = async (folderId: string | null) => {
+    if (!currentConversationId || !user) return;
+    try {
+      const response = await fetch(`/api/conversations/${currentConversationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder_id: folderId }),
+      });
+      if (response.ok) {
+        setShowMoveToFolderModal(false);
+        setShowConversationMenu(false);
+      }
+    } catch (error) {
+      console.error('Failed to move conversation:', error);
+    }
+  };
+
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [retryDropdownOpen, setRetryDropdownOpen] = useState<number | null>(null);
@@ -1805,6 +1862,60 @@ export default function Home() {
                   <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
+                
+                {/* Three dots menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowConversationMenu(!showConversationMenu)}
+                    className="p-2 rounded-lg transition-colors duration-300"
+                    style={{ backgroundColor: '#f1d08c' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e8c377'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1d08c'}
+                    title="More options"
+                  >
+                    <MoreVertical size={18} className="text-black" />
+                  </button>
+
+                  {showConversationMenu && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowConversationMenu(false)}
+                      />
+                      <div
+                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+                        style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff', border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}` }}
+                      >
+                        <button
+                          onClick={() => {
+                            setShowMoveToFolderModal(true);
+                            setShowConversationMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left transition-colors duration-200 flex items-center gap-3"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Folder size={16} />
+                          <span>Move to Project</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowArchiveModal(true);
+                            setShowConversationMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left transition-colors duration-200 flex items-center gap-3"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Archive size={16} />
+                          <span>Archive</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             ) : !user ? (
               <div className="flex items-center space-x-2">
@@ -3924,6 +4035,121 @@ export default function Home() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Archive Confirmation Modal */}
+      {showArchiveModal && (
+        <>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowArchiveModal(false)}
+          >
+            <div
+              className="relative rounded-2xl shadow-2xl max-w-md w-full p-6"
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Archive size={24} style={{ color: '#f1d08c' }} />
+                <h3 className="text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
+                  Archive Conversation
+                </h3>
+              </div>
+              <p className="mb-6" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Are you sure you want to archive this conversation? You can find it in the Archive section later.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowArchiveModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors"
+                  style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleArchiveConversation}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors"
+                  style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e8c377'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1d08c'}
+                >
+                  Archive
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Move to Folder Modal */}
+      {showMoveToFolderModal && (
+        <>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowMoveToFolderModal(false)}
+          >
+            <div
+              className="relative rounded-2xl shadow-2xl max-w-md w-full p-6"
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Folder size={24} style={{ color: '#f1d08c' }} />
+                <h3 className="text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
+                  Move to Project
+                </h3>
+              </div>
+              <p className="mb-4 text-sm" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Select a project to organize this conversation
+              </p>
+              <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
+                {folders.length === 0 ? (
+                  <p className="text-sm text-center py-4" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                    No projects yet. Create one from the sidebar!
+                  </p>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => handleMoveToFolder(null)}
+                      className="w-full px-4 py-3 rounded-lg text-left transition-colors"
+                      style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                    >
+                      Unorganized
+                    </button>
+                    {folders.map((folder) => (
+                      <button
+                        key={folder.id}
+                        onClick={() => handleMoveToFolder(folder.id)}
+                        className="w-full px-4 py-3 rounded-lg text-left transition-colors flex items-center gap-2"
+                        style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                      >
+                        <Folder size={16} />
+                        {folder.name}
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => setShowMoveToFolderModal(false)}
+                className="w-full px-4 py-2 rounded-lg font-medium transition-colors"
+                style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Copied notification */}
