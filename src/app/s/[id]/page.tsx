@@ -40,6 +40,7 @@ export default function MessageSharePage() {
   const [mode, setMode] = useState<'default' | 'search'>('default');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [votesByIndex, setVotesByIndex] = useState<Record<number, 'up' | 'down' | null>>({});
   const [showWebSearchDropdown, setShowWebSearchDropdown] = useState(false);
   const [imageMenuOpen, setImageMenuOpen] = useState<number | null>(null);
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
@@ -1357,6 +1358,25 @@ export default function MessageSharePage() {
     setIsRecording(false);
   };
 
+  const handleVote = async (messageIndex: number, vote: 'up' | 'down') => {
+    setVotesByIndex(prev => {
+      const current = prev[messageIndex] || null;
+      const next = current === vote ? null : vote;
+      return { ...prev, [messageIndex]: next };
+    });
+    try {
+      // Use continuationConversationId (the actual conversation ID) for voting
+      const convId = continuationConversationId;
+      if (convId && messageIndex >= 0) {
+        await fetch('/api/votes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ conversationId: convId, messageIndex, vote }),
+        });
+      }
+    } catch {}
+  };
+
   const handleMessageShare = async (messageIndex: number) => {
     if (!continuationConversationId && !shareId) return;
     const convIdToUse = continuationConversationId || shareId;
@@ -1729,16 +1749,18 @@ export default function MessageSharePage() {
                         )}
                       </div>
                       <button
-                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        onClick={() => handleVote(index, 'up')}
+                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[index] === 'up' ? 'bg-emerald-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
                         title="Upvote"
                       >
-                        <ThumbsUp size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        <ThumbsUp size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'up' ? 'text-emerald-400' : 'text-gray-400'}`} />
                       </button>
                       <button
-                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        onClick={() => handleVote(index, 'down')}
+                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[index] === 'down' ? 'bg-rose-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
                         title="Downvote"
                       >
-                        <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        <ThumbsDown size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'down' ? 'text-rose-400' : 'text-gray-400'}`} />
                       </button>
                       <button
                         onClick={() => handleTTS(getDisplayedContent(message), `msg-${index}`)}
@@ -1795,16 +1817,18 @@ export default function MessageSharePage() {
                         <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       <button
-                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        onClick={() => handleVote(index, 'up')}
+                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[index] === 'up' ? 'bg-emerald-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
                         title="Upvote"
                       >
-                        <ThumbsUp size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        <ThumbsUp size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'up' ? 'text-emerald-400' : 'text-gray-400'}`} />
                       </button>
                       <button
-                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        onClick={() => handleVote(index, 'down')}
+                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[index] === 'down' ? 'bg-rose-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
                         title="Downvote"
                       >
-                        <ThumbsDown size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        <ThumbsDown size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'down' ? 'text-rose-400' : 'text-gray-400'}`} />
                       </button>
                       <button
                         onClick={() => handleTTS(streamingResponse, 'streaming')}

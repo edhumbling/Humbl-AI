@@ -51,7 +51,9 @@ export default function SharedConversationPage() {
       return { ...prev, [messageIndex]: next };
     });
     try {
-      const convId = continuationConversationId || conversationId;
+      // For shared conversations, use original conversationId so all users vote on the same conversation
+      // Only use continuationConversationId if user owns the conversation
+      const convId = isOwner ? (continuationConversationId || conversationId) : conversationId;
       if (convId && messageIndex >= 0) {
         await fetch('/api/votes', {
           method: 'POST',
