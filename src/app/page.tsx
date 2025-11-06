@@ -3735,36 +3735,36 @@ export default function Home() {
                       )}
                     </div>
                   )}
+                  
+                  {/* Branched from indicator - Show after first message if this is a branched conversation */}
+                  {index === 0 && parentConversationId && parentConversationTitle && !isLoading && !streamingResponse && (
+                    <div className="w-full my-6">
+                      {/* Separator line with native color */}
+                      <div className="w-full mb-4" style={{ 
+                        height: '1px',
+                        background: 'linear-gradient(to right, transparent, rgba(241, 208, 140, 0.3) 20%, rgba(241, 208, 140, 0.3) 80%, transparent)'
+                      }} />
+                      
+                      {/* Branched from message */}
+                      <div className="flex justify-center">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm" style={{ 
+                          backgroundColor: theme === 'dark' ? 'rgba(42, 42, 41, 0.5)' : 'rgba(243, 244, 246, 0.5)',
+                          color: theme === 'dark' ? '#9ca3af' : '#6b7280'
+                        }}>
+                          <span>Branched from</span>
+                          <button
+                            onClick={() => handleSelectConversation(parentConversationId)}
+                            className="font-medium hover:underline transition-colors"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          >
+                            {parentConversationTitle}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
-
-              {/* Branched from indicator - Show after last message if this is a branched conversation */}
-              {parentConversationId && parentConversationTitle && conversationHistory.length > 0 && !isLoading && !streamingResponse && (
-                <div className="w-full my-6">
-                  {/* Separator line with native color */}
-                  <div className="w-full mb-4" style={{ 
-                    height: '1px',
-                    background: 'linear-gradient(to right, transparent, rgba(241, 208, 140, 0.3) 20%, rgba(241, 208, 140, 0.3) 80%, transparent)'
-                  }} />
-                  
-                  {/* Branched from message */}
-                  <div className="flex justify-center">
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm" style={{ 
-                      backgroundColor: theme === 'dark' ? 'rgba(42, 42, 41, 0.5)' : 'rgba(243, 244, 246, 0.5)',
-                      color: theme === 'dark' ? '#9ca3af' : '#6b7280'
-                    }}>
-                      <span>Branched from</span>
-                      <button
-                        onClick={() => handleSelectConversation(parentConversationId)}
-                        className="font-medium hover:underline transition-colors"
-                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                      >
-                        {parentConversationTitle}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Thinking Animation - Show when loading but no streaming response yet */}
               {isLoading && !streamingResponse && (
