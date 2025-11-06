@@ -1737,7 +1737,7 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col transition-colors duration-300" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
       {/* Header Bar with New Conversation button */}
-      <div className="w-full transition-colors duration-300">
+      <div className="w-full transition-colors duration-300" style={{ borderBottom: 'none' }}>
         <div className="w-full px-4 md:px-8 py-3">
           <div className="flex items-center justify-between relative">
             {/* Left: Hamburger menu and New conversation */}
