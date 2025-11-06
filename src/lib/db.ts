@@ -138,6 +138,17 @@ export const conversationDb = {
     return result.rows[0];
   },
 
+  // Get archived conversations for a user
+  async getArchivedConversations(userId: string) {
+    const result = await query(
+      `SELECT c.* FROM conversation_summaries c
+       WHERE c.user_id = $1 AND c.is_archived = TRUE 
+       ORDER BY c.updated_at DESC`,
+      [userId]
+    );
+    return result.rows;
+  },
+
   // Add a message to a conversation
   async addMessage(
     conversationId: string,

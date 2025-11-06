@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 
@@ -66,10 +66,13 @@ export default function Sidebar({
   const [showAddChatsToFolderModal, setShowAddChatsToFolderModal] = useState(false);
   const [targetFolderForAdd, setTargetFolderForAdd] = useState<string | null>(null);
   const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
+  const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
+  const [archiveExpanded, setArchiveExpanded] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   
   // Persistent state refs (survive sidebar open/close)
   const conversationsCacheRef = useRef<Conversation[]>([]);
+  const archivedConversationsCacheRef = useRef<Conversation[]>([]);
   const foldersCacheRef = useRef<FolderType[]>([]);
   const lastFetchTimeRef = useRef<number>(0);
   const fetchIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -99,6 +102,7 @@ export default function Sidebar({
       // Fetch in background if no cache or stale
       if (!hasCachedData || isStale) {
         fetchConversations(true); // always background fetch
+        fetchArchivedConversations(true);
         fetchFolders(true);
       }
 
@@ -109,6 +113,7 @@ export default function Sidebar({
       fetchIntervalRef.current = setInterval(() => {
         if (user) {
           fetchConversations(true); // background refresh
+          fetchArchivedConversations(true);
           fetchFolders(true);
         }
       }, REFRESH_INTERVAL);
@@ -165,6 +170,26 @@ export default function Sidebar({
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
+    }
+  };
+
+  const fetchArchivedConversations = async (background = false) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch('/api/conversations/archived');
+      if (response.ok) {
+        const data = await response.json();
+        const archived = data.conversations || [];
+        
+        // Update cache
+        archivedConversationsCacheRef.current = archived;
+        
+        // Update state
+        setArchivedConversations(archived);
+      }
+    } catch (error) {
+      console.error('Failed to fetch archived conversations:', error);
     }
   };
 
@@ -1023,6 +1048,66 @@ export default function Sidebar({
             </div>
           )}
         </div>
+
+        {/* Archive Section */}
+        {user && archivedConversations.length > 0 && !searchQuery.trim() && (
+          <div className="px-4 pb-2 border-t transition-colors duration-300"
+            style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+            <button
+              onClick={() => setArchiveExpanded(!archiveExpanded)}
+              className="w-full flex items-center justify-between px-2 py-2 transition-colors duration-300"
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor = 'transparent')
+              }
+            >
+              <div className="flex items-center space-x-2">
+                <Archive size={14} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
+                <span className="text-xs font-semibold uppercase transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Archive
+                </span>
+              </div>
+              {archiveExpanded ? (
+                <ChevronDown size={14} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
+              ) : (
+                <ChevronRight size={14} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
+              )}
+            </button>
+            
+            {archiveExpanded && (
+              <div className="mt-2 space-y-1">
+                {archivedConversations.map((conversation) => (
+                  <button
+                    key={conversation.id}
+                    onClick={() => {
+                      onSelectConversation(conversation.id);
+                      onClose();
+                    }}
+                    className="w-full text-left py-2 pr-8 transition-opacity duration-200 hover:opacity-70"
+                  >
+                    <p
+                      className={`text-sm sm:text-base font-medium truncate transition-colors duration-300 ${
+                        currentConversationId === conversation.id 
+                          ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
+                          : theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
+                      }`}
+                    >
+                      {conversation.title}
+                    </p>
+                    <p
+                      className="text-xs transition-colors duration-300"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                    >
+                      {formatDate(conversation.updated_at)}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* User Profile Section (Bottom) */}
         {user && (

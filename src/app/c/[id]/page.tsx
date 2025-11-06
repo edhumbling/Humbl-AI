@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Archive, Flag, Folder, Trash2, ChevronRight as ChevronRightIcon } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -62,6 +62,14 @@ export default function SharedConversationPage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [retryDropdownOpen, setRetryDropdownOpen] = useState<number | null>(null);
   const [retryCustomPrompt, setRetryCustomPrompt] = useState('');
+  const [showThreeDotsMenu, setShowThreeDotsMenu] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showMoveToProjectModal, setShowMoveToProjectModal] = useState(false);
+  const [reportStep, setReportStep] = useState(1);
+  const [reportCategory, setReportCategory] = useState<string>('');
+  const [reportSubCategory, setReportSubCategory] = useState<string>('');
+  const [reportDetails, setReportDetails] = useState<string>('');
+  const threeDotsMenuRef = useRef<HTMLDivElement>(null);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -1463,6 +1471,106 @@ export default function SharedConversationPage() {
     router.push('/');
   };
 
+  // Handle click outside three-dots menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (threeDotsMenuRef.current && !threeDotsMenuRef.current.contains(event.target as Node)) {
+        setShowThreeDotsMenu(false);
+      }
+    };
+
+    if (showThreeDotsMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showThreeDotsMenu]);
+
+  const handleArchive = async () => {
+    const convId = continuationConversationId || conversationId;
+    if (!convId || !user) return;
+
+    try {
+      const response = await fetch(`/api/conversations/${convId}/archive`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        setShowThreeDotsMenu(false);
+        // Optionally redirect or show success message
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Error archiving conversation:', error);
+    }
+  };
+
+  const handleDelete = async () => {
+    const convId = continuationConversationId || conversationId;
+    if (!convId || !user) return;
+
+    if (!confirm('Are you sure you want to delete this conversation?')) return;
+
+    try {
+      const response = await fetch(`/api/conversations/${convId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setShowThreeDotsMenu(false);
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
+  const handleReport = () => {
+    setShowThreeDotsMenu(false);
+    setShowReportModal(true);
+    setReportStep(1);
+    setReportCategory('');
+    setReportSubCategory('');
+    setReportDetails('');
+  };
+
+  const handleMoveToProject = () => {
+    setShowThreeDotsMenu(false);
+    setShowMoveToProjectModal(true);
+  };
+
+  const handleSubmitReport = async () => {
+    const convId = continuationConversationId || conversationId;
+    if (!convId || !user) return;
+
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: convId,
+          category: reportCategory,
+          subCategory: reportSubCategory,
+          details: reportDetails,
+        }),
+      });
+
+      if (response.ok) {
+        setShowReportModal(false);
+        setReportStep(1);
+        setReportCategory('');
+        setReportSubCategory('');
+        setReportDetails('');
+        // Show success message
+        alert('Report submitted successfully');
+      }
+    } catch (error) {
+      console.error('Error submitting report:', error);
+    }
+  };
+
   // SoundWave visualization for recording state
   const SoundWave = ({ bars = 80 }: { bars?: number }) => {
     const items = Array.from({ length: bars });
@@ -1546,7 +1654,7 @@ export default function SharedConversationPage() {
               )}
             </div>
 
-            {/* Right: Share button */}
+            {/* Right: Share button and Three dots menu */}
             {conversationStarted && (conversationId || continuationConversationId) && (
               <div className="flex items-center space-x-2">
                 <button
@@ -1560,6 +1668,89 @@ export default function SharedConversationPage() {
                   <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
+                
+                {/* Three dots menu - only show for logged-in users */}
+                {user && (
+                  <div className="relative" ref={threeDotsMenuRef}>
+                    <button
+                      onClick={() => setShowThreeDotsMenu(!showThreeDotsMenu)}
+                      className="p-2 rounded-lg transition-colors duration-300"
+                      style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
+                      title="More options"
+                    >
+                      <MoreVertical size={18} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                    </button>
+                    
+                    {showThreeDotsMenu && (
+                      <div
+                        className="absolute right-0 mt-2 rounded-lg shadow-lg z-50 overflow-hidden w-[140px] sm:w-[180px]"
+                        style={{
+                          backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                          border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                        }}
+                      >
+                        <button
+                          onClick={handleMoveToProject}
+                          className="w-full flex items-center space-x-2 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm transition-colors duration-200 text-left"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <Folder size={12} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
+                          <span className="truncate">Move to project</span>
+                          <ChevronRightIcon size={12} className="ml-auto sm:w-[14px] sm:h-[14px] flex-shrink-0" />
+                        </button>
+                        <button
+                          onClick={handleArchive}
+                          className="w-full flex items-center space-x-2 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm transition-colors duration-200 text-left"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <Archive size={12} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
+                          <span className="truncate">Archive</span>
+                        </button>
+                        <button
+                          onClick={handleReport}
+                          className="w-full flex items-center space-x-2 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm transition-colors duration-200 text-left"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <Flag size={12} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
+                          <span className="truncate">Report</span>
+                        </button>
+                        <button
+                          onClick={handleDelete}
+                          className="w-full flex items-center space-x-2 px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm transition-colors duration-200 text-left text-red-500"
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <Trash2 size={12} className="sm:w-[14px] sm:h-[14px] flex-shrink-0" />
+                          <span className="truncate">Delete</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2995,6 +3186,408 @@ export default function SharedConversationPage() {
             onClick={() => setShowMessageShareModal(false)}
           />
         </>
+      )}
+
+      {/* Report Modal - 3 Step Flow */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => {
+              setShowReportModal(false);
+              setReportStep(1);
+              setReportCategory('');
+              setReportSubCategory('');
+              setReportDetails('');
+            }}
+          />
+          <div
+            className="relative rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden transition-colors duration-300 flex flex-col mx-4 sm:mx-0"
+            style={{
+              backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between flex-shrink-0"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <h3 className="text-lg font-semibold transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Report a conversation
+              </h3>
+              <button
+                onClick={() => {
+                  setShowReportModal(false);
+                  setReportStep(1);
+                  setReportCategory('');
+                  setReportSubCategory('');
+                  setReportDetails('');
+                }}
+                className="p-1 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
+            </div>
+
+            {/* Step 1: Why are you reporting? */}
+            {reportStep === 1 && (
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <p className="text-sm font-semibold mb-4 transition-colors duration-300"
+                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Why are you reporting this conversation?
+                </p>
+                <div className="space-y-2">
+                  {[
+                    'Violence & self-harm',
+                    'Sexual exploitation & abuse',
+                    'Child exploitation',
+                    'Bullying & harassment',
+                    'Spam, fraud & deception',
+                    'Privacy violation',
+                    'Intellectual property',
+                    'Age-inappropriate content',
+                    'Something else'
+                  ].map((reason) => (
+                    <label
+                      key={reason}
+                      className="flex items-center space-x-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors duration-200"
+                      style={{
+                        backgroundColor: reportCategory === reason
+                          ? (theme === 'dark' ? 'rgba(241, 208, 140, 0.2)' : 'rgba(241, 208, 140, 0.3)')
+                          : 'transparent',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (reportCategory !== reason) {
+                          e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (reportCategory !== reason) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="reportCategory"
+                        value={reason}
+                        checked={reportCategory === reason}
+                        onChange={(e) => setReportCategory(e.target.value)}
+                        className="w-4 h-4"
+                        style={{ accentColor: '#f1d08c' }}
+                      />
+                      <span className="text-sm transition-colors duration-300"
+                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                        {reason}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => {
+                      if (reportCategory) {
+                        setReportStep(2);
+                      }
+                    }}
+                    disabled={!reportCategory}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: reportCategory ? '#f1d08c' : (theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)'),
+                      color: reportCategory ? '#000000' : (theme === 'dark' ? '#9ca3af' : '#6b7280'),
+                    }}
+                    onMouseEnter={(e) => {
+                      if (reportCategory) {
+                        e.currentTarget.style.backgroundColor = '#e8c377';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (reportCategory) {
+                        e.currentTarget.style.backgroundColor = '#f1d08c';
+                      }
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Specific reason based on category */}
+            {reportStep === 2 && (
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <p className="text-sm font-semibold mb-4 transition-colors duration-300"
+                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Why are you reporting this conversation?
+                </p>
+                <div className="space-y-2">
+                  {(() => {
+                    const subCategories: { [key: string]: string[] } = {
+                      'Violence & self-harm': [
+                        'Threats or incitement to violence',
+                        'Gender-based violence',
+                        'Sexual violence',
+                        'Weapons',
+                        'Suicide & self-harm',
+                        'Eating disorders',
+                        'Human trafficking',
+                        'Terrorism'
+                      ],
+                      'Sexual exploitation & abuse': [
+                        'Non-consensual intimate images',
+                        'Sexual harassment',
+                        'Sexual exploitation',
+                        'Child sexual abuse material'
+                      ],
+                      'Child exploitation': [
+                        'Child abuse',
+                        'Child sexual exploitation',
+                        'Grooming',
+                        'Child endangerment'
+                      ],
+                      'Bullying & harassment': [
+                        'Cyberbullying',
+                        'Harassment',
+                        'Hate speech',
+                        'Targeted abuse'
+                      ],
+                      'Spam, fraud & deception': [
+                        'Spam',
+                        'Fraud',
+                        'Scams',
+                        'Misinformation'
+                      ],
+                      'Privacy violation': [
+                        'Doxxing',
+                        'Unauthorized sharing',
+                        'Identity theft',
+                        'Stalking'
+                      ],
+                      'Intellectual property': [
+                        'Copyright infringement',
+                        'Trademark violation',
+                        'Plagiarism',
+                        'Unauthorized use'
+                      ],
+                      'Age-inappropriate content': [
+                        'Adult content',
+                        'Violent content',
+                        'Disturbing content',
+                        'Inappropriate language'
+                      ],
+                      'Something else': [
+                        'Other violation',
+                        'Platform abuse',
+                        'Technical issue',
+                        'General concern'
+                      ]
+                    };
+                    return subCategories[reportCategory] || [];
+                  })().map((reason) => (
+                    <label
+                      key={reason}
+                      className="flex items-center space-x-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors duration-200"
+                      style={{
+                        backgroundColor: reportSubCategory === reason
+                          ? (theme === 'dark' ? 'rgba(241, 208, 140, 0.2)' : 'rgba(241, 208, 140, 0.3)')
+                          : 'transparent',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (reportSubCategory !== reason) {
+                          e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (reportSubCategory !== reason) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      <input
+                        type="radio"
+                        name="reportSubCategory"
+                        value={reason}
+                        checked={reportSubCategory === reason}
+                        onChange={(e) => setReportSubCategory(e.target.value)}
+                        className="w-4 h-4"
+                        style={{ accentColor: '#f1d08c' }}
+                      />
+                      <span className="text-sm transition-colors duration-300"
+                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                        {reason}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-6 flex justify-between">
+                  <button
+                    onClick={() => {
+                      setReportStep(1);
+                      setReportSubCategory('');
+                    }}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                      color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)')
+                    }
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (reportSubCategory) {
+                        setReportStep(3);
+                      }
+                    }}
+                    disabled={!reportSubCategory}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: reportSubCategory ? '#f1d08c' : (theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)'),
+                      color: reportSubCategory ? '#000000' : (theme === 'dark' ? '#9ca3af' : '#6b7280'),
+                    }}
+                    onMouseEnter={(e) => {
+                      if (reportSubCategory) {
+                        e.currentTarget.style.backgroundColor = '#e8c377';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (reportSubCategory) {
+                        e.currentTarget.style.backgroundColor = '#f1d08c';
+                      }
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Details */}
+            {reportStep === 3 && (
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                <p className="text-sm font-semibold mb-4 transition-colors duration-300"
+                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Please tell us more
+                </p>
+                <textarea
+                  value={reportDetails}
+                  onChange={(e) => setReportDetails(e.target.value)}
+                  placeholder="Please provide more details"
+                  className="w-full px-4 py-3 rounded-lg border-none outline-none transition-colors duration-300 text-sm resize-none"
+                  rows={6}
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                    color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                    border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                  }}
+                />
+                <div className="mt-6 flex justify-between">
+                  <button
+                    onClick={() => {
+                      setReportStep(2);
+                      setReportDetails('');
+                    }}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200"
+                    style={{
+                      backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                      color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                      border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.9)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)')
+                    }
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleSubmitReport}
+                    disabled={!reportDetails.trim()}
+                    className="px-6 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor: reportDetails.trim() ? '#ffffff' : (theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)'),
+                      color: reportDetails.trim() ? '#111827' : (theme === 'dark' ? '#9ca3af' : '#6b7280'),
+                      border: reportDetails.trim() ? `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}` : 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (reportDetails.trim()) {
+                        e.currentTarget.style.backgroundColor = theme === 'dark' ? '#f3f4f6' : '#f9fafb';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (reportDetails.trim()) {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                      }
+                    }}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Move to Project Modal */}
+      {showMoveToProjectModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowMoveToProjectModal(false)}
+          />
+          <div className="relative rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden transition-colors duration-300 flex flex-col"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <h3 className="text-lg font-semibold transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Move to Project
+              </h3>
+              <button
+                onClick={() => setShowMoveToProjectModal(false)}
+                className="p-1 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-sm transition-colors duration-300 mb-4"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                This feature will be implemented with folder selection.
+              </p>
+              <button
+                onClick={() => setShowMoveToProjectModal(false)}
+                className="w-full px-4 py-2 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Developer Info Modal - Higher z-index than sidebar */}
