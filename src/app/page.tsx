@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Folder, Archive, Flag, Trash2 } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Folder, Archive, Flag, Trash2, GitBranch } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
@@ -34,6 +34,8 @@ export default function Home() {
   } = useConversation();
 
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+  const [parentConversationId, setParentConversationId] = useState<string | null>(null);
+  const [parentConversationTitle, setParentConversationTitle] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   const [streamingResponse, setStreamingResponse] = useState('');
@@ -236,6 +238,10 @@ export default function Home() {
         const data = await response.json();
         const conversation = data.conversation;
         
+        // Set parent conversation info if this is a branched conversation
+        setParentConversationId(conversation.parent_conversation_id || null);
+        setParentConversationTitle(conversation.parent_conversation_title || null);
+        
         // Clear current conversation and load the selected one
         clearConversation();
         
@@ -353,6 +359,45 @@ export default function Home() {
       }
     } catch {}
   };
+
+  const handleBranch = async (messageIndex: number) => {
+    if (!currentConversationId || !user) return;
+    
+    try {
+      const response = await fetch('/api/conversations/branch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conversationId: currentConversationId, messageIndex }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Navigate to the new branched conversation
+        router.push(`/c/${data.conversationId}`);
+      } else {
+        console.error('Failed to branch conversation');
+      }
+    } catch (error) {
+      console.error('Error branching conversation:', error);
+    }
+  };
+
+  const [messageActionsDropdownOpen, setMessageActionsDropdownOpen] = useState<number | null>(null);
+  const messageActionsDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Close message actions dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (messageActionsDropdownRef.current && !messageActionsDropdownRef.current.contains(event.target as Node)) {
+        setMessageActionsDropdownOpen(null);
+      }
+    };
+
+    if (messageActionsDropdownOpen !== null) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [messageActionsDropdownOpen]);
 
   // Fetch folders when user is available
   useEffect(() => {
@@ -3477,10 +3522,11 @@ export default function Home() {
                           </button>
                         </div>
                       )}
+                      {/* First 4 buttons always visible */}
                       <button
                         onClick={() => handleCopy(getDisplayedContent(message))}
                         className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                        title="Copy response"
+                        title="Copy"
                       >
                         <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
@@ -3598,26 +3644,76 @@ export default function Home() {
                       >
                         <ThumbsDown size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'down' ? 'text-rose-400' : 'text-gray-400'}`} />
                       </button>
-                      <button
-                        onClick={() => handleTTS(getDisplayedContent(message), `msg-${index}`)}
-                        className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                        title={playingAudioId === `msg-${index}` ? "Stop audio" : "Play audio"}
-                      >
-                        {playingAudioId === `msg-${index}` ? (
-                          <VolumeX size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                        ) : (
-                          <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                        )}
-                      </button>
-                      {message.type === 'ai' && user && (
+                      {/* More actions dropdown menu */}
+                      <div className="relative" ref={messageActionsDropdownOpen === index ? messageActionsDropdownRef : null}>
                         <button
-                          onClick={() => handleMessageShare(index)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMessageActionsDropdownOpen(messageActionsDropdownOpen === index ? null : index);
+                          }}
                           className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                          title="Share this message"
+                          title="More actions"
                         >
-                          <Share2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                          <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                         </button>
-                      )}
+                        {/* Actions Dropdown Menu */}
+                        {messageActionsDropdownOpen === index && (
+                          <div
+                            className="absolute bottom-full left-0 mb-2 w-48 rounded-lg shadow-xl z-50 overflow-hidden"
+                            style={{
+                              backgroundColor: theme === 'dark' ? '#2a2a29' : '#ffffff',
+                              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                            }}
+                          >
+                            <div className="py-1">
+                              <button
+                                onClick={() => {
+                                  handleBranch(index);
+                                  setMessageActionsDropdownOpen(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <GitBranch size={16} className="text-gray-400" />
+                                <span>Branch in new chat</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleTTS(getDisplayedContent(message), `msg-${index}`);
+                                  setMessageActionsDropdownOpen(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                {playingAudioId === `msg-${index}` ? (
+                                  <>
+                                    <VolumeX size={16} className="text-gray-400" />
+                                    <span>Stop reading</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Volume2 size={16} className="text-gray-400" />
+                                    <span>Read aloud</span>
+                                  </>
+                                )}
+                              </button>
+                              {user && (
+                                <button
+                                  onClick={() => {
+                                    handleMessageShare(index);
+                                    setMessageActionsDropdownOpen(null);
+                                  }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                                >
+                                  <Share2 size={16} className="text-gray-400" />
+                                  <span>Share message</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       </div>
                       )}
                       {/* Sources footer */}
@@ -3667,7 +3763,7 @@ export default function Home() {
                     <button
                       onClick={() => handleCopy(streamingResponse)}
                       className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                      title="Copy response"
+                      title="Copy"
                     >
                       <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                     </button>
@@ -3685,26 +3781,76 @@ export default function Home() {
                     >
                       <ThumbsDown size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[conversationHistory.length - 1] === 'down' ? 'text-rose-400' : 'text-gray-400'}`} />
                     </button>
-                    <button
-                      onClick={() => handleTTS(streamingResponse, 'streaming')}
-                      className="p-1.5 sm:p-2 rounded-full hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                      title={playingAudioId === 'streaming' ? "Stop audio" : "Play audio"}
-                    >
-                      {playingAudioId === 'streaming' ? (
-                        <VolumeX size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                      ) : (
-                        <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                      )}
-                    </button>
-                    {user && (
+                    {/* More actions dropdown menu for streaming */}
+                    <div className="relative" ref={messageActionsDropdownOpen === 9999 ? messageActionsDropdownRef : null}>
                       <button
-                        onClick={() => handleMessageShare(conversationHistory.length - 1)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMessageActionsDropdownOpen(messageActionsDropdownOpen === 9999 ? null : 9999);
+                        }}
                         className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                        title="Share this message"
+                        title="More actions"
                       >
-                        <Share2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                        <MoreVertical size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
-                    )}
+                      {/* Actions Dropdown Menu */}
+                      {messageActionsDropdownOpen === 9999 && (
+                        <div
+                          className="absolute bottom-full left-0 mb-2 w-48 rounded-lg shadow-xl z-50 overflow-hidden"
+                          style={{
+                            backgroundColor: theme === 'dark' ? '#2a2a29' : '#ffffff',
+                            border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                          }}
+                        >
+                          <div className="py-1">
+                            <button
+                              onClick={() => {
+                                handleBranch(conversationHistory.length - 1);
+                                setMessageActionsDropdownOpen(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            >
+                              <GitBranch size={16} className="text-gray-400" />
+                              <span>Branch in new chat</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                handleTTS(streamingResponse, 'streaming');
+                                setMessageActionsDropdownOpen(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            >
+                              {playingAudioId === 'streaming' ? (
+                                <>
+                                  <VolumeX size={16} className="text-gray-400" />
+                                  <span>Stop reading</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Volume2 size={16} className="text-gray-400" />
+                                  <span>Read aloud</span>
+                                </>
+                              )}
+                            </button>
+                            {user && (
+                              <button
+                                onClick={() => {
+                                  handleMessageShare(conversationHistory.length - 1);
+                                  setMessageActionsDropdownOpen(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-700/50 transition-colors text-left"
+                                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              >
+                                <Share2 size={16} className="text-gray-400" />
+                                <span>Share message</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   )}
                 </div>
@@ -4271,7 +4417,7 @@ export default function Home() {
                   <p className="mb-4 text-sm" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                     Why are you reporting this conversation?
                   </p>
-                  <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+                  <div className="space-y-2 max-h-96 overflow-y-auto mb-4 report-scrollbar">
                     {[
                       'Violence & self-harm',
                       'Sexual exploitation & abuse',
@@ -4295,13 +4441,27 @@ export default function Home() {
                         }}
                         className="w-full px-4 py-3 rounded-lg text-left transition-colors flex items-center gap-3"
                         style={{ 
-                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6',
+                          backgroundColor: reportCategory === category ? (theme === 'dark' ? '#3a3a39' : '#e5e7eb') : 'transparent',
                           color: theme === 'dark' ? '#e5e7eb' : '#111827'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                        onMouseEnter={(e) => {
+                          if (reportCategory !== category) {
+                            e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (reportCategory !== category) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          } else {
+                            e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb';
+                          }
+                        }}
                       >
-                        <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: theme === 'dark' ? '#6b7280' : '#9ca3af' }} />
+                        <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: reportCategory === category ? '#f1d08c' : (theme === 'dark' ? '#6b7280' : '#9ca3af') }}>
+                          {reportCategory === category && (
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f1d08c' }} />
+                          )}
+                        </div>
                         {category}
                       </button>
                     ))}
@@ -4315,7 +4475,7 @@ export default function Home() {
                   <p className="mb-4 text-sm" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                     Why are you reporting this conversation?
                   </p>
-                  <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+                  <div className="space-y-2 max-h-96 overflow-y-auto mb-4 report-scrollbar">
                     {[
                       'Threats or incitement to violence',
                       'Gender-based violence',
@@ -4334,13 +4494,27 @@ export default function Home() {
                         }}
                         className="w-full px-4 py-3 rounded-lg text-left transition-colors flex items-center gap-3"
                         style={{ 
-                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6',
+                          backgroundColor: reportSubCategory === subCategory ? (theme === 'dark' ? '#3a3a39' : '#e5e7eb') : 'transparent',
                           color: theme === 'dark' ? '#e5e7eb' : '#111827'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                        onMouseEnter={(e) => {
+                          if (reportSubCategory !== subCategory) {
+                            e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (reportSubCategory !== subCategory) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          } else {
+                            e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb';
+                          }
+                        }}
                       >
-                        <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: theme === 'dark' ? '#6b7280' : '#9ca3af' }} />
+                        <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" style={{ borderColor: reportSubCategory === subCategory ? '#f1d08c' : (theme === 'dark' ? '#6b7280' : '#9ca3af') }}>
+                          {reportSubCategory === subCategory && (
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#f1d08c' }} />
+                          )}
+                        </div>
                         {subCategory}
                       </button>
                     ))}

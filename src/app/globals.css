@@ -61,3 +61,28 @@ body {
 [data-theme="dark"] .custom-scrollbar {
   scrollbar-color: rgba(75, 85, 99, 0.4) transparent;
 }
+
+/* Custom scrollbar for report modal with native color */
+.report-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.report-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.report-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(241, 208, 140, 0.4);
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.report-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(241, 208, 140, 0.6);
+}
+
+/* Firefox scrollbar for report modal */
+.report-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(241, 208, 140, 0.4) transparent;
+}
