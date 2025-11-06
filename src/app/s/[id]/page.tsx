@@ -1817,18 +1817,18 @@ export default function MessageSharePage() {
                         <CopyIcon size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       </button>
                       <button
-                        onClick={() => handleVote(index, 'up')}
-                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[index] === 'up' ? 'bg-emerald-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
+                        onClick={() => handleVote(conversationHistory.length - 1, 'up')}
+                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[conversationHistory.length - 1] === 'up' ? 'bg-emerald-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
                         title="Upvote"
                       >
-                        <ThumbsUp size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'up' ? 'text-emerald-400' : 'text-gray-400'}`} />
+                        <ThumbsUp size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[conversationHistory.length - 1] === 'up' ? 'text-emerald-400' : 'text-gray-400'}`} />
                       </button>
                       <button
-                        onClick={() => handleVote(index, 'down')}
-                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[index] === 'down' ? 'bg-rose-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
+                        onClick={() => handleVote(conversationHistory.length - 1, 'down')}
+                        className={`p-1.5 sm:p-2 rounded-full transition-all active:scale-95 ${votesByIndex[conversationHistory.length - 1] === 'down' ? 'bg-rose-500/15' : 'hover:bg-gray-700/50 active:bg-gray-700'}`}
                         title="Downvote"
                       >
-                        <ThumbsDown size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[index] === 'down' ? 'text-rose-400' : 'text-gray-400'}`} />
+                        <ThumbsDown size={16} className={`sm:w-[18px] sm:h-[18px] ${votesByIndex[conversationHistory.length - 1] === 'down' ? 'text-rose-400' : 'text-gray-400'}`} />
                       </button>
                       <button
                         onClick={() => handleTTS(streamingResponse, 'streaming')}
