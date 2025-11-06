@@ -59,7 +59,7 @@ export async function PATCH(
     );
 
     const body = await request.json();
-    const { title, folder_id } = body;
+    const { title, folder_id, is_archived } = body;
 
     let conversation;
 
@@ -84,6 +84,19 @@ export async function PATCH(
       );
       
       // If folder was updated but conversation is null, try to fetch it
+      if (!conversation) {
+        conversation = await conversationDb.getConversation(id, dbUser.id);
+      }
+    }
+
+    // Update archive status if provided
+    if (is_archived !== undefined) {
+      conversation = await conversationDb.archiveConversation(
+        id,
+        dbUser.id
+      );
+      
+      // If archive was updated but conversation is null, try to fetch it
       if (!conversation) {
         conversation = await conversationDb.getConversation(id, dbUser.id);
       }
