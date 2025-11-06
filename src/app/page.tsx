@@ -199,6 +199,8 @@ export default function Home() {
     endConversation();
     clearConversation();
     setCurrentConversationId(undefined);
+    setParentConversationId(null);
+    setParentConversationTitle(null);
     firstAIMessageRef.current = false;
     setSearchQuery('');
     setSearchResult(null);
@@ -3735,6 +3737,26 @@ export default function Home() {
                   )}
                 </div>
               ))}
+
+              {/* Branched from indicator - Show after last message if this is a branched conversation */}
+              {parentConversationId && parentConversationTitle && conversationHistory.length > 0 && !isLoading && !streamingResponse && (
+                <div className="w-full flex justify-center my-6">
+                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ 
+                    backgroundColor: theme === 'dark' ? 'rgba(42, 42, 41, 0.5)' : 'rgba(243, 244, 246, 0.5)',
+                    borderTop: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                    color: theme === 'dark' ? '#9ca3af' : '#6b7280'
+                  }}>
+                    <span>Branched from</span>
+                    <button
+                      onClick={() => handleSelectConversation(parentConversationId)}
+                      className="font-medium hover:underline transition-colors"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                    >
+                      {parentConversationTitle}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Thinking Animation - Show when loading but no streaming response yet */}
               {isLoading && !streamingResponse && (
