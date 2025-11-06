@@ -652,7 +652,7 @@ export default function Sidebar({
         }}
       >
         {/* Logo with Close Button */}
-        <div className="flex items-center justify-between py-4 px-5 border-b transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+        <div className="flex items-center justify-between py-4 px-5 transition-colors duration-300">
           <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
           <button
             onClick={onClose}
