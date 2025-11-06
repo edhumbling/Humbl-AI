@@ -93,7 +93,8 @@ export async function PATCH(
     if (is_archived !== undefined) {
       conversation = await conversationDb.archiveConversation(
         id,
-        dbUser.id
+        dbUser.id,
+        is_archived
       );
       
       // If archive was updated but conversation is null, try to fetch it

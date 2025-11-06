@@ -127,13 +127,13 @@ export const conversationDb = {
   },
 
   // Archive a conversation
-  async archiveConversation(conversationId: string, userId: string) {
+  async archiveConversation(conversationId: string, userId: string, isArchived: boolean = true) {
     const result = await query(
       `UPDATE conversations 
-       SET is_archived = TRUE 
+       SET is_archived = $3 
        WHERE id = $1 AND user_id = $2 
        RETURNING *`,
-      [conversationId, userId]
+      [conversationId, userId, isArchived]
     );
     return result.rows[0];
   },
