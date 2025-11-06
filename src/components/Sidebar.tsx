@@ -990,15 +990,15 @@ export default function Sidebar({
               })()
             )
           ) : (
-            /* Not logged in - show login/signup buttons */
-            <div className="space-y-3 pt-4 px-4">
-              {/* Encouragement message */}
-              <div className="mb-4 p-4 rounded-lg text-center" style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)' }}>
-                <p className="text-sm font-medium mb-1 transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
-                  Save & retrieve your conversations
-                </p>
-                <p className="text-xs transition-colors duration-300" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  Sign up to access your chat history anytime
+            /* Not logged in - show welcome message and login/signup buttons */
+            <div className="space-y-4 pt-8 px-4">
+              {/* Welcome message */}
+              <div className="mb-6 text-center">
+                <h2 className="text-xl font-semibold mb-3 transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                  Welcome back
+                </h2>
+                <p className="text-sm transition-colors duration-300 leading-relaxed" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  Log in or sign up to get smarter responses, upload files and images, and more.
                 </p>
               </div>
 
