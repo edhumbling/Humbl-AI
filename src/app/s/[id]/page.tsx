@@ -776,6 +776,14 @@ export default function MessageSharePage() {
     }
   };
 
+  const onShareButtonClick = (messageIndex: number) => {
+    if (user) {
+      handleMessageShare(messageIndex);
+    } else {
+      router.push('/handler/login');
+    }
+  };
+
   const stopStreaming = () => {
     // Abort the fetch request
     if (abortControllerRef.current) {
@@ -1745,7 +1753,7 @@ export default function MessageSharePage() {
                       </button>
                       {message.type === 'ai' && (
                         <button
-                          onClick={() => handleMessageShare(index)}
+                          onClick={() => onShareButtonClick(index)}
                           className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                           title="Share this message"
                         >
@@ -1810,7 +1818,7 @@ export default function MessageSharePage() {
                         )}
                       </button>
                       <button
-                        onClick={() => handleMessageShare(conversationHistory.length - 1)}
+                        onClick={() => onShareButtonClick(conversationHistory.length - 1)}
                         className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
                         title="Share this message"
                       >

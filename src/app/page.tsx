@@ -3412,7 +3412,7 @@ export default function Home() {
                           <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                         )}
                       </button>
-                      {message.type === 'ai' && (
+                      {message.type === 'ai' && user && (
                         <button
                           onClick={() => handleMessageShare(index)}
                           className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
@@ -3499,13 +3499,15 @@ export default function Home() {
                         <Volume2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
                       )}
                     </button>
-                    <button
-                      onClick={() => handleMessageShare(conversationHistory.length - 1)}
-                      className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
-                      title="Share this message"
-                    >
-                      <Share2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
-                    </button>
+                    {user && (
+                      <button
+                        onClick={() => handleMessageShare(conversationHistory.length - 1)}
+                        className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-700/50 active:bg-gray-700 transition-colors"
+                        title="Share this message"
+                      >
+                        <Share2 size={16} className="sm:w-[18px] sm:h-[18px] text-gray-400" />
+                      </button>
+                    )}
                   </div>
                   )}
                 </div>
