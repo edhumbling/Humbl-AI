@@ -1681,6 +1681,7 @@ export default function SharedConversationPage() {
             </div>
 
             {/* Right: Share button and Three dots menu */}
+            {/* Share button - shows for everyone when conversation exists */}
             {(conversationStarted || conversationId) && (conversationId || continuationConversationId) && (
               <div className="flex items-center space-x-2">
                 <button
@@ -1695,8 +1696,8 @@ export default function SharedConversationPage() {
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
                 
-                {/* Three dots menu - only show for logged-in users, appears with share button */}
-                {user && (
+                {/* Three dots menu - only show for logged-in users (check both user and isOwner for async loading) */}
+                {(user || isOwner) && (
                   <div className="relative" ref={threeDotsMenuRef}>
                     <button
                       onClick={() => setShowThreeDotsMenu(!showThreeDotsMenu)}
