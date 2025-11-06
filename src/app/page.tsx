@@ -1859,7 +1859,7 @@ export default function Home() {
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                   title="Share conversation"
                 >
-                  <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+                  <Share2 size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
                 
