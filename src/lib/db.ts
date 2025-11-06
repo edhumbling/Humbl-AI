@@ -271,3 +271,45 @@ export const userDb = {
     return result.rows[0];
   },
 };
+
+// Message vote operations
+export const voteDb = {
+  // Upsert a user's vote for a message
+  async upsertVote(userId: string, conversationId: string, messageId: string, vote: -1 | 1) {
+    const result = await query(
+      `INSERT INTO message_votes (user_id, conversation_id, message_id, vote)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, message_id)
+       DO UPDATE SET vote = EXCLUDED.vote, updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [userId, conversationId, messageId, vote]
+    );
+    return result.rows[0];
+  },
+
+  // Get aggregate counts for a message
+  async getMessageVoteCounts(messageId: string) {
+    const result = await query(
+      `SELECT 
+         SUM(CASE WHEN vote = 1 THEN 1 ELSE 0 END) AS upvotes,
+         SUM(CASE WHEN vote = -1 THEN 1 ELSE 0 END) AS downvotes
+       FROM message_votes
+       WHERE message_id = $1`,
+      [messageId]
+    );
+    const row = result.rows[0] || { upvotes: 0, downvotes: 0 };
+    return {
+      upvotes: Number(row.upvotes || 0),
+      downvotes: Number(row.downvotes || 0),
+    };
+  },
+
+  // Get a single user's vote for a message
+  async getUserVoteForMessage(userId: string, messageId: string) {
+    const result = await query(
+      `SELECT vote FROM message_votes WHERE user_id = $1 AND message_id = $2 LIMIT 1`,
+      [userId, messageId]
+    );
+    return result.rows[0]?.vote as -1 | 1 | undefined;
+  },
+};
