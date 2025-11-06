@@ -3741,12 +3741,10 @@ export default function Home() {
               {/* Branched from indicator - Show after last message if this is a branched conversation */}
               {parentConversationId && parentConversationTitle && conversationHistory.length > 0 && !isLoading && !streamingResponse && (
                 <div className="w-full my-6">
-                  {/* Separator line */}
+                  {/* Separator line with native color */}
                   <div className="w-full mb-4" style={{ 
                     height: '1px',
-                    background: theme === 'dark' 
-                      ? 'linear-gradient(to right, transparent, #3a3a39 20%, #3a3a39 80%, transparent)' 
-                      : 'linear-gradient(to right, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent)'
+                    background: 'linear-gradient(to right, transparent, rgba(241, 208, 140, 0.3) 20%, rgba(241, 208, 140, 0.3) 80%, transparent)'
                   }} />
                   
                   {/* Branched from message */}
