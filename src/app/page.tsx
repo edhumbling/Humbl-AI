@@ -329,6 +329,12 @@ export default function Home() {
   const [showConversationMenu, setShowConversationMenu] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showMoveToFolderModal, setShowMoveToFolderModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reportStep, setReportStep] = useState(1);
+  const [reportCategory, setReportCategory] = useState('');
+  const [reportSubCategory, setReportSubCategory] = useState('');
+  const [reportDetails, setReportDetails] = useState('');
   const [folders, setFolders] = useState<any[]>([]);
 
   const handleVote = async (messageIndex: number, vote: 'up' | 'down') => {
@@ -397,6 +403,48 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Failed to move conversation:', error);
+    }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!currentConversationId || !user) return;
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversationId: currentConversationId,
+          category: reportCategory,
+          subCategory: reportSubCategory,
+          details: reportDetails,
+        }),
+      });
+      if (response.ok) {
+        setShowReportModal(false);
+        setShowConversationMenu(false);
+        setReportStep(1);
+        setReportCategory('');
+        setReportSubCategory('');
+        setReportDetails('');
+      }
+    } catch (error) {
+      console.error('Failed to submit report:', error);
+    }
+  };
+
+  const handleDeleteConversation = async () => {
+    if (!currentConversationId || !user) return;
+    try {
+      const response = await fetch(`/api/conversations/${currentConversationId}`, {
+        method: 'DELETE',
+      });
+      if (response.ok) {
+        setShowDeleteModal(false);
+        setShowConversationMenu(false);
+        startNewConversation();
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
     }
   };
 
@@ -1911,6 +1959,31 @@ export default function Home() {
                         >
                           <Archive size={16} />
                           <span>Archive</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowReportModal(true);
+                            setShowConversationMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left transition-colors duration-200 flex items-center gap-3"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Flag size={16} />
+                          <span>Report</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowDeleteModal(true);
+                            setShowConversationMenu(false);
+                          }}
+                          className="w-full px-4 py-3 text-left transition-colors duration-200 flex items-center gap-3 text-red-500"
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Trash2 size={16} />
+                          <span>Delete</span>
                         </button>
                       </div>
                     </>
@@ -4147,6 +4220,230 @@ export default function Home() {
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Report Modal - 3 Step Flow */}
+      {showReportModal && (
+        <>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
+            onClick={() => {
+              setShowReportModal(false);
+              setReportStep(1);
+              setReportCategory('');
+              setReportSubCategory('');
+              setReportDetails('');
+            }}
+          >
+            <div
+              className="relative rounded-2xl shadow-2xl max-w-md w-full p-6"
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
+                  Report a conversation
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowReportModal(false);
+                    setReportStep(1);
+                    setReportCategory('');
+                    setReportSubCategory('');
+                    setReportDetails('');
+                  }}
+                  className="p-1 rounded-lg transition-colors"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.5)' : 'rgba(229, 231, 235, 0.5)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Step 1: Main Categories */}
+              {reportStep === 1 && (
+                <>
+                  <p className="mb-4 text-sm" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                    Why are you reporting this conversation?
+                  </p>
+                  <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+                    {[
+                      'Violence & self-harm',
+                      'Sexual exploitation & abuse',
+                      'Child exploitation',
+                      'Bullying & harassment',
+                      'Spam, fraud & deception',
+                      'Privacy violation',
+                      'Intellectual property',
+                      'Age-inappropriate content',
+                      'Something else'
+                    ].map((category) => (
+                      <button
+                        key={category}
+                        onClick={() => {
+                          setReportCategory(category);
+                          if (category === 'Violence & self-harm') {
+                            setReportStep(2);
+                          } else {
+                            setReportStep(3);
+                          }
+                        }}
+                        className="w-full px-4 py-3 rounded-lg text-left transition-colors flex items-center gap-3"
+                        style={{ 
+                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6',
+                          color: theme === 'dark' ? '#e5e7eb' : '#111827'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                      >
+                        <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: theme === 'dark' ? '#6b7280' : '#9ca3af' }} />
+                        {category}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Sub-categories for Violence & self-harm */}
+              {reportStep === 2 && (
+                <>
+                  <p className="mb-4 text-sm" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                    Why are you reporting this conversation?
+                  </p>
+                  <div className="space-y-2 max-h-96 overflow-y-auto mb-4">
+                    {[
+                      'Threats or incitement to violence',
+                      'Gender-based violence',
+                      'Sexual violence',
+                      'Weapons',
+                      'Suicide & self-harm',
+                      'Eating disorders',
+                      'Human trafficking',
+                      'Terrorism'
+                    ].map((subCategory) => (
+                      <button
+                        key={subCategory}
+                        onClick={() => {
+                          setReportSubCategory(subCategory);
+                          setReportStep(3);
+                        }}
+                        className="w-full px-4 py-3 rounded-lg text-left transition-colors flex items-center gap-3"
+                        style={{ 
+                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6',
+                          color: theme === 'dark' ? '#e5e7eb' : '#111827'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                      >
+                        <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center" style={{ borderColor: theme === 'dark' ? '#6b7280' : '#9ca3af' }} />
+                        {subCategory}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setReportStep(1)}
+                    className="px-4 py-2 rounded-lg font-medium transition-colors"
+                    style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                  >
+                    Back
+                  </button>
+                </>
+              )}
+
+              {/* Step 3: Details */}
+              {reportStep === 3 && (
+                <>
+                  <p className="mb-4 text-sm font-medium" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                    Please tell us more
+                  </p>
+                  <textarea
+                    value={reportDetails}
+                    onChange={(e) => setReportDetails(e.target.value)}
+                    placeholder="Please provide more details"
+                    className="w-full px-4 py-3 rounded-lg mb-4 resize-none"
+                    rows={4}
+                    style={{ 
+                      backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6',
+                      color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                      border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`
+                    }}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => reportCategory === 'Violence & self-harm' ? setReportStep(2) : setReportStep(1)}
+                      className="px-4 py-2 rounded-lg font-medium transition-colors"
+                      style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleSubmitReport}
+                      className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors"
+                      style={{ backgroundColor: '#f1d08c', color: '#000000' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e8c377'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f1d08c'}
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <>
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <div
+              className="relative rounded-2xl shadow-2xl max-w-md w-full p-6"
+              style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold mb-4" style={{ color: theme === 'dark' ? '#ffffff' : '#111827' }}>
+                Delete chat?
+              </h3>
+              <p className="mb-2" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                This will delete <span className="font-semibold">{conversationHistory[0]?.content?.substring(0, 50) || 'this conversation'}</span>.
+              </p>
+              <p className="mb-6 text-sm" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Visit <span className="underline cursor-pointer">settings</span> to delete any memories saved during this chat.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors"
+                  style={{ backgroundColor: theme === 'dark' ? '#2a2a29' : '#f3f4f6', color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3a3a39' : '#e5e7eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? '#2a2a29' : '#f3f4f6'}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConversation}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors text-white"
+                  style={{ backgroundColor: '#dc2626' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         </>

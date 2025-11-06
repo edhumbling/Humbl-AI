@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stackServerApp } from '@/stack/server';
-import { userDb, query } from '@/lib/db';
+import { query, userDb } from '@/lib/db';
 
 // POST /api/reports - Create a new report
 export async function POST(request: NextRequest) {
@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Get or create user in our database
     const dbUser = await userDb.upsertUser(
       user.id,
       user.primaryEmail || '',
@@ -18,28 +19,24 @@ export async function POST(request: NextRequest) {
       user.profileImageUrl || undefined
     );
 
-    const body = await request.json();
-    const { conversationId, category, subCategory, details } = body;
+    const { conversationId, category, subCategory, details } = await request.json();
 
-    if (!conversationId || !category || !subCategory || !details) {
+    if (!conversationId || !category) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Conversation ID and category are required' },
         { status: 400 }
       );
     }
 
-    // Insert report into database
+    // Create the report
     const result = await query(
-      `INSERT INTO reports (user_id, conversation_id, category, sub_category, details, created_at)
-       VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
+      `INSERT INTO reports (user_id, conversation_id, category, sub_category, details, status)
+       VALUES ($1, $2, $3, $4, $5, 'pending')
        RETURNING *`,
-      [dbUser.id, conversationId, category, subCategory, details]
+      [dbUser.id, conversationId, category, subCategory || null, details || null]
     );
 
-    return NextResponse.json(
-      { success: true, report: result.rows[0] },
-      { status: 201 }
-    );
+    return NextResponse.json({ report: result.rows[0] }, { status: 201 });
   } catch (error) {
     console.error('Error creating report:', error);
     return NextResponse.json(
@@ -48,24 +45,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// GET /api/reports - Get all reports (admin only - optional)
-export async function GET(request: NextRequest) {
-  try {
-    const user = await stackServerApp.getUser();
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // For now, return empty array. Can be extended for admin access later
-    return NextResponse.json({ reports: [] }, { status: 200 });
-  } catch (error) {
-    console.error('Error fetching reports:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch reports' },
-      { status: 500 }
-    );
-  }
-}
-
