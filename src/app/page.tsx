@@ -374,8 +374,8 @@ export default function Home() {
 
       if (response.ok) {
         const data = await response.json();
-        // Navigate to the new branched conversation
-        router.push(`/c/${data.conversationId}`);
+        // Open the branched conversation in a new tab
+        window.open(`/c/${data.conversationId}`, '_blank');
       } else {
         console.error('Failed to branch conversation');
       }
@@ -3740,20 +3740,30 @@ export default function Home() {
 
               {/* Branched from indicator - Show after last message if this is a branched conversation */}
               {parentConversationId && parentConversationTitle && conversationHistory.length > 0 && !isLoading && !streamingResponse && (
-                <div className="w-full flex justify-center my-6">
-                  <div className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ 
-                    backgroundColor: theme === 'dark' ? 'rgba(42, 42, 41, 0.5)' : 'rgba(243, 244, 246, 0.5)',
-                    borderTop: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
-                    color: theme === 'dark' ? '#9ca3af' : '#6b7280'
-                  }}>
-                    <span>Branched from</span>
-                    <button
-                      onClick={() => handleSelectConversation(parentConversationId)}
-                      className="font-medium hover:underline transition-colors"
-                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                    >
-                      {parentConversationTitle}
-                    </button>
+                <div className="w-full my-6">
+                  {/* Separator line */}
+                  <div className="w-full mb-4" style={{ 
+                    height: '1px',
+                    background: theme === 'dark' 
+                      ? 'linear-gradient(to right, transparent, #3a3a39 20%, #3a3a39 80%, transparent)' 
+                      : 'linear-gradient(to right, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent)'
+                  }} />
+                  
+                  {/* Branched from message */}
+                  <div className="flex justify-center">
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm" style={{ 
+                      backgroundColor: theme === 'dark' ? 'rgba(42, 42, 41, 0.5)' : 'rgba(243, 244, 246, 0.5)',
+                      color: theme === 'dark' ? '#9ca3af' : '#6b7280'
+                    }}>
+                      <span>Branched from</span>
+                      <button
+                        onClick={() => handleSelectConversation(parentConversationId)}
+                        className="font-medium hover:underline transition-colors"
+                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      >
+                        {parentConversationTitle}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

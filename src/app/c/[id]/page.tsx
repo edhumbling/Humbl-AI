@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreHorizontal, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Archive, Flag, Folder, Trash2, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreHorizontal, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Archive, Flag, Folder, Trash2, ChevronRight as ChevronRightIcon, Menu } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
@@ -1663,7 +1663,7 @@ export default function SharedConversationPage() {
   return (
     <div className="h-screen flex flex-col transition-colors duration-300" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
       {/* Header Bar - Same as main page */}
-      <div className="w-full transition-colors duration-300" style={{ borderBottom: theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)' }}>
+      <div className="w-full transition-colors duration-300" style={{ borderBottom: 'none' }}>
         <div className="w-full px-4 md:px-8 py-3">
           <div className="flex items-center justify-between relative">
             {/* Left: Hamburger menu and New conversation */}
@@ -1676,7 +1676,7 @@ export default function SharedConversationPage() {
                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                 title="Menu"
               >
-                <Image src="/sidebar menu.png" alt="Menu" width={18} height={18} className="opacity-80" style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'none' }} />
+                <Menu size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
               </button>
               <button
                 onClick={startNewConversation}
@@ -1721,7 +1721,7 @@ export default function SharedConversationPage() {
                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
                   title="Share conversation"
                 >
-                  <Image src="/share.png" alt="Share" width={18} height={18} style={{ filter: theme === 'dark' ? 'brightness(0) invert(1)' : 'brightness(0)' }} />
+                  <Share2 size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
                 </button>
                 <span className={`text-sm hidden sm:inline transition-colors duration-300 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Share</span>
                 
