@@ -1382,41 +1382,27 @@ export default function Sidebar({
                       <span>Upgrade plan</span>
                     </button>
 
-                    {/* Personalization */}
+                    {/* Personalization - Faded/Disabled */}
                     <button
                       onClick={() => {
-                        setShowUserMenu(false);
-                        // TODO: Add personalization functionality
+                        // Disabled for now
                       }}
-                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
+                      disabled
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                     >
                       <RefreshCw size={16} />
                       <span>Personalization</span>
                     </button>
 
-                    {/* Settings */}
+                    {/* Settings - Faded/Disabled */}
                     <button
                       onClick={() => {
-                        setShowUserMenu(false);
-                        // TODO: Add settings functionality
+                        // Disabled for now
                       }}
-                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
+                      disabled
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                     >
                       <Settings size={16} />
                       <span>Settings</span>
@@ -1427,6 +1413,35 @@ export default function Sidebar({
                       className="w-full h-px my-1"
                       style={{ backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}
                     />
+
+                    {/* Switch Theme */}
+                    <button
+                      onClick={() => {
+                        setTheme(theme === 'dark' ? 'light' : 'dark');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      {theme === 'dark' ? (
+                        <>
+                          <Sun size={16} />
+                          <span>Switch to light mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <Moon size={16} />
+                          <span>Switch to dark mode</span>
+                        </>
+                      )}
+                    </button>
 
                     {/* Help with submenu */}
                     <div className="relative">
