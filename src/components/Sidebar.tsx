@@ -1206,10 +1206,11 @@ export default function Sidebar({
                 {showUserMenu && (
                   <div
                     data-menu-dropdown
-                    className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg overflow-hidden min-w-[220px] z-50"
+                    className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg min-w-[220px] z-50"
                     style={{
                       backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                       border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                      overflow: 'visible',
                     }}
                   >
                     {/* Account Email */}
@@ -1324,7 +1325,7 @@ export default function Sidebar({
                         <>
                           {/* Desktop: Submenu to the right */}
                           <div
-                            className="hidden sm:block absolute left-full top-0 ml-2 rounded-lg overflow-hidden shadow-lg z-[60] min-w-[200px]"
+                            className="hidden sm:block absolute left-full top-0 ml-1 rounded-lg overflow-hidden shadow-lg z-[70] min-w-[200px]"
                             style={{
                               backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
                               border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
