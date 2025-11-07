@@ -1799,12 +1799,13 @@ export default function Sidebar({
                 value={feedbackContent}
                 onChange={(e) => setFeedbackContent(e.target.value)}
                 placeholder="Enter your feedback here..."
-                className="w-full px-4 py-3 rounded-lg border-none outline-none transition-colors duration-300 text-sm resize-none"
+                className="w-full px-4 py-3 rounded-lg border-none outline-none transition-colors duration-300 text-sm resize-none feedback-textarea-scrollbar"
                 style={{
                   backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
                   color: theme === 'dark' ? '#e5e7eb' : '#111827',
                   minHeight: '120px',
                   maxHeight: '300px',
+                  overflowY: 'auto',
                 }}
                 rows={6}
                 maxLength={3500}
@@ -1909,6 +1910,49 @@ export default function Sidebar({
           </div>
         </div>
       )}
+
+      <style jsx global>{`
+        /* Feedback textarea scrollbar - faded dark */
+        .feedback-textarea-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+        }
+        
+        .feedback-textarea-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .feedback-textarea-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 4px;
+        }
+        
+        .feedback-textarea-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.3);
+          border-radius: 4px;
+          transition: background 0.2s ease;
+        }
+        
+        .feedback-textarea-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Dark theme - slightly lighter for visibility */
+        [data-theme="dark"] .feedback-textarea-scrollbar,
+        body[data-theme="dark"] .feedback-textarea-scrollbar {
+          scrollbar-color: rgba(75, 85, 99, 0.4) transparent;
+        }
+        
+        [data-theme="dark"] .feedback-textarea-scrollbar::-webkit-scrollbar-thumb,
+        body[data-theme="dark"] .feedback-textarea-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(75, 85, 99, 0.4);
+        }
+        
+        [data-theme="dark"] .feedback-textarea-scrollbar::-webkit-scrollbar-thumb:hover,
+        body[data-theme="dark"] .feedback-textarea-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(107, 114, 128, 0.6);
+        }
+      `}</style>
     </>
   );
 }
