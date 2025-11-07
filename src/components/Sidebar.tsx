@@ -68,6 +68,10 @@ export default function Sidebar({
   const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
   const [archivedConversations, setArchivedConversations] = useState<Conversation[]>([]);
   const [archiveExpanded, setArchiveExpanded] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackContent, setFeedbackContent] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [showFeedbackConfirmation, setShowFeedbackConfirmation] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   
   // Persistent state refs (survive sidebar open/close)
@@ -527,11 +531,48 @@ export default function Sidebar({
     }
   };
 
+  const handleSubmitFeedback = async () => {
+    const trimmedContent = feedbackContent.trim();
+    
+    if (trimmedContent.length < 10) {
+      alert('Feedback must be at least 10 characters long');
+      return;
+    }
+
+    if (trimmedContent.length > 1500) {
+      alert('Feedback must be no more than 1500 characters long');
+      return;
+    }
+
+    setIsSubmittingFeedback(true);
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: trimmedContent }),
+      });
+
+      if (response.ok) {
+        setShowFeedbackModal(false);
+        setFeedbackContent('');
+        setShowFeedbackConfirmation(true);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      alert('Failed to submit feedback. Please try again.');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   // Handle click outside to close sidebar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       // Don't close sidebar if any modal is open
-      if (showCreateFolderModal || showMoveToProjectModal || showDeleteProjectModal || showAddChatsToFolderModal) {
+      if (showCreateFolderModal || showMoveToProjectModal || showDeleteProjectModal || showAddChatsToFolderModal || showFeedbackModal || showFeedbackConfirmation) {
         return;
       }
       
@@ -1217,10 +1258,7 @@ export default function Sidebar({
                     </button>
                     <button
                       onClick={() => {
-                        const phoneNumber = '233208705290';
-                        const message = encodeURIComponent('Feedback from Humbl AI: ');
-                        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
-                        window.open(whatsappUrl, '_blank');
+                        setShowFeedbackModal(true);
                         setShowSearchMenu(false);
                       }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
@@ -1707,6 +1745,165 @@ export default function Sidebar({
                 }}
               >
                 Add {selectedConversations.size > 0 ? `${selectedConversations.size} ` : ''}Chat{selectedConversations.size !== 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => {
+              if (!isSubmittingFeedback) {
+                setShowFeedbackModal(false);
+                setFeedbackContent('');
+              }
+            }}
+          />
+          <div className="relative w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 sm:px-6 py-4 border-b transition-colors duration-300 flex items-center justify-between"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <h3 className="text-lg sm:text-xl font-semibold transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Send Feedback
+              </h3>
+              <button
+                onClick={() => {
+                  if (!isSubmittingFeedback) {
+                    setShowFeedbackModal(false);
+                    setFeedbackContent('');
+                  }
+                }}
+                className="p-1.5 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                }}
+                disabled={isSubmittingFeedback}
+              >
+                <X size={18} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
+            </div>
+            <div className="px-4 sm:px-6 py-4">
+              <p className="text-sm mb-4 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                We'd love to hear your thoughts! Please share your feedback (10-1500 characters).
+              </p>
+              <textarea
+                value={feedbackContent}
+                onChange={(e) => setFeedbackContent(e.target.value)}
+                placeholder="Enter your feedback here..."
+                className="w-full px-4 py-3 rounded-lg border-none outline-none transition-colors duration-300 text-sm resize-none"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#111827',
+                  minHeight: '120px',
+                  maxHeight: '300px',
+                }}
+                rows={6}
+                maxLength={1500}
+                disabled={isSubmittingFeedback}
+              />
+              <div className="flex items-center justify-between mt-3">
+                <p className="text-xs transition-colors duration-300"
+                  style={{ 
+                    color: feedbackContent.length < 10 || feedbackContent.length > 1500 
+                      ? '#ef4444' 
+                      : theme === 'dark' ? '#9ca3af' : '#6b7280' 
+                  }}>
+                  {feedbackContent.length < 10 
+                    ? `Minimum 10 characters (${feedbackContent.length}/10)`
+                    : `${feedbackContent.length}/1500 characters`
+                  }
+                </p>
+              </div>
+            </div>
+            <div className="px-4 sm:px-6 py-4 flex gap-3 border-t transition-colors duration-300"
+              style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+              <button
+                onClick={() => {
+                  if (!isSubmittingFeedback) {
+                    setShowFeedbackModal(false);
+                    setFeedbackContent('');
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.8)',
+                  color: theme === 'dark' ? '#e5e7eb' : '#374151',
+                }}
+                disabled={isSubmittingFeedback}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitFeedback}
+                disabled={isSubmittingFeedback || feedbackContent.trim().length < 10 || feedbackContent.length > 1500}
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                style={{
+                  backgroundColor: '#f1d08c',
+                  color: '#000000',
+                }}
+                onMouseEnter={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#e8c377';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!e.currentTarget.disabled) {
+                    e.currentTarget.style.backgroundColor = '#f1d08c';
+                  }
+                }}
+              >
+                {isSubmittingFeedback ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Confirmation Modal */}
+      {showFeedbackConfirmation && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.3)' }}
+            onClick={() => setShowFeedbackConfirmation(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transition-colors duration-300"
+            style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-6 py-6 text-center">
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                style={{ backgroundColor: theme === 'dark' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(34, 197, 94, 0.1)' }}>
+                <Check size={32} style={{ color: '#22c55e' }} />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                Thank You! 🎉
+              </h3>
+              <p className="text-sm mb-6 transition-colors duration-300"
+                style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                Your feedback has been submitted successfully. We appreciate your input!
+              </p>
+              <button
+                onClick={() => setShowFeedbackConfirmation(false)}
+                className="w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02]"
+                style={{
+                  backgroundColor: '#f1d08c',
+                  color: '#000000',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
+              >
+                Close
               </button>
             </div>
           </div>
