@@ -72,6 +72,7 @@ export default function Sidebar({
   const [feedbackContent, setFeedbackContent] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [showFeedbackConfirmation, setShowFeedbackConfirmation] = useState(false);
+  const [showHelpSubmenu, setShowHelpSubmenu] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   
   // Persistent state refs (survive sidebar open/close)
@@ -1287,28 +1288,82 @@ export default function Sidebar({
                       style={{ backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}
                     />
 
-                    {/* Help */}
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false);
-                        // TODO: Add help functionality
-                      }}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
-                    >
-                      <div className="flex items-center space-x-2">
-                        <HelpCircle size={16} />
-                        <span>Help</span>
-                      </div>
-                      <ChevronRight size={16} />
-                    </button>
+                    {/* Help with submenu */}
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowHelpSubmenu(!showHelpSubmenu);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 text-sm transition-colors duration-200"
+                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'transparent')
+                        }
+                      >
+                        <div className="flex items-center space-x-2">
+                          <HelpCircle size={16} />
+                          <span>Help</span>
+                        </div>
+                        <ChevronRight 
+                          size={16} 
+                          className={`transition-transform duration-200 ${showHelpSubmenu ? 'rotate-90' : ''}`}
+                        />
+                      </button>
+                      
+                      {/* Help Submenu */}
+                      {showHelpSubmenu && (
+                        <div
+                          className="mt-1 rounded-lg overflow-hidden"
+                          style={{
+                            backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
+                            border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                          }}
+                        >
+                          <button
+                            onClick={() => {
+                              onShowInfo();
+                              setShowUserMenu(false);
+                              setShowHelpSubmenu(false);
+                            }}
+                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.backgroundColor =
+                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
+                          >
+                            <Info size={14} />
+                            <span>Developer Info</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowFeedbackModal(true);
+                              setShowUserMenu(false);
+                              setShowHelpSubmenu(false);
+                            }}
+                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.backgroundColor =
+                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
+                          >
+                            <MessageSquare size={14} />
+                            <span>Send feedback</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
 
                     {/* Log out */}
                     <button
