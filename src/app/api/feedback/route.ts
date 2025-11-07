@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate content length (10-1500 characters)
+    // Validate content length (10-3500 characters)
     const trimmedContent = content.trim();
     if (trimmedContent.length < 10) {
       return NextResponse.json(
@@ -37,9 +37,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (trimmedContent.length > 1500) {
+    if (trimmedContent.length > 3500) {
       return NextResponse.json(
-        { error: 'Feedback must be no more than 1500 characters long' },
+        { error: 'Feedback must be no more than 3500 characters long' },
         { status: 400 }
       );
     }

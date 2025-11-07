@@ -539,8 +539,8 @@ export default function Sidebar({
       return;
     }
 
-    if (trimmedContent.length > 1500) {
-      alert('Feedback must be no more than 1500 characters long');
+    if (trimmedContent.length > 3500) {
+      alert('Feedback must be no more than 3500 characters long');
       return;
     }
 
@@ -1793,7 +1793,7 @@ export default function Sidebar({
             <div className="px-4 sm:px-6 py-4">
               <p className="text-sm mb-4 transition-colors duration-300"
                 style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                We'd love to hear your thoughts! Please share your feedback (10-1500 characters).
+                We'd love to hear your thoughts! Please share your feedback (10-3500 characters).
               </p>
               <textarea
                 value={feedbackContent}
@@ -1807,19 +1807,19 @@ export default function Sidebar({
                   maxHeight: '300px',
                 }}
                 rows={6}
-                maxLength={1500}
+                maxLength={3500}
                 disabled={isSubmittingFeedback}
               />
               <div className="flex items-center justify-between mt-3">
                 <p className="text-xs transition-colors duration-300"
                   style={{ 
-                    color: feedbackContent.length < 10 || feedbackContent.length > 1500 
+                    color: feedbackContent.length < 10 || feedbackContent.length > 3500 
                       ? '#ef4444' 
                       : theme === 'dark' ? '#9ca3af' : '#6b7280' 
                   }}>
                   {feedbackContent.length < 10 
                     ? `Minimum 10 characters (${feedbackContent.length}/10)`
-                    : `${feedbackContent.length}/1500 characters`
+                    : `${feedbackContent.length}/3500 characters`
                   }
                 </p>
               </div>
@@ -1844,7 +1844,7 @@ export default function Sidebar({
               </button>
               <button
                 onClick={handleSubmitFeedback}
-                disabled={isSubmittingFeedback || feedbackContent.trim().length < 10 || feedbackContent.length > 1500}
+                disabled={isSubmittingFeedback || feedbackContent.trim().length < 10 || feedbackContent.length > 3500}
                 className="flex-1 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                 style={{
                   backgroundColor: '#f1d08c',
