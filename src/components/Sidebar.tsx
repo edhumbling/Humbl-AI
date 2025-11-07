@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle, FileText, ExternalLink, Flag, Download, Zap } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 
@@ -1324,7 +1324,7 @@ export default function Sidebar({
                         <>
                           {/* Desktop: Submenu to the right */}
                           <div
-                            className="hidden sm:block absolute left-full top-0 ml-2 rounded-lg overflow-hidden shadow-lg z-[60] min-w-[180px]"
+                            className="hidden sm:block absolute left-full top-0 ml-2 rounded-lg overflow-hidden shadow-lg z-[60] min-w-[200px]"
                             style={{
                               backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
                               border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -1332,7 +1332,48 @@ export default function Sidebar({
                           >
                             <button
                               onClick={() => {
-                                onShowInfo();
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add help center functionality
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <HelpCircle size={14} />
+                              <span>Help center</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add release notes functionality
+                              }}
+                              className="w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <div className="flex items-center space-x-2">
+                                <Pencil size={14} />
+                                <span>Release notes</span>
+                              </div>
+                              <ExternalLink size={12} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.location.href = '/terms';
                                 setShowUserMenu(false);
                                 setShowHelpSubmenu(false);
                               }}
@@ -1346,8 +1387,8 @@ export default function Sidebar({
                                 (e.currentTarget.style.backgroundColor = 'transparent')
                               }
                             >
-                              <Info size={14} />
-                              <span>Developer Info</span>
+                              <FileText size={14} />
+                              <span>Terms & policies</span>
                             </button>
                             <button
                               onClick={() => {
@@ -1365,8 +1406,46 @@ export default function Sidebar({
                                 (e.currentTarget.style.backgroundColor = 'transparent')
                               }
                             >
-                              <MessageSquare size={14} />
-                              <span>Send feedback</span>
+                              <Flag size={14} />
+                              <span>Report Bug</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add download apps functionality
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <Download size={14} />
+                              <span>Download apps</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add keyboard shortcuts functionality
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <Zap size={14} />
+                              <span>Keyboard shortcuts</span>
                             </button>
                           </div>
                           
@@ -1380,7 +1459,48 @@ export default function Sidebar({
                           >
                             <button
                               onClick={() => {
-                                onShowInfo();
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add help center functionality
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <HelpCircle size={14} />
+                              <span>Help center</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add release notes functionality
+                              }}
+                              className="w-full flex items-center justify-between px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <div className="flex items-center space-x-2">
+                                <Pencil size={14} />
+                                <span>Release notes</span>
+                              </div>
+                              <ExternalLink size={12} />
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.location.href = '/terms';
                                 setShowUserMenu(false);
                                 setShowHelpSubmenu(false);
                               }}
@@ -1394,8 +1514,8 @@ export default function Sidebar({
                                 (e.currentTarget.style.backgroundColor = 'transparent')
                               }
                             >
-                              <Info size={14} />
-                              <span>Developer Info</span>
+                              <FileText size={14} />
+                              <span>Terms & policies</span>
                             </button>
                             <button
                               onClick={() => {
@@ -1413,8 +1533,46 @@ export default function Sidebar({
                                 (e.currentTarget.style.backgroundColor = 'transparent')
                               }
                             >
-                              <MessageSquare size={14} />
-                              <span>Send feedback</span>
+                              <Flag size={14} />
+                              <span>Report Bug</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add download apps functionality
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <Download size={14} />
+                              <span>Download apps</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                                // TODO: Add keyboard shortcuts functionality
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <Zap size={14} />
+                              <span>Keyboard shortcuts</span>
                             </button>
                           </div>
                         </>
