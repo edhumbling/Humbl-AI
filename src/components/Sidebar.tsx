@@ -1172,60 +1172,77 @@ export default function Sidebar({
             )
           ) : (
             /* Not logged in - show welcome message and login/signup buttons */
-            <div className="space-y-4 pt-8 px-4">
-              {/* Welcome message */}
-              <div className="mb-6 text-center">
-                <h2 className="text-xl font-semibold mb-3 transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
-                  Welcome back
-                </h2>
-                <p className="text-sm transition-colors duration-300 leading-relaxed" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  Log in or sign up to get smarter responses, upload files and images, and more.
-                </p>
+            <div className="flex flex-col h-full">
+              <div className="space-y-4 pt-8 px-4 flex-1">
+                {/* Welcome message */}
+                <div className="mb-6 text-center">
+                  <h2 className="text-xl font-semibold mb-3 transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                    Welcome back
+                  </h2>
+                  <p className="text-sm transition-colors duration-300 leading-relaxed" style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                    Log in or sign up to get smarter responses, upload files and images, and more.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    window.location.href = '/handler/login';
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: '#f1d08c',
+                    color: '#000000',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
+                >
+                  <LogIn size={20} className="text-black" />
+                  <span className="text-base font-medium text-black">
+                    Login
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    window.location.href = '/handler/signup';
+                  }}
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      theme === 'dark' ? '#2a2a29' : '#e5e7eb')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      theme === 'dark' ? '#1a1a19' : '#f3f4f6')
+                  }
+                >
+                  <UserPlus size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                  <span
+                    className="text-base transition-colors duration-300"
+                    style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                  >
+                    Sign Up
+                  </span>
+                </button>
               </div>
 
-              <button
-                onClick={() => {
-                  window.location.href = '/handler/login';
-                }}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 hover:scale-[1.02]"
-                style={{
-                  backgroundColor: '#f1d08c',
-                  color: '#000000',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
-              >
-                <LogIn size={20} className="text-black" />
-                <span className="text-base font-medium text-black">
-                  Login
-                </span>
-              </button>
-
-              <button
-                onClick={() => {
-                  window.location.href = '/handler/signup';
-                }}
-                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200"
-                style={{
-                  backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? '#2a2a29' : '#e5e7eb')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? '#1a1a19' : '#f3f4f6')
-                }
-              >
-                <UserPlus size={20} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-                <span
-                  className="text-base transition-colors duration-300"
-                  style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+              {/* Terms and Privacy - For non-logged users at bottom */}
+              <div className="border-t px-4 py-3 transition-colors duration-300"
+                style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+                <button
+                  onClick={() => {
+                    window.location.href = '/terms';
+                    onClose();
+                  }}
+                  className="w-full text-center text-xs transition-colors duration-300 hover:underline"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                 >
-                  Sign Up
-                </span>
-              </button>
+                  Terms & Privacy Policy
+                </button>
+              </div>
             </div>
           )}
         </div>
