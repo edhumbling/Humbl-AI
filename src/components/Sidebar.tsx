@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 
@@ -1160,8 +1160,8 @@ export default function Sidebar({
                 <button
                   data-menu-trigger="settings"
                   onClick={() => {
-                    setShowSearchMenu(!showSearchMenu);
-                    setShowUserMenu(false);
+                    setShowUserMenu(!showUserMenu);
+                    setShowSearchMenu(false);
                   }}
                   className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
                   style={{
@@ -1201,20 +1201,28 @@ export default function Sidebar({
                   <Settings size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
                 </button>
 
-                {/* Search menu dropdown */}
-                {showSearchMenu && (
+                {/* Account menu dropdown */}
+                {showUserMenu && (
                   <div
                     data-menu-dropdown
-                    className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg overflow-hidden min-w-[180px]"
+                    className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg overflow-hidden min-w-[220px] z-50"
                     style={{
                       backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                       border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
                     }}
                   >
+                    {/* Account Email */}
+                    <div className="w-full flex items-center space-x-2 px-4 py-3 text-sm"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                      <User size={16} />
+                      <span className="truncate">{user.primaryEmail}</span>
+                    </div>
+
+                    {/* Upgrade plan */}
                     <button
                       onClick={() => {
-                        setTheme(theme === 'dark' ? 'light' : 'dark');
-                        setShowSearchMenu(false);
+                        setShowUserMenu(false);
+                        // TODO: Add upgrade plan functionality
                       }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
                       style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
@@ -1226,22 +1234,18 @@ export default function Sidebar({
                         (e.currentTarget.style.backgroundColor = 'transparent')
                       }
                     >
-                      {theme === 'dark' ? (
-                        <>
-                          <Sun size={16} className="text-yellow-400" />
-                          <span>Switch to Light Mode</span>
-                        </>
-                      ) : (
-                        <>
-                          <Moon size={16} className="text-blue-600" />
-                          <span>Switch to Dark Mode</span>
-                        </>
-                      )}
+                      <div className="relative">
+                        <Hexagon size={16} fill="currentColor" />
+                        <Plus size={10} className="absolute inset-0 m-auto" style={{ strokeWidth: 2.5 }} />
+                      </div>
+                      <span>Upgrade plan</span>
                     </button>
+
+                    {/* Personalization */}
                     <button
                       onClick={() => {
-                        onShowInfo();
-                        setShowSearchMenu(false);
+                        setShowUserMenu(false);
+                        // TODO: Add personalization functionality
                       }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
                       style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
@@ -1253,13 +1257,15 @@ export default function Sidebar({
                         (e.currentTarget.style.backgroundColor = 'transparent')
                       }
                     >
-                      <Info size={16} />
-                      <span>Developer Info</span>
+                      <RefreshCw size={16} />
+                      <span>Personalization</span>
                     </button>
+
+                    {/* Settings */}
                     <button
                       onClick={() => {
-                        setShowFeedbackModal(true);
-                        setShowSearchMenu(false);
+                        setShowUserMenu(false);
+                        // TODO: Add settings functionality
                       }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
                       style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
@@ -1271,17 +1277,47 @@ export default function Sidebar({
                         (e.currentTarget.style.backgroundColor = 'transparent')
                       }
                     >
-                      <MessageSquare size={16} />
-                      <span>Send feedback</span>
+                      <Settings size={16} />
+                      <span>Settings</span>
                     </button>
+
+                    {/* Separator */}
                     <div
                       className="w-full h-px my-1"
                       style={{ backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}
                     />
+
+                    {/* Help */}
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setShowUserMenu(false);
+                        // TODO: Add help functionality
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <div className="flex items-center space-x-2">
+                        <HelpCircle size={16} />
+                        <span>Help</span>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+
+                    {/* Log out */}
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setShowUserMenu(false);
+                      }}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: '#ef4444' }}
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
                       onMouseEnter={(e) =>
                         (e.currentTarget.style.backgroundColor =
                           theme === 'dark' ? '#2a2a29' : '#f3f4f6')
@@ -1291,7 +1327,7 @@ export default function Sidebar({
                       }
                     >
                       <LogOut size={16} />
-                      <span>Logout</span>
+                      <span>Log out</span>
                     </button>
                   </div>
                 )}
