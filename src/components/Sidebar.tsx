@@ -1359,21 +1359,14 @@ export default function Sidebar({
                       <span className="truncate">{user.primaryEmail}</span>
                     </div>
 
-                    {/* Upgrade plan */}
+                    {/* Upgrade plan - Faded/Disabled */}
                     <button
                       onClick={() => {
-                        setShowUserMenu(false);
-                        // TODO: Add upgrade plan functionality
+                        // Disabled for now
                       }}
-                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
-                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.backgroundColor = 'transparent')
-                      }
+                      disabled
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                     >
                       <div className="relative">
                         <Hexagon size={16} fill="currentColor" />
