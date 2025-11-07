@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle, FileText, ExternalLink, Flag, Download, Zap } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
 interface Conversation {
   id: string;
@@ -73,6 +74,7 @@ export default function Sidebar({
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [showFeedbackConfirmation, setShowFeedbackConfirmation] = useState(false);
   const [showHelpSubmenu, setShowHelpSubmenu] = useState(false);
+  const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   
   // Persistent state refs (survive sidebar open/close)
@@ -641,6 +643,143 @@ export default function Sidebar({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showUserMenu, showSearchMenu, menuOpenId, folderMenuOpenId, folderConversationMenuOpenId]);
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Prevent shortcuts from firing when a modal is open or when typing in inputs
+      if (
+        showFeedbackModal ||
+        showFeedbackConfirmation ||
+        showKeyboardShortcutsModal ||
+        showUserMenu ||
+        showSearchMenu ||
+        showCreateFolderModal ||
+        showMoveToProjectModal ||
+        showDeleteProjectModal ||
+        showAddChatsToFolderModal
+      ) {
+        return;
+      }
+
+      // Check if user is typing in an input, textarea, or contenteditable
+      const target = event.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        // Allow Shift + Esc to focus chat input even when typing
+        if (event.shiftKey && event.key === 'Escape') {
+          event.preventDefault();
+          // Focus chat input
+          const chatInput = document.querySelector('textarea.humbl-textarea') as HTMLTextAreaElement;
+          if (chatInput) {
+            chatInput.focus();
+            chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          return;
+        }
+        // Allow Ctrl + U for file upload even when typing
+        if (event.ctrlKey && event.key === 'u') {
+          event.preventDefault();
+          // Trigger file input
+          const fileInput = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement;
+          if (fileInput) {
+            fileInput.click();
+          }
+          return;
+        }
+        // Don't trigger other shortcuts when typing
+        return;
+      }
+
+      // Search chats: Ctrl + K
+      if (event.ctrlKey && event.key === 'k' && !event.shiftKey) {
+        event.preventDefault();
+        setShowSearchMenu(true);
+        // Focus search input after a short delay
+        setTimeout(() => {
+          const searchInput = document.querySelector('input[type="text"][placeholder*="Search"]') as HTMLInputElement;
+          if (searchInput) {
+            searchInput.focus();
+          }
+        }, 100);
+      }
+
+      // Open new chat: Ctrl + Shift + O
+      if (event.ctrlKey && event.shiftKey && event.key === 'O') {
+        event.preventDefault();
+        onNewConversation();
+        if (isOpen) {
+          onClose();
+        }
+      }
+
+      // Toggle sidebar: Ctrl + Shift + S
+      if (event.ctrlKey && event.shiftKey && event.key === 'S') {
+        event.preventDefault();
+        if (isOpen) {
+          onClose();
+        } else {
+          // Open sidebar - we need to trigger this from parent
+          // For now, we'll dispatch a custom event that the parent can listen to
+          window.dispatchEvent(new CustomEvent('openSidebar'));
+        }
+      }
+
+      // Delete chat: Ctrl + Shift + Backspace
+      if (event.ctrlKey && event.shiftKey && event.key === 'Backspace') {
+        event.preventDefault();
+        if (currentConversationId && user) {
+          // Confirm before deleting
+          if (window.confirm('Are you sure you want to delete this conversation?')) {
+            handleDeleteConversation(currentConversationId);
+          }
+        }
+      }
+
+      // Focus chat input: Shift + Esc
+      if (event.shiftKey && event.key === 'Escape') {
+        event.preventDefault();
+        const chatInput = document.querySelector('textarea.humbl-textarea') as HTMLTextAreaElement;
+        if (chatInput) {
+          chatInput.focus();
+          chatInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+
+      // Add photos & files: Ctrl + U
+      if (event.ctrlKey && event.key === 'u' && !event.shiftKey) {
+        event.preventDefault();
+        const fileInput = document.querySelector('input[type="file"][accept*="image"]') as HTMLInputElement;
+        if (fileInput) {
+          fileInput.click();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    showFeedbackModal,
+    showFeedbackConfirmation,
+    showKeyboardShortcutsModal,
+    showUserMenu,
+    showSearchMenu,
+    showCreateFolderModal,
+    showMoveToProjectModal,
+    showDeleteProjectModal,
+    showAddChatsToFolderModal,
+    isOpen,
+    onClose,
+    onNewConversation,
+    currentConversationId,
+    user,
+    handleDeleteConversation,
+  ]);
 
   // Format date for display - simplified format like "Oct 23", "Oct 19", etc.
   const formatDate = (dateString: string) => {
@@ -1291,7 +1430,7 @@ export default function Sidebar({
 
                     {/* Help with submenu */}
                     <div className="relative">
-                      <button
+                    <button
                         onClick={() => {
                           setShowHelpSubmenu(!showHelpSubmenu);
                         }}
@@ -1325,53 +1464,12 @@ export default function Sidebar({
                         <>
                           {/* Desktop: Submenu to the right */}
                           <div
-                            className="hidden sm:block absolute left-full top-0 ml-1 rounded-lg overflow-hidden shadow-lg z-[70] min-w-[200px]"
+                            className="hidden sm:block absolute left-full bottom-0 ml-1 rounded-lg overflow-hidden shadow-lg z-[70] min-w-[200px]"
                             style={{
                               backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
                               border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
                             }}
                           >
-                            <button
-                              onClick={() => {
-                                setShowUserMenu(false);
-                                setShowHelpSubmenu(false);
-                                // TODO: Add help center functionality
-                              }}
-                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
-                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = 'transparent')
-                              }
-                            >
-                              <HelpCircle size={14} />
-                              <span>Help center</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowUserMenu(false);
-                                setShowHelpSubmenu(false);
-                                // TODO: Add release notes functionality
-                              }}
-                              className="w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors duration-200"
-                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = 'transparent')
-                              }
-                            >
-                              <div className="flex items-center space-x-2">
-                                <Pencil size={14} />
-                                <span>Release notes</span>
-                              </div>
-                              <ExternalLink size={12} />
-                            </button>
                             <button
                               onClick={() => {
                                 window.location.href = '/terms';
@@ -1408,32 +1506,13 @@ export default function Sidebar({
                               }
                             >
                               <Flag size={14} />
-                              <span>Report Bug</span>
+                              <span>Report Feedback/Bug</span>
                             </button>
                             <button
                               onClick={() => {
                                 setShowUserMenu(false);
                                 setShowHelpSubmenu(false);
-                                // TODO: Add download apps functionality
-                              }}
-                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
-                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = 'transparent')
-                              }
-                            >
-                              <Download size={14} />
-                              <span>Download apps</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowUserMenu(false);
-                                setShowHelpSubmenu(false);
-                                // TODO: Add keyboard shortcuts functionality
+                                setShowKeyboardShortcutsModal(true);
                               }}
                               className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
                               style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
@@ -1460,47 +1539,6 @@ export default function Sidebar({
                           >
                             <button
                               onClick={() => {
-                                setShowUserMenu(false);
-                                setShowHelpSubmenu(false);
-                                // TODO: Add help center functionality
-                              }}
-                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
-                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = 'transparent')
-                              }
-                            >
-                              <HelpCircle size={14} />
-                              <span>Help center</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowUserMenu(false);
-                                setShowHelpSubmenu(false);
-                                // TODO: Add release notes functionality
-                              }}
-                              className="w-full flex items-center justify-between px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
-                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = 'transparent')
-                              }
-                            >
-                              <div className="flex items-center space-x-2">
-                                <Pencil size={14} />
-                                <span>Release notes</span>
-                              </div>
-                              <ExternalLink size={12} />
-                            </button>
-                            <button
-                              onClick={() => {
                                 window.location.href = '/terms';
                                 setShowUserMenu(false);
                                 setShowHelpSubmenu(false);
@@ -1535,32 +1573,13 @@ export default function Sidebar({
                               }
                             >
                               <Flag size={14} />
-                              <span>Report Bug</span>
+                              <span>Report Feedback/Bug</span>
                             </button>
                             <button
                               onClick={() => {
                                 setShowUserMenu(false);
                                 setShowHelpSubmenu(false);
-                                // TODO: Add download apps functionality
-                              }}
-                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
-                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                              onMouseEnter={(e) =>
-                                (e.currentTarget.style.backgroundColor =
-                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                              }
-                              onMouseLeave={(e) =>
-                                (e.currentTarget.style.backgroundColor = 'transparent')
-                              }
-                            >
-                              <Download size={14} />
-                              <span>Download apps</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setShowUserMenu(false);
-                                setShowHelpSubmenu(false);
-                                // TODO: Add keyboard shortcuts functionality
+                                setShowKeyboardShortcutsModal(true);
                               }}
                               className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
                               style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
@@ -2259,6 +2278,13 @@ export default function Sidebar({
           background: rgba(107, 114, 128, 0.6);
         }
       `}</style>
+      
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showKeyboardShortcutsModal}
+        onClose={() => setShowKeyboardShortcutsModal(false)}
+        theme={theme}
+      />
     </>
   );
 }

@@ -1662,6 +1662,17 @@ export default function Home() {
     }
   }, []);
 
+  // Listen for sidebar open event from keyboard shortcut
+  useEffect(() => {
+    const handleOpenSidebar = () => {
+      setShowSidebar(true);
+    };
+    window.addEventListener('openSidebar', handleOpenSidebar as EventListener);
+    return () => {
+      window.removeEventListener('openSidebar', handleOpenSidebar as EventListener);
+    };
+  }, []);
+
   // Apply theme changes and save to localStorage
   useEffect(() => {
     localStorage.setItem('humblai-theme', theme);
