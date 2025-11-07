@@ -1308,60 +1308,116 @@ export default function Sidebar({
                           <HelpCircle size={16} />
                           <span>Help</span>
                         </div>
+                        {/* Desktop: Right arrow, Mobile: Down arrow */}
                         <ChevronRight 
                           size={16} 
-                          className={`transition-transform duration-200 ${showHelpSubmenu ? 'rotate-90' : ''}`}
+                          className={`hidden sm:block transition-transform duration-200 ${showHelpSubmenu ? 'rotate-90' : ''}`}
+                        />
+                        <ChevronDown 
+                          size={16} 
+                          className={`sm:hidden transition-transform duration-200 ${showHelpSubmenu ? 'rotate-180' : ''}`}
                         />
                       </button>
                       
-                      {/* Help Submenu */}
+                      {/* Help Submenu - Desktop: to the right, Mobile: below */}
                       {showHelpSubmenu && (
-                        <div
-                          className="mt-1 rounded-lg overflow-hidden"
-                          style={{
-                            backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
-                            border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
-                          }}
-                        >
-                          <button
-                            onClick={() => {
-                              onShowInfo();
-                              setShowUserMenu(false);
-                              setShowHelpSubmenu(false);
+                        <>
+                          {/* Desktop: Submenu to the right */}
+                          <div
+                            className="hidden sm:block absolute left-full top-0 ml-2 rounded-lg overflow-hidden shadow-lg z-[60] min-w-[180px]"
+                            style={{
+                              backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
+                              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
                             }}
-                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
-                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.backgroundColor = 'transparent')
-                            }
                           >
-                            <Info size={14} />
-                            <span>Developer Info</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowFeedbackModal(true);
-                              setShowUserMenu(false);
-                              setShowHelpSubmenu(false);
+                            <button
+                              onClick={() => {
+                                onShowInfo();
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <Info size={14} />
+                              <span>Developer Info</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowFeedbackModal(true);
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <MessageSquare size={14} />
+                              <span>Send feedback</span>
+                            </button>
+                          </div>
+                          
+                          {/* Mobile: Submenu below */}
+                          <div
+                            className="sm:hidden mt-1 rounded-lg overflow-hidden"
+                            style={{
+                              backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
+                              border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
                             }}
-                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
-                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.backgroundColor = 'transparent')
-                            }
                           >
-                            <MessageSquare size={14} />
-                            <span>Send feedback</span>
-                          </button>
-                        </div>
+                            <button
+                              onClick={() => {
+                                onShowInfo();
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <Info size={14} />
+                              <span>Developer Info</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowFeedbackModal(true);
+                                setShowUserMenu(false);
+                                setShowHelpSubmenu(false);
+                              }}
+                              className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                              style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.backgroundColor =
+                                  theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.backgroundColor = 'transparent')
+                              }
+                            >
+                              <MessageSquare size={14} />
+                              <span>Send feedback</span>
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
 
