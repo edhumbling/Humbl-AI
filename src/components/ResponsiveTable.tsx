@@ -119,7 +119,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-5 py-3.5 text-sm align-middle';
+    const baseStyle = 'px-5 py-3 text-[13px] leading-[1.35] align-middle';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -146,7 +146,7 @@ export default function ResponsiveTable({
   return (
     <div className={`w-full ${className}`}>
       <div className="mb-3 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           {data.length} {data.length === 1 ? 'row' : 'rows'}
         </div>
         {sourceTable && (
@@ -203,7 +203,7 @@ export default function ResponsiveTable({
           backgroundColor: isDark ? 'rgba(15, 23, 42, 0.3)' : 'rgba(248, 250, 252, 0.85)',
         }}
       >
-        <table className="w-full min-w-[560px] border-separate border-spacing-y-2 border-spacing-x-0">
+        <table className="w-full min-w-[640px] border-separate border-spacing-y-3 border-spacing-x-0">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr
@@ -269,9 +269,15 @@ export default function ResponsiveTable({
                       className={`${getCellStyle(columnMeta?.type)} first:rounded-l-xl last:rounded-r-xl`}
                       style={{
                         backgroundColor: rowBackground,
+                        maxWidth: '220px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
                       }}
                     >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </span>
                     </td>
                   );
                 })}
