@@ -913,16 +913,45 @@ export default function Sidebar({
           {isCollapsed && !isMobile && onToggleCollapse && (
             <button
               onClick={onToggleCollapse}
-              className="p-1.5 rounded-lg transition-all duration-300 hover:opacity-80"
+              className="group relative p-1.5 rounded-lg transition-all duration-300"
+              style={{
+                backgroundColor: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
               title="Expand sidebar"
             >
-              <Image 
-                src="/small favicon.png" 
-                alt="Humbl AI" 
-                width={32} 
-                height={32} 
-                className="w-8 h-8"
-              />
+              <div className="relative w-8 h-8 flex items-center justify-center">
+                {/* Favicon - fades out on hover */}
+                <Image 
+                  src="/small favicon.png" 
+                  alt="Humbl AI" 
+                  width={32} 
+                  height={32} 
+                  className="w-8 h-8 transition-all duration-300 group-hover:opacity-0 group-hover:scale-90 absolute"
+                />
+                {/* Expand icon - fades in on hover */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 group-hover:scale-100 scale-90">
+                  <div className="w-7 h-7 rounded-md border flex items-center justify-center transition-all duration-300 group-hover:border-opacity-100"
+                    style={{
+                      borderColor: theme === 'dark' ? 'rgba(241, 208, 140, 0.8)' : 'rgba(241, 208, 140, 0.9)',
+                      backgroundColor: theme === 'dark' ? 'rgba(241, 208, 140, 0.15)' : 'rgba(241, 208, 140, 0.2)',
+                    }}
+                  >
+                    <ChevronRight 
+                      size={16} 
+                      className="transition-transform duration-300"
+                      style={{ 
+                        color: theme === 'dark' ? '#f1d08c' : '#e8c377',
+                      }} 
+                    />
+                  </div>
+                </div>
+              </div>
             </button>
           )}
           {isMobile && (
