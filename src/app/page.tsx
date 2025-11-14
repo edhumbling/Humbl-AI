@@ -352,11 +352,20 @@ export default function Home() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSidebar, setShowSidebar] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    // Always default to expanded (false) on desktop
+    // On desktop, sidebar should always start expanded unless user explicitly collapsed it
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('sidebarCollapsed');
-      return saved === 'true';
+      const isDesktop = window.innerWidth >= 768;
+      if (isDesktop) {
+        // Check localStorage - if user explicitly collapsed it, respect that
+        // Otherwise, default to expanded
+        const saved = localStorage.getItem('sidebarCollapsed');
+        // Only return true if explicitly saved as 'true' (user collapsed it)
+        // Default to false (expanded) if not set or if set to 'false'
+        return saved === 'true';
+      }
     }
-    return false;
+    return false; // Default to expanded
   });
   const [isMobile, setIsMobile] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -1705,7 +1714,7 @@ export default function Home() {
     }
   };
 
-  // Detect mobile viewport for placeholder tone
+  // Detect mobile viewport and ensure sidebar is expanded on desktop
   useEffect(() => {
     const check = () => {
       const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
