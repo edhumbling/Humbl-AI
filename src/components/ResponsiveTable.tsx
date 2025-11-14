@@ -120,7 +120,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-5 py-3 text-[13px] leading-[1.35] align-middle';
+    const baseStyle = 'px-6 py-3.5 text-[13px] leading-[1.45] align-middle';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -172,7 +172,7 @@ export default function ResponsiveTable({
             <span className="sr-only">{copyButtonLabel}</span>
           </button>
         )}
-        <table className="w-full min-w-[640px] border-separate border-spacing-y-3 border-spacing-x-0">
+        <table className="w-full min-w-[680px] border-separate border-spacing-y-4 border-spacing-x-0">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr
@@ -238,13 +238,12 @@ export default function ResponsiveTable({
                       className={`${getCellStyle(columnMeta?.type)} first:rounded-l-xl last:rounded-r-xl`}
                       style={{
                         backgroundColor: rowBackground,
-                        maxWidth: '220px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        maxWidth: '320px',
+                        wordBreak: 'break-word',
+                        whiteSpace: 'normal',
                       }}
                     >
-                      <span className="block overflow-hidden text-ellipsis whitespace-nowrap">
+                      <span className="block text-ellipsis">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </span>
                     </td>
