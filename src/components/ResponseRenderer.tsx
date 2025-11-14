@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ResponsiveTable from './ResponsiveTable';
-import { createTableColumns, createTableRows, TableData } from '../utils/tableParser';
+import { createTableColumns, createTableRows, formatTableData, TableData } from '../utils/tableParser';
 
 interface ResponseRendererProps {
   content: string;
@@ -177,11 +177,17 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
               const tableData = tableNodeToTableData(node);
 
               if (tableData) {
-                const columns = createTableColumns(tableData);
-                const rows = createTableRows(tableData);
+                const formattedTable = formatTableData(tableData);
+                const columns = createTableColumns(formattedTable);
+                const rows = createTableRows(formattedTable, { formatted: true });
                 return (
                   <div className="my-6">
-                    <ResponsiveTable data={rows} columns={columns} theme={theme} />
+                    <ResponsiveTable
+                      data={rows}
+                      columns={columns}
+                      theme={theme}
+                      sourceTable={formattedTable}
+                    />
                   </div>
                 );
               }

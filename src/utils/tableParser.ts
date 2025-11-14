@@ -325,10 +325,10 @@ export function createTableColumns(data: TableData): any[] {
   });
 }
 
-export function createTableRows(data: TableData): any[] {
-  // Apply smart formatting before creating rows
-  const formattedData = formatTableData(data);
-  
+export function createTableRows(data: TableData, options?: { formatted?: boolean }): any[] {
+  // Apply smart formatting before creating rows unless already formatted
+  const formattedData = options?.formatted ? data : formatTableData(data);
+
   return formattedData.rows.map((row, index) => {
     const rowData: any = { id: index };
     formattedData.headers.forEach((_, colIndex) => {
