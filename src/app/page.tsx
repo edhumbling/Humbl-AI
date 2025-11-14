@@ -1716,13 +1716,15 @@ export default function Home() {
     }
   };
 
-  // Detect mobile viewport and ensure sidebar is expanded on desktop
+  // Detect mobile viewport and ensure sidebar stays open on desktop
   // This applies to both logged-in and non-logged-in users
+  // On desktop, sidebar should always be visible and only controlled by collapse/expand
   useEffect(() => {
     const check = () => {
       const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
       setIsMobile(mobile);
-      // On desktop, always show sidebar by default (for both logged and non-logged users)
+      // On desktop, always keep sidebar open (it's controlled by collapse/expand, not show/hide)
+      // Only set to true if it's currently false - avoid unnecessary state updates
       if (!mobile && !showSidebar) {
         setShowSidebar(true);
       }
@@ -3004,7 +3006,13 @@ export default function Home() {
       {/* Sidebar */}
         <Sidebar
         isOpen={showSidebar}
-        onClose={() => setShowSidebar(false)}
+        onClose={() => {
+          // On desktop, don't allow closing sidebar - only collapse/expand
+          // On mobile, allow closing
+          if (isMobile) {
+            setShowSidebar(false);
+          }
+        }}
         theme={theme}
         setTheme={setTheme}
         onShowInfo={() => setShowInfo(true)}

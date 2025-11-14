@@ -586,9 +586,15 @@ export default function Sidebar({
     }
   };
 
-  // Handle click outside to close sidebar
+  // Handle click outside to close sidebar - ONLY on mobile
+  // On desktop, sidebar should stay open and only be controlled by collapse/expand button
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // Only close on mobile - desktop sidebar should stay open
+      if (!isMobile) {
+        return;
+      }
+      
       // Don't close sidebar if any modal is open
       if (showCreateFolderModal || showMoveToProjectModal || showDeleteProjectModal || showAddChatsToFolderModal || showFeedbackModal || showFeedbackConfirmation) {
         return;
@@ -599,7 +605,7 @@ export default function Sidebar({
       }
     };
 
-    if (isOpen) {
+    if (isOpen && isMobile) {
       // Add a small delay to prevent immediate closing
       setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
@@ -609,7 +615,7 @@ export default function Sidebar({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose, showCreateFolderModal, showMoveToProjectModal, showDeleteProjectModal, showAddChatsToFolderModal]);
+  }, [isOpen, isMobile, onClose, showCreateFolderModal, showMoveToProjectModal, showDeleteProjectModal, showAddChatsToFolderModal]);
 
   // Handle click outside to close menus
   useEffect(() => {
