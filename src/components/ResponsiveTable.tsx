@@ -56,11 +56,11 @@ export default function ResponsiveTable({
 
   const isDark = theme === 'dark';
   const palette = {
-    border: isDark ? 'rgba(71, 85, 105, 0.5)' : 'rgba(203, 213, 225, 0.8)',
-    headerBg: isDark ? 'rgba(15, 23, 42, 0.9)' : '#f8fafc',
+    border: isDark ? 'rgba(71, 85, 105, 0.35)' : 'rgba(203, 213, 225, 0.6)',
+    headerBg: isDark ? 'rgba(17, 24, 39, 0.92)' : '#f1f5f9',
     headerText: isDark ? '#f8fafc' : '#0f172a',
-    rowEven: isDark ? 'rgba(15, 23, 42, 0.75)' : '#ffffff',
-    rowOdd: isDark ? 'rgba(15, 23, 42, 0.6)' : '#f8fafc',
+    rowEven: isDark ? 'rgba(17, 24, 39, 0.85)' : '#ffffff',
+    rowOdd: isDark ? 'rgba(15, 23, 42, 0.78)' : '#f8fafc',
     copyButton: isDark
       ? 'inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-slate-700'
       : 'inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100',
@@ -119,7 +119,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-4 py-3 text-sm align-middle';
+    const baseStyle = 'px-5 py-3.5 text-sm align-middle';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -194,19 +194,22 @@ export default function ResponsiveTable({
       </div>
 
       <div
-        className="overflow-x-auto rounded-2xl border shadow-sm transition-colors duration-300"
+        className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+      >
+        <div
+          className="inline-block min-w-full rounded-2xl border shadow-sm transition-colors duration-300"
         style={{
           borderColor: palette.border,
           backgroundColor: isDark ? 'rgba(15, 23, 42, 0.3)' : 'rgba(248, 250, 252, 0.85)',
         }}
       >
-        <table className="w-full min-w-[560px] table-fixed border-collapse">
+        <table className="w-full min-w-[560px] border-separate border-spacing-y-2 border-spacing-x-0">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr
                 key={headerGroup.id}
-                className="border-b transition-colors duration-300"
-                style={{ borderColor: palette.border, backgroundColor: palette.headerBg }}
+                className="transition-colors duration-300"
+                style={{ backgroundColor: palette.headerBg }}
               >
                 {headerGroup.headers.map(header => {
                   const columnMeta = header.column.columnDef.meta as { type?: ColumnType; align?: string } | undefined;
@@ -215,7 +218,7 @@ export default function ResponsiveTable({
                   return (
                     <th
                       key={header.id}
-                      className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
+                      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none first:rounded-l-xl last:rounded-r-xl`}
                       style={{
                         color: palette.headerText,
                       }}
@@ -250,17 +253,21 @@ export default function ResponsiveTable({
               return (
               <tr 
                 key={row.id} 
-                className="border-b hover:bg-opacity-80 transition-all duration-200" 
-                style={{ borderColor: palette.border, backgroundColor: rowBackground }}
+                className="transition-all duration-200 shadow-sm hover:shadow-md"
+                style={{
+                  backgroundColor: rowBackground,
+                  boxShadow: isDark
+                    ? '0 8px 24px rgba(15, 23, 42, 0.45)'
+                    : '0 8px 20px rgba(148, 163, 184, 0.25)',
+                }}
               >
                 {row.getVisibleCells().map(cell => {
                   const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
                   return (
                     <td
                       key={cell.id}
-                      className={`${getCellStyle(columnMeta?.type)} border-b`}
+                      className={`${getCellStyle(columnMeta?.type)} first:rounded-l-xl last:rounded-r-xl`}
                       style={{
-                        borderColor: palette.border,
                         backgroundColor: rowBackground,
                       }}
                     >
@@ -273,6 +280,7 @@ export default function ResponsiveTable({
             })}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* Pagination */}
