@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Folder, Archive, Flag, Trash2, GitBranch } from 'lucide-react';
 import Image from 'next/image';
@@ -9,6 +9,7 @@ import Sidebar from '../components/Sidebar';
 import Onboarding from '../components/Onboarding';
 import { useConversation } from '@/contexts/ConversationContext';
 import { useUser } from '@stackframe/stack';
+import { createSnappySnippet, BASE_DOCUMENT_TITLE } from '@/utils/tabTitle';
 
 interface SearchResult {
   query: string;
@@ -34,6 +35,7 @@ export default function Home() {
   } = useConversation();
 
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>();
+  const [currentConversationTitle, setCurrentConversationTitle] = useState<string>('');
   const [parentConversationId, setParentConversationId] = useState<string | null>(null);
   const [parentConversationTitle, setParentConversationTitle] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -184,6 +186,43 @@ export default function Home() {
     setIsRecording(false);
   };
 
+  const tabLabel = useMemo(() => {
+    const title = currentConversationTitle.trim();
+    if (title) {
+      return `${createSnappySnippet(title)} · Humbl`;
+    }
+
+    const lastUserMessage = [...conversationHistory]
+      .reverse()
+      .find(
+        msg =>
+          msg &&
+          msg.type === 'user' &&
+          typeof msg.content === 'string' &&
+          msg.content.trim().length > 0,
+      );
+
+    if (lastUserMessage && lastUserMessage.content) {
+      return `${createSnappySnippet(lastUserMessage.content)} · Humbl`;
+    }
+
+    return BASE_DOCUMENT_TITLE;
+  }, [conversationHistory, currentConversationTitle]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = tabLabel;
+    }
+  }, [tabLabel]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.title = BASE_DOCUMENT_TITLE;
+      }
+    };
+  }, []);
+
   const startNewConversation = () => {
     try {
       // Stop any ongoing recording/visualizer
@@ -199,6 +238,7 @@ export default function Home() {
     endConversation();
     clearConversation();
     setCurrentConversationId(undefined);
+    setCurrentConversationTitle('');
     setParentConversationId(null);
     setParentConversationTitle(null);
     firstAIMessageRef.current = false;
@@ -239,6 +279,7 @@ export default function Home() {
       if (response.ok) {
         const data = await response.json();
         const conversation = data.conversation;
+        setCurrentConversationTitle(conversation.title || '');
         
         // Set parent conversation info if this is a branched conversation
         setParentConversationId(conversation.parent_conversation_id || null);
@@ -292,6 +333,7 @@ export default function Home() {
         const data = await response.json();
         const newConversationId = data.conversation.id;
         setCurrentConversationId(newConversationId);
+        setCurrentConversationTitle(data.conversation.title || '');
         
         // Update URL to show conversation ID in address bar without page reload
         if (typeof window !== 'undefined') {
@@ -676,21 +718,26 @@ export default function Home() {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title: generatedTitle })
                       });
+                      setCurrentConversationTitle(generatedTitle);
                     } else {
                       // Fallback to query
+                      const fallbackTitle = queryToUse.substring(0, 50);
                       await fetch(`/api/conversations/${convId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                        body: JSON.stringify({ title: fallbackTitle })
                       });
+                      setCurrentConversationTitle(fallbackTitle);
                     }
                   } catch (titleErr) {
                     console.error('Failed to generate title:', titleErr);
+                    const fallbackTitle = queryToUse.substring(0, 50);
                     await fetch(`/api/conversations/${convId}`, {
                       method: 'PATCH',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                      body: JSON.stringify({ title: fallbackTitle })
                     });
+                    setCurrentConversationTitle(fallbackTitle);
                   }
                 }
               } catch (err) {
@@ -977,23 +1024,28 @@ export default function Home() {
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ title: generatedTitle })
                             });
+                            setCurrentConversationTitle(generatedTitle);
                           } else {
                             // Fallback to query if title generation fails
+                            const fallbackTitle = queryToUse.substring(0, 50);
                             await fetch(`/api/conversations/${convId}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                              body: JSON.stringify({ title: fallbackTitle })
                             });
+                            setCurrentConversationTitle(fallbackTitle);
                           }
                         } catch (titleErr) {
                           console.error('Failed to generate title:', titleErr);
                           // Fallback to query if title generation fails
                           try {
+                            const fallbackTitle = queryToUse.substring(0, 50);
                             await fetch(`/api/conversations/${convId}`, {
                               method: 'PATCH',
                               headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ title: queryToUse.substring(0, 50) })
+                              body: JSON.stringify({ title: fallbackTitle })
                             });
+                            setCurrentConversationTitle(fallbackTitle);
                           } catch (fallbackErr) {
                             console.error('Failed to update conversation title:', fallbackErr);
                           }

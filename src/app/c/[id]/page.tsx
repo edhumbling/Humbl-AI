@@ -8,6 +8,7 @@ import ResponseRenderer from '@/components/ResponseRenderer';
 import Sidebar from '@/components/Sidebar';
 import { useConversation } from '@/contexts/ConversationContext';
 import { useUser } from '@stackframe/stack';
+import { createSnappySnippet, BASE_DOCUMENT_TITLE } from '@/utils/tabTitle';
 
 export default function SharedConversationPage() {
   const params = useParams();
@@ -104,8 +105,6 @@ export default function SharedConversationPage() {
   const [reportDetails, setReportDetails] = useState<string>('');
   const threeDotsMenuRef = useRef<HTMLDivElement>(null);
 
-  const baseDocumentTitle = 'Humbl AI';
-
   const tabLabel = useMemo(() => {
     const conversationTitle = typeof conversation?.title === 'string' ? conversation.title.trim() : '';
     if (conversationTitle) {
@@ -126,8 +125,8 @@ export default function SharedConversationPage() {
       return `${createSnappySnippet(lastUserMessage.content)} · Humbl`;
     }
 
-    return baseDocumentTitle;
-  }, [conversation?.title, conversationHistory, baseDocumentTitle]);
+    return BASE_DOCUMENT_TITLE;
+  }, [conversation?.title, conversationHistory]);
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -138,10 +137,10 @@ export default function SharedConversationPage() {
   useEffect(() => {
     return () => {
       if (typeof document !== 'undefined') {
-        document.title = baseDocumentTitle;
+        document.title = BASE_DOCUMENT_TITLE;
       }
     };
-  }, [baseDocumentTitle]);
+  }, []);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -4001,44 +4000,4 @@ export default function SharedConversationPage() {
       `}</style>
     </div>
   );
-}
-
-function createSnappySnippet(text: string) {
-  if (!text) {
-    return '';
-  }
-
-  const cleaned = text.replace(/\s+/g, ' ').trim();
-  if (!cleaned) {
-    return '';
-  }
-
-  const words = cleaned.split(' ');
-  const snippetWords: string[] = [];
-  let characterBudget = 40;
-
-  for (const word of words) {
-    if (!word) {
-      continue;
-    }
-
-    const wordLength = word.length + (snippetWords.length > 0 ? 1 : 0);
-    if (snippetWords.length >= 5 || wordLength > characterBudget) {
-      break;
-    }
-
-    snippetWords.push(word);
-    characterBudget -= wordLength;
-  }
-
-  let snippet = snippetWords.join(' ');
-  if (!snippet) {
-    snippet = cleaned.slice(0, Math.min(40, cleaned.length));
-  }
-
-  if (cleaned.length > snippet.length) {
-    snippet = `${snippet.replace(/[.,:;!?-]+$/, '')}…`;
-  }
-
-  return snippet;
 }
