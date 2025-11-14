@@ -1828,11 +1828,11 @@ export default function Sidebar({
                 )}
               </button>
               
-              {/* Account menu dropdown - opens outside sidebar to the right when collapsed */}
+              {/* Account menu dropdown - opens upwards outside sidebar when collapsed */}
               {showUserMenu && (
                 <div
                   data-menu-dropdown
-                  className="absolute left-full bottom-0 ml-2 rounded-lg shadow-xl min-w-[220px] z-[60]"
+                  className="absolute left-full bottom-full mb-2 ml-2 rounded-lg shadow-xl min-w-[220px] z-[60]"
                   style={{
                     backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                     border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
@@ -1845,10 +1845,59 @@ export default function Sidebar({
                     <User size={16} />
                     <span className="truncate">{user.primaryEmail}</span>
                   </div>
-                  
+
+                  {/* Upgrade plan - Faded/Disabled */}
                   <button
                     onClick={() => {
-                      if (onToggleCollapse) onToggleCollapse();
+                      // Disabled for now
+                    }}
+                    disabled
+                    className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                  >
+                    <div className="relative">
+                      <Hexagon size={16} fill="currentColor" />
+                      <Plus size={10} className="absolute inset-0 m-auto" style={{ strokeWidth: 2.5 }} />
+                    </div>
+                    <span>Upgrade plan</span>
+                  </button>
+
+                  {/* Personalization - Faded/Disabled */}
+                  <button
+                    onClick={() => {
+                      // Disabled for now
+                    }}
+                    disabled
+                    className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                  >
+                    <RefreshCw size={16} />
+                    <span>Personalization</span>
+                  </button>
+
+                  {/* Settings - Faded/Disabled */}
+                  <button
+                    onClick={() => {
+                      // Disabled for now
+                    }}
+                    disabled
+                    className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                  >
+                    <Settings size={16} />
+                    <span>Settings</span>
+                  </button>
+
+                  {/* Separator */}
+                  <div
+                    className="w-full h-px my-1"
+                    style={{ backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}
+                  />
+
+                  {/* Switch Theme */}
+                  <button
+                    onClick={() => {
+                      setTheme(theme === 'dark' ? 'light' : 'dark');
                       setShowUserMenu(false);
                     }}
                     className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
@@ -1861,8 +1910,133 @@ export default function Sidebar({
                       (e.currentTarget.style.backgroundColor = 'transparent')
                     }
                   >
-                    <Settings size={16} />
-                    <span>Expand sidebar for full menu</span>
+                    {theme === 'dark' ? (
+                      <>
+                        <Sun size={16} />
+                        <span>Switch to light mode</span>
+                      </>
+                    ) : (
+                      <>
+                        <Moon size={16} />
+                        <span>Switch to dark mode</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Help with submenu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        setShowHelpSubmenu(!showHelpSubmenu);
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <div className="flex items-center space-x-2">
+                        <HelpCircle size={16} />
+                        <span>Help</span>
+                      </div>
+                      <ChevronRight 
+                        size={16} 
+                        className={`transition-transform duration-200 ${showHelpSubmenu ? 'rotate-90' : ''}`}
+                      />
+                    </button>
+                    
+                    {/* Help Submenu - Desktop: to the right */}
+                    {showHelpSubmenu && (
+                      <div
+                        className="absolute left-full bottom-0 ml-1 rounded-lg overflow-hidden shadow-lg z-[70] min-w-[200px]"
+                        style={{
+                          backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
+                          border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                        }}
+                      >
+                        <button
+                          onClick={() => {
+                            window.location.href = '/terms';
+                            setShowUserMenu(false);
+                            setShowHelpSubmenu(false);
+                          }}
+                          className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor =
+                              theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <FileText size={14} />
+                          <span>Terms & policies</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowFeedbackModal(true);
+                            setShowUserMenu(false);
+                            setShowHelpSubmenu(false);
+                          }}
+                          className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor =
+                              theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <Flag size={14} />
+                          <span>Report Feedback/Bug</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false);
+                            setShowHelpSubmenu(false);
+                            setShowKeyboardShortcutsModal(true);
+                          }}
+                          className="w-full flex items-center space-x-2 px-4 py-2.5 text-sm transition-colors duration-200"
+                          style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                          onMouseEnter={(e) =>
+                            (e.currentTarget.style.backgroundColor =
+                              theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                          }
+                          onMouseLeave={(e) =>
+                            (e.currentTarget.style.backgroundColor = 'transparent')
+                          }
+                        >
+                          <Zap size={14} />
+                          <span>Keyboard shortcuts</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Log out */}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                    style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = 'transparent')
+                    }
+                  >
+                    <LogOut size={16} />
+                    <span>Log out</span>
                   </button>
                 </div>
               )}
