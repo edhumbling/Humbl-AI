@@ -353,12 +353,14 @@ export default function Home() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     // Always default to expanded (false) on desktop
-    // On desktop, sidebar should always start expanded unless user explicitly collapsed it
+    // This applies to both logged-in and non-logged-in users
+    // On desktop, sidebar should always start expanded unless the user explicitly collapsed it
     if (typeof window !== 'undefined') {
       const isDesktop = window.innerWidth >= 768;
       if (isDesktop) {
-        // Check localStorage - if user explicitly collapsed it, respect that
+        // Check localStorage - if the user explicitly collapsed it, respect that
         // Otherwise, default to expanded
+        // This behavior is consistent for both logged and non-logged users
         const saved = localStorage.getItem('sidebarCollapsed');
         // Only return true if explicitly saved as 'true' (user collapsed it)
         // Default to false (expanded) if not set or if set to 'false'
@@ -1715,11 +1717,12 @@ export default function Home() {
   };
 
   // Detect mobile viewport and ensure sidebar is expanded on desktop
+  // This applies to both logged-in and non-logged-in users
   useEffect(() => {
     const check = () => {
       const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
       setIsMobile(mobile);
-      // On desktop, always show sidebar by default
+      // On desktop, always show sidebar by default (for both logged and non-logged users)
       if (!mobile && !showSidebar) {
         setShowSidebar(true);
       }
