@@ -880,6 +880,7 @@ export default function Sidebar({
         style={{
           backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
           width: isMobile ? undefined : sidebarWidth,
+          borderRight: !isMobile ? (theme === 'dark' ? '1px solid rgba(55, 65, 81, 0.6)' : '1px solid rgba(229, 231, 235, 0.6)') : 'none',
         }}
       >
         {/* Logo with Close/Collapse Button */}
@@ -1033,7 +1034,7 @@ export default function Sidebar({
         {/* Conversations List */}
         {!isCollapsed && (
           <>
-          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar min-h-0">
           {user ? (
             filteredConversations.length === 0 ? (
               <div
@@ -1416,10 +1417,10 @@ export default function Sidebar({
           </>
         )}
 
-        {/* User Profile Section (Bottom) */}
-        {user && !isCollapsed && (
+        {/* User Profile Section (Bottom) - Desktop only */}
+        {!isMobile && user && !isCollapsed && (
           <div
-            className="border-t p-4 transition-colors duration-300"
+            className="border-t p-4 transition-colors duration-300 mt-auto"
             style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
           >
             <div className="relative">
@@ -1758,9 +1759,9 @@ export default function Sidebar({
           </div>
         )}
         
-        {/* Collapsed User Menu */}
-        {user && isCollapsed && (
-          <div className="border-t p-2 transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+        {/* Collapsed User Menu - Desktop only */}
+        {!isMobile && user && isCollapsed && (
+          <div className="border-t p-2 transition-colors duration-300 mt-auto" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
             <div className="relative flex justify-center">
               <button
                 data-menu-trigger="settings"
@@ -1830,6 +1831,273 @@ export default function Sidebar({
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+        
+        {/* Mobile User Profile Section - Maintains old mobile behavior */}
+        {isMobile && user && (
+          <div
+            className="border-t p-4 transition-colors duration-300"
+            style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+          >
+            <div className="relative">
+                <button
+                  data-menu-trigger="settings"
+                  onClick={() => {
+                    setShowUserMenu(!showUserMenu);
+                    setShowSearchMenu(false);
+                  }}
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                  }}
+                >
+                  {user.profileImageUrl ? (
+                    <Image
+                      src={user.profileImageUrl}
+                      alt={user.displayName || user.primaryEmail || 'User'}
+                      width={40}
+                      height={40}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: '#f1d08c' }}
+                    >
+                      <User size={20} className="text-black" />
+                    </div>
+                  )}
+                  <div className="flex-1 text-left min-w-0">
+                    <p
+                      className="text-sm font-medium truncate transition-colors duration-300"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                    >
+                      {user.displayName || 'User'}
+                    </p>
+                    <p
+                      className="text-xs truncate transition-colors duration-300"
+                      style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
+                    >
+                      {user.primaryEmail}
+                    </p>
+                  </div>
+                  <Settings size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
+                </button>
+
+                {/* Account menu dropdown - Same as desktop expanded version */}
+                {showUserMenu && (
+                  <div
+                    data-menu-dropdown
+                    className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg min-w-[220px] z-50"
+                    style={{
+                      backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                      border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                      overflow: 'visible',
+                    }}
+                  >
+                    {/* Account Email */}
+                    <div className="w-full flex items-center space-x-2 px-4 py-3 text-sm"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                      <User size={16} />
+                      <span className="truncate">{user.primaryEmail}</span>
+                    </div>
+
+                    {/* Upgrade plan - Faded/Disabled */}
+                    <button
+                      onClick={() => {
+                        // Disabled for now
+                      }}
+                      disabled
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                    >
+                      <div className="relative">
+                        <Hexagon size={16} fill="currentColor" />
+                        <Plus size={10} className="absolute inset-0 m-auto" style={{ strokeWidth: 2.5 }} />
+                      </div>
+                      <span>Upgrade plan</span>
+                    </button>
+
+                    {/* Personalization - Faded/Disabled */}
+                    <button
+                      onClick={() => {
+                        // Disabled for now
+                      }}
+                      disabled
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                    >
+                      <RefreshCw size={16} />
+                      <span>Personalization</span>
+                    </button>
+
+                    {/* Settings - Faded/Disabled */}
+                    <button
+                      onClick={() => {
+                        // Disabled for now
+                      }}
+                      disabled
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200 opacity-40 cursor-not-allowed"
+                      style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                    >
+                      <Settings size={16} />
+                      <span>Settings</span>
+                    </button>
+
+                    {/* Separator */}
+                    <div
+                      className="w-full h-px my-1"
+                      style={{ backgroundColor: theme === 'dark' ? '#3a3a39' : '#e5e7eb' }}
+                    />
+
+                    {/* Switch Theme */}
+                    <button
+                      onClick={() => {
+                        setTheme(theme === 'dark' ? 'light' : 'dark');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      {theme === 'dark' ? (
+                        <>
+                          <Sun size={16} />
+                          <span>Switch to light mode</span>
+                        </>
+                      ) : (
+                        <>
+                          <Moon size={16} />
+                          <span>Switch to dark mode</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Help with submenu */}
+                    <div className="relative">
+                    <button
+                        onClick={() => {
+                          setShowHelpSubmenu(!showHelpSubmenu);
+                        }}
+                        className="w-full flex items-center justify-between px-4 py-3 text-sm transition-colors duration-200"
+                        style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                        onMouseEnter={(e) =>
+                          (e.currentTarget.style.backgroundColor =
+                            theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                        }
+                        onMouseLeave={(e) =>
+                          (e.currentTarget.style.backgroundColor = 'transparent')
+                        }
+                      >
+                        <div className="flex items-center space-x-2">
+                          <HelpCircle size={16} />
+                          <span>Help</span>
+                        </div>
+                        <ChevronDown 
+                          size={16} 
+                          className={`transition-transform duration-200 ${showHelpSubmenu ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      
+                      {/* Mobile: Submenu below */}
+                      {showHelpSubmenu && (
+                        <div
+                          className="mt-1 rounded-lg overflow-hidden"
+                          style={{
+                            backgroundColor: theme === 'dark' ? '#2a2a29' : '#f9fafb',
+                            border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                          }}
+                        >
+                          <button
+                            onClick={() => {
+                              window.location.href = '/terms';
+                              setShowUserMenu(false);
+                              setShowHelpSubmenu(false);
+                            }}
+                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.backgroundColor =
+                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
+                          >
+                            <FileText size={14} />
+                            <span>Terms & policies</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowFeedbackModal(true);
+                              setShowUserMenu(false);
+                              setShowHelpSubmenu(false);
+                            }}
+                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.backgroundColor =
+                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
+                          >
+                            <Flag size={14} />
+                            <span>Report Feedback/Bug</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowUserMenu(false);
+                              setShowHelpSubmenu(false);
+                              setShowKeyboardShortcutsModal(true);
+                            }}
+                            className="w-full flex items-center space-x-2 px-4 py-2.5 pl-8 text-sm transition-colors duration-200"
+                            style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                            onMouseEnter={(e) =>
+                              (e.currentTarget.style.backgroundColor =
+                                theme === 'dark' ? '#1f1f1f' : '#f3f4f6')
+                            }
+                            onMouseLeave={(e) =>
+                              (e.currentTarget.style.backgroundColor = 'transparent')
+                            }
+                          >
+                            <Zap size={14} />
+                            <span>Keyboard shortcuts</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Log out */}
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                      style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.backgroundColor =
+                          theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.backgroundColor = 'transparent')
+                      }
+                    >
+                      <LogOut size={16} />
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                )}
             </div>
           </div>
         )}
