@@ -13,6 +13,7 @@ import {
   ColumnFiltersState,
 } from '@tanstack/react-table';
 import { ColumnType } from '../utils/tableParser';
+import type { TableData } from '../utils/tableParser';
 
 interface ResponsiveTableProps {
   data: any[];
