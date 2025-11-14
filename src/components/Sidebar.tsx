@@ -963,7 +963,7 @@ export default function Sidebar({
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
             >
               <Pencil size={16} />
-              <span className="text-sm font-medium">Start New Conversation</span>
+              <span className="text-xs font-medium">Start New Conversation</span>
             </button>
           </div>
         )}
@@ -1001,7 +1001,7 @@ export default function Sidebar({
                 placeholder="Search Humbl History"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 rounded-lg border-none outline-none transition-colors duration-300 text-sm"
+                className="w-full pl-10 pr-3 py-1.5 rounded-lg border-none outline-none transition-colors duration-300 text-xs"
                 style={{
                   backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
                   color: theme === 'dark' ? '#e5e7eb' : '#111827',
@@ -1040,11 +1040,11 @@ export default function Sidebar({
         {/* Conversations List */}
         {!isCollapsed && (
           <>
-          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar min-h-0">
+          <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1 custom-scrollbar min-h-0">
           {user ? (
             filteredConversations.length === 0 ? (
               <div
-                className="text-center py-8 text-sm"
+                className="text-center py-8 text-xs"
                 style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
               >
                 {searchQuery.trim() ? 'No conversations found' : 'No conversations yet. Start a new one!'}
@@ -1105,7 +1105,7 @@ export default function Sidebar({
                             (e.currentTarget.style.backgroundColor = 'transparent')
                           }
                         >
-                          <span className="text-xs font-semibold uppercase transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                          <span className="text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
                             Chats
                           </span>
                           {chatsExpanded ? (
@@ -1123,9 +1123,9 @@ export default function Sidebar({
                   if (periodConversations.length === 0) return null;
                   
                   return (
-                    <div key={period} className="mt-4">
+                    <div key={period} className="mt-3">
                       <h3
-                        className="text-xs font-semibold mb-2 px-2 uppercase tracking-wide"
+                        className="text-[10px] font-semibold mb-1 px-2 uppercase tracking-wider"
                         style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
                       >
                         {period}
@@ -1162,10 +1162,10 @@ export default function Sidebar({
                                 onSelectConversation(conversation.id);
                                 onClose();
                               }}
-                              className="w-full text-left py-2 pr-8 transition-opacity duration-200 hover:opacity-70"
+                              className="w-full text-left py-1.5 pr-8 transition-opacity duration-200 hover:opacity-70"
                             >
                               <p
-                                className={`text-sm sm:text-base font-medium truncate transition-colors duration-300 ${
+                                className={`text-[11px] font-medium truncate transition-colors duration-300 leading-tight ${
                                   currentConversationId === conversation.id 
                                     ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
                                     : theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
@@ -1174,7 +1174,7 @@ export default function Sidebar({
                                 {conversation.title}
                               </p>
                               <p
-                                className="text-xs transition-colors duration-300"
+                                className="text-[10px] transition-colors duration-300 leading-tight"
                                 style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                               >
                                 {formatDate(conversation.updated_at)}
@@ -1376,7 +1376,7 @@ export default function Sidebar({
                 >
                   <div className="flex items-center space-x-2">
                     <Archive size={14} style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }} />
-                    <span className="text-xs font-semibold uppercase transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider transition-colors duration-300" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
                       Archive
                     </span>
                   </div>
@@ -1396,10 +1396,10 @@ export default function Sidebar({
                           onSelectConversation(conversation.id);
                           onClose();
                         }}
-                        className="w-full text-left py-2 pr-8 transition-opacity duration-200 hover:opacity-70"
+                              className="w-full text-left py-1.5 pr-8 transition-opacity duration-200 hover:opacity-70"
                       >
                         <p
-                          className={`text-sm sm:text-base font-medium truncate transition-colors duration-300 ${
+                          className={`text-[11px] font-medium truncate transition-colors duration-300 leading-tight ${
                             currentConversationId === conversation.id 
                               ? theme === 'dark' ? 'text-yellow-200' : 'text-yellow-700'
                               : theme === 'dark' ? 'text-gray-100' : 'text-gray-900'
@@ -1408,7 +1408,7 @@ export default function Sidebar({
                           {conversation.title}
                         </p>
                         <p
-                          className="text-xs transition-colors duration-300"
+                          className="text-[10px] transition-colors duration-300 leading-tight"
                           style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
                         >
                           {formatDate(conversation.updated_at)}
@@ -1426,7 +1426,7 @@ export default function Sidebar({
         {/* User Profile Section (Bottom) - Desktop only */}
         {!isMobile && user && !isCollapsed && (
           <div
-            className="border-t p-4 transition-colors duration-300 mt-auto"
+            className="border-t p-2 transition-colors duration-300 mt-auto"
             style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
           >
             <div className="relative">
@@ -1436,7 +1436,7 @@ export default function Sidebar({
                     setShowUserMenu(!showUserMenu);
                     setShowSearchMenu(false);
                   }}
-                  className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
+                  className="w-full flex items-center space-x-2 p-1.5 rounded-lg transition-all duration-200 hover:bg-opacity-80"
                   style={{
                     backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
                   }}
@@ -1445,33 +1445,33 @@ export default function Sidebar({
                     <Image
                       src={user.profileImageUrl}
                       alt={user.displayName || user.primaryEmail || 'User'}
-                      width={40}
-                      height={40}
+                      width={28}
+                      height={28}
                       className="rounded-full"
                     />
                   ) : (
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: '#f1d08c' }}
                     >
-                      <User size={20} className="text-black" />
+                      <User size={14} className="text-black" />
                     </div>
                   )}
                   <div className="flex-1 text-left min-w-0">
                     <p
-                      className="text-sm font-medium truncate transition-colors duration-300"
+                      className="text-[11px] font-medium truncate transition-colors duration-300 leading-tight"
                       style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
                     >
                       {user.displayName || 'User'}
                     </p>
                     <p
-                      className="text-xs truncate transition-colors duration-300"
+                      className="text-[10px] truncate transition-colors duration-300 leading-tight"
                       style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
                     >
                       {user.primaryEmail}
                     </p>
                   </div>
-                  <Settings size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
+                  <Settings size={14} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
                 </button>
 
                 {/* Account menu dropdown */}
@@ -1844,7 +1844,7 @@ export default function Sidebar({
         {/* Mobile User Profile Section - Maintains old mobile behavior */}
         {isMobile && user && (
           <div
-            className="border-t p-4 transition-colors duration-300"
+            className="border-t p-2 transition-colors duration-300"
             style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
           >
             <div className="relative">
@@ -1854,7 +1854,7 @@ export default function Sidebar({
                     setShowUserMenu(!showUserMenu);
                     setShowSearchMenu(false);
                   }}
-                  className="w-full flex items-center space-x-3 p-3 rounded-lg transition-all duration-200 hover:bg-opacity-80"
+                  className="w-full flex items-center space-x-2 p-1.5 rounded-lg transition-all duration-200 hover:bg-opacity-80"
                   style={{
                     backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
                   }}
@@ -1863,33 +1863,33 @@ export default function Sidebar({
                     <Image
                       src={user.profileImageUrl}
                       alt={user.displayName || user.primaryEmail || 'User'}
-                      width={40}
-                      height={40}
+                      width={28}
+                      height={28}
                       className="rounded-full"
                     />
                   ) : (
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center"
+                      className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: '#f1d08c' }}
                     >
-                      <User size={20} className="text-black" />
+                      <User size={14} className="text-black" />
                     </div>
                   )}
                   <div className="flex-1 text-left min-w-0">
                     <p
-                      className="text-sm font-medium truncate transition-colors duration-300"
+                      className="text-[11px] font-medium truncate transition-colors duration-300 leading-tight"
                       style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
                     >
                       {user.displayName || 'User'}
                     </p>
                     <p
-                      className="text-xs truncate transition-colors duration-300"
+                      className="text-[10px] truncate transition-colors duration-300 leading-tight"
                       style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af' }}
                     >
                       {user.primaryEmail}
                     </p>
                   </div>
-                  <Settings size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
+                  <Settings size={14} style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }} />
                 </button>
 
                 {/* Account menu dropdown - Same as desktop expanded version */}
