@@ -874,6 +874,7 @@ export default function Sidebar({
       {/* Sidebar */}
       <div
         ref={sidebarRef}
+        data-tour={!isMobile ? 'sidebar' : undefined}
         className={`${
           isMobile 
             ? `fixed top-0 left-0 h-full w-2/3 sm:w-96 z-50 flex flex-col transition-transform duration-300 ease-out shadow-2xl ${

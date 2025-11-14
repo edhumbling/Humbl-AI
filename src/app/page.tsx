@@ -2017,6 +2017,7 @@ export default function Home() {
                 </button>
               )}
               <button
+                data-tour="new-chat"
                 onClick={startNewConversation}
                 className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
                 style={{ backgroundColor: '#f1d08c' }}
@@ -3007,8 +3008,6 @@ export default function Home() {
         <Sidebar
         isOpen={showSidebar}
         onClose={() => {
-          // On desktop, don't allow closing sidebar - only collapse/expand
-          // On mobile, allow closing
           if (isMobile) {
             setShowSidebar(false);
           }
@@ -3117,7 +3116,11 @@ export default function Home() {
           {/* Search Bar */}
           <div ref={initialSearchRef} className="w-full max-w-xl lg:max-w-3xl mx-auto mb-6 sm:mb-8">
             <div className="relative">
-              <div className="relative overflow-visible flex flex-col rounded-2xl px-3 pt-3 pb-12 sm:px-6 sm:pt-4 sm:pb-14 shadow-lg transition-colors duration-300" style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}>
+              <div
+                data-tour="composer"
+                className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg transition-colors duration-300"
+                style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}
+              >
                 {/* Full-bar waveform background */}
                 {isRecording && (
                   <canvas
@@ -3265,7 +3268,10 @@ export default function Home() {
                 )}
 
                 {/* Bottom controls row */}
-                <div className="absolute left-3 right-3 bottom-2 flex items-center justify-between">
+                <div
+                  data-tour="voice-tools"
+                  className="absolute left-3 right-3 bottom-2 flex items-center justify-between"
+                >
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClick}
@@ -4147,7 +4153,10 @@ export default function Home() {
                 )}
 
                 {/* Bottom controls row */}
-                <div className="absolute left-4 right-4 bottom-2 flex items-center justify-between">
+                <div
+                  data-tour="voice-tools"
+                  className="absolute left-3 right-3 bottom-2 flex items-center justify-between"
+                >
                   <div className="flex items-center">
                     <button
                       onClick={handleImagePickClickLower}
