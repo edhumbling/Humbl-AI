@@ -57,7 +57,7 @@ export default function ResponsiveTable({
 
   const isDark = theme === 'dark';
   const palette = {
-    border: isDark ? 'rgba(71, 85, 105, 0.35)' : 'rgba(203, 213, 225, 0.6)',
+    border: isDark ? 'rgba(71, 85, 105, 0.55)' : 'rgba(148, 163, 184, 0.65)',
     headerBg: isDark ? 'rgba(17, 24, 39, 0.92)' : '#f1f5f9',
     headerText: isDark ? '#f8fafc' : '#0f172a',
     rowEven: isDark ? 'rgba(17, 24, 39, 0.85)' : '#ffffff',
@@ -120,7 +120,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-6 py-3.5 text-[13px] leading-[1.45] align-middle';
+    const baseStyle = 'px-7 py-4 text-[13px] leading-[1.65] align-top';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -172,7 +172,7 @@ export default function ResponsiveTable({
             <span className="sr-only">{copyButtonLabel}</span>
           </button>
         )}
-        <table className="w-full min-w-[680px] border-separate border-spacing-y-4 border-spacing-x-0">
+        <table className="w-full min-w-[720px] border-separate border-spacing-y-5 border-spacing-x-0">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr
@@ -219,37 +219,61 @@ export default function ResponsiveTable({
           <tbody>
             {table.getRowModel().rows.map((row, rowIndex) => {
               const rowBackground = rowIndex % 2 === 0 ? palette.rowEven : palette.rowOdd;
+              const cells = row.getVisibleCells();
+              const isLastRow = rowIndex === table.getRowModel().rows.length - 1;
+
               return (
-              <tr 
-                key={row.id} 
-                className="transition-all duration-200 shadow-sm hover:shadow-md"
-                style={{
-                  backgroundColor: rowBackground,
-                  boxShadow: isDark
-                    ? '0 8px 24px rgba(15, 23, 42, 0.45)'
-                    : '0 8px 20px rgba(148, 163, 184, 0.25)',
-                }}
-              >
-                {row.getVisibleCells().map(cell => {
-                  const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
-                  return (
-                    <td
-                      key={cell.id}
-                      className={`${getCellStyle(columnMeta?.type)} first:rounded-l-xl last:rounded-r-xl`}
+                <tr key={row.id} className="transition-all duration-200">
+                  <td colSpan={cells.length} className="p-0">
+                    <div
+                      className="rounded-3xl border transition-all duration-200 hover:shadow-lg"
                       style={{
+                        borderColor: palette.border,
                         backgroundColor: rowBackground,
-                        maxWidth: '320px',
-                        wordBreak: 'break-word',
-                        whiteSpace: 'normal',
+                        padding: '22px 0 24px',
+                        boxShadow: isDark
+                          ? '0 16px 36px rgba(15, 23, 42, 0.45)'
+                          : '0 16px 32px rgba(148, 163, 184, 0.25)',
                       }}
                     >
-                      <span className="block text-ellipsis">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </span>
-                    </td>
-                  );
-                })}
-              </tr>
+                      <table className="w-full border-separate border-spacing-y-3 border-spacing-x-0">
+                        <tbody>
+                          <tr>
+                            {cells.map(cell => {
+                              const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
+                              return (
+                                <td
+                                  key={cell.id}
+                                  className={`${getCellStyle(columnMeta?.type)} first:pl-8 last:pr-8 first:rounded-l-3xl last:rounded-r-3xl`}
+                                  style={{
+                                    backgroundColor: rowBackground,
+                                    maxWidth: '360px',
+                                    wordBreak: 'break-word',
+                                    whiteSpace: 'normal',
+                                    borderBottom: `1px solid ${palette.border}`,
+                                  }}
+                                >
+                                  <span className="block">
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        </tbody>
+                      </table>
+                      {!isLastRow && (
+                        <div
+                          className="mx-8 mt-5 border-t"
+                          style={{
+                            borderColor: palette.border,
+                            opacity: isDark ? 0.55 : 0.6,
+                          }}
+                        />
+                      )}
+                    </div>
+                  </td>
+                </tr>
               );
             })}
           </tbody>
