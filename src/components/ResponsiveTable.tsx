@@ -14,6 +14,7 @@ import {
 } from '@tanstack/react-table';
 import { ColumnType } from '../utils/tableParser';
 import type { TableData } from '../utils/tableParser';
+import { Copy } from 'lucide-react';
 
 interface ResponsiveTableProps {
   data: any[];
@@ -145,57 +146,13 @@ export default function ResponsiveTable({
 
   return (
     <div className={`w-full ${className}`}>
-      <div className="mb-3 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           {data.length} {data.length === 1 ? 'row' : 'rows'}
         </div>
-        {sourceTable && (
-          <button
-            type="button"
-            onClick={handleCopyTable}
-            className={palette.copyButton}
-            aria-label="Copy table as markdown"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-            >
-              <path
-                d="M8 9C8 7.34315 9.34315 6 11 6H18C19.6569 6 21 7.34315 21 9V18C21 19.6569 19.6569 21 18 21H11C9.34315 21 8 19.6569 8 18V9Z"
-                stroke={palette.copyIcon}
-                strokeWidth="1.5"
-              />
-              <path
-                d="M3 6C3 4.34315 4.34315 3 6 3H13"
-                stroke={palette.copyIcon}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M3 10V6"
-                stroke={palette.copyIcon}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M13 3H17C18.6569 3 20 4.34315 20 6V7"
-                stroke={palette.copyIcon}
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-            <span>{copyButtonLabel}</span>
-          </button>
-        )}
       </div>
 
-      <div
-        className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0"
-      >
+      <div className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 group">
         <div
           className="inline-block min-w-full rounded-2xl border shadow-sm transition-colors duration-300"
         style={{
@@ -203,6 +160,18 @@ export default function ResponsiveTable({
           backgroundColor: isDark ? 'rgba(15, 23, 42, 0.3)' : 'rgba(248, 250, 252, 0.85)',
         }}
       >
+        {sourceTable && (
+          <button
+            type="button"
+            onClick={handleCopyTable}
+            className={`${palette.copyButton} absolute left-3 top-3 z-10 !rounded-full !px-2.5 !py-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200`}
+            aria-label="Copy table"
+            title={copyButtonLabel}
+          >
+            <Copy size={16} strokeWidth={1.5} />
+            <span className="sr-only">{copyButtonLabel}</span>
+          </button>
+        )}
         <table className="w-full min-w-[640px] border-separate border-spacing-y-3 border-spacing-x-0">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (

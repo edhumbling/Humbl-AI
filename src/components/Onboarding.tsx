@@ -94,26 +94,26 @@ const onboardingSteps: OnboardingStep[] = [
     title: 'Things you can do right away',
     tagline: 'Each workspace is built for a different mode of thinking. Explore the essentials.',
     details: [
-      {
-        icon: MessageSquare,
+  {
+    icon: MessageSquare,
         title: 'Chat Workspace',
         description: 'Converse with AI, branch ideas, and keep your history tidy with smart titles.',
         accent: '#f59e0b',
-      },
-      {
-        icon: Globe,
+  },
+  {
+    icon: Globe,
         title: 'Live Web Search',
         description: 'Blend AI reasoning with real-time web answers when facts matter most.',
         accent: '#0ea5e9',
-      },
-      {
-        icon: ImageIcon,
+  },
+  {
+    icon: ImageIcon,
         title: 'Image Studio',
         description: 'Create and iterate visuals with prompts, remix existing files, and export instantly.',
         accent: '#f43f5e',
-      },
-      {
-        icon: Mic,
+  },
+  {
+    icon: Mic,
         title: 'Hands-free Voice',
         description: 'Collect thoughts on the go using voice input and let Humbl transcribe for you.',
         accent: '#8b5cf6',
@@ -185,7 +185,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
       setCurrentStep((prev) => prev + 1);
       return;
     }
-    handleComplete();
+      handleComplete();
   };
 
   const handlePrevious = () => {
@@ -494,28 +494,28 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
           >
             Skip for now
           </button>
-          <button
+            <button
             type="button"
-            onClick={handleComplete}
+              onClick={handleComplete}
             aria-label="Close onboarding"
             className="flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150"
-            style={{
+              style={{
               backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : '#f1f5f9',
               color: isDarkMode ? '#cbd5f5' : '#475569',
             }}
           >
             <X size={18} />
-          </button>
-        </div>
+            </button>
+          </div>
 
         <div className="grid gap-6 px-6 pb-8 pt-12 md:grid-cols-[240px,1fr] md:px-10 md:pb-12 md:pt-14">
           <aside className="hidden md:flex md:flex-col md:gap-6">
             <div className="flex items-center gap-3">
               <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto" />
-            </div>
+          </div>
             <div
               className="rounded-3xl p-5 shadow-lg"
-              style={{
+                    style={{
                 backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.85)' : '#f8fafc',
               }}
             >
@@ -530,11 +530,11 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
                     backgroundColor: current.themeColor,
                   }}
                 />
-              </div>
+                    </div>
               <p className="mt-4 text-sm font-medium" style={{ color: isDarkMode ? '#e2e8f0' : '#1f2937' }}>
                 Step {currentStep + 1} of {onboardingSteps.length}
               </p>
-            </div>
+                    </div>
             <nav className="flex flex-col gap-2">
               {onboardingSteps.map((step, index) => {
                 const isActive = index === currentStep;
@@ -564,7 +564,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
                   >
                     <span
                       className="flex h-6 w-6 items-center justify-center rounded-full border text-xs font-semibold"
-                      style={{
+                  style={{
                         borderColor: step.themeColor,
                         backgroundColor: isActive || isCompleted ? step.themeColor : 'transparent',
                         color: isActive || isCompleted ? '#0b1727' : step.themeColor,
@@ -581,7 +581,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
                       <p className="text-xs" style={{ color: isDarkMode ? '#94a3b8' : '#64748b' }}>
                         {step.tagline}
                       </p>
-                    </div>
+            </div>
                   </button>
                 );
               })}
@@ -602,7 +602,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
                     style={{ color: isDarkMode ? '#f8fafc' : '#0f172a' }}
                   >
                     {current.title}
-                  </h2>
+              </h2>
                   <p className="text-sm sm:text-base" style={{ color: isDarkMode ? '#cbd5f5' : '#475569' }}>
                     {current.tagline}
                   </p>
@@ -639,40 +639,40 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
             <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex gap-2">
                 {currentStep > 0 ? (
-                  <button
+                <button
                     type="button"
-                    onClick={handlePrevious}
+                  onClick={handlePrevious}
                     className="rounded-2xl px-5 py-2 text-sm font-semibold transition-colors duration-150"
-                    style={{
+                  style={{
                       backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.8)' : '#e2e8f0',
                       color: isDarkMode ? '#f8fafc' : '#1f2937',
                     }}
                   >
                     Back
-                  </button>
+                </button>
                 ) : (
                   <span className="hidden sm:inline-block px-5 py-2 text-sm" />
-                )}
-                <button
+              )}
+              <button
                   type="button"
-                  onClick={handleNext}
+                onClick={handleNext}
                   disabled={isNextDisabled}
                   className="rounded-2xl px-6 py-2 text-sm font-semibold transition-transform duration-150 hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60"
-                  style={{
+                style={{
                     backgroundColor: current.themeColor,
                     color: '#0b1727',
                   }}
                 >
                   {currentStep === onboardingSteps.length - 1 ? 'Get started' : 'Continue'}
-                </button>
-              </div>
+              </button>
+            </div>
 
               {current.id === 'personalize' && (
                 <p className="text-xs" style={{ color: isDarkMode ? '#64748b' : '#6b7280' }}>
                   You can always change focus areas from the sidebar later.
                 </p>
-              )}
-            </div>
+            )}
+          </div>
           </section>
         </div>
       </div>
