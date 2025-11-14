@@ -146,21 +146,17 @@ export default function ResponsiveTable({
   };
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className={`${className}`}>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
           {data.length} {data.length === 1 ? 'row' : 'rows'}
         </div>
       </div>
 
-      <div className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 group">
+      <div className="relative overflow-x-auto group">
         <div
-          className="inline-block min-w-full border shadow-sm transition-colors duration-300"
-        style={{
-          borderColor: palette.border,
-          backgroundColor: isDark ? 'rgba(15, 23, 42, 0.3)' : 'rgba(248, 250, 252, 0.85)',
-        }}
-      >
+          className="inline-block transition-colors duration-300"
+        >
         {sourceTable && (
           <button
             type="button"
@@ -173,7 +169,7 @@ export default function ResponsiveTable({
             <span className="sr-only">{copyButtonLabel}</span>
           </button>
         )}
-        <table className="w-full min-w-[600px] border-collapse">
+        <table className="border-collapse" style={{ width: 'max-content', minWidth: '600px' }}>
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr
@@ -237,7 +233,6 @@ export default function ResponsiveTable({
                           className={getCellStyle(columnMeta?.type)}
                           style={{
                             backgroundColor: rowBackground,
-                            maxWidth: '500px',
                             wordBreak: 'break-word',
                             whiteSpace: 'normal',
                             overflowWrap: 'break-word',

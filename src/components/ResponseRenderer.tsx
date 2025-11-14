@@ -181,7 +181,7 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
                 const columns = createTableColumns(formattedTable);
                 const rows = createTableRows(formattedTable, { formatted: true });
                 return (
-                  <div className="my-6">
+                  <div className="my-6 -mx-4 sm:-mx-8 px-4 sm:px-8 overflow-x-auto">
                     <ResponsiveTable
                       data={rows}
                       columns={columns}
@@ -193,11 +193,8 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
               }
 
               return (
-                <div
-                  className="my-6 overflow-x-auto border"
-                  style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-                >
-                  <table className="min-w-full border-collapse">{children}</table>
+                <div className="my-6 overflow-x-auto">
+                  <table className="min-w-full border-collapse" style={{ width: 'max-content' }}>{children}</table>
                 </div>
               );
             },
