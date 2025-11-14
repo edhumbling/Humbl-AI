@@ -155,7 +155,7 @@ export default function ResponsiveTable({
 
       <div className="relative -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0 group">
         <div
-          className="inline-block min-w-full rounded-2xl border shadow-sm transition-colors duration-300"
+          className="inline-block min-w-full border shadow-sm transition-colors duration-300"
         style={{
           borderColor: palette.border,
           backgroundColor: isDark ? 'rgba(15, 23, 42, 0.3)' : 'rgba(248, 250, 252, 0.85)',
