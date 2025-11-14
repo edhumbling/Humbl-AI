@@ -245,15 +245,16 @@ export default function ResponsiveTable({
             ))}
           </thead>
           <tbody>
-            {table.getRowModel().rows.map((row, rowIndex) => (
+            {table.getRowModel().rows.map((row, rowIndex) => {
+              const rowBackground = rowIndex % 2 === 0 ? palette.rowEven : palette.rowOdd;
+              return (
               <tr 
                 key={row.id} 
                 className="border-b hover:bg-opacity-80 transition-all duration-200" 
-                style={getRowStyle(rowIndex)}
+                style={{ borderColor: palette.border, backgroundColor: rowBackground }}
               >
                 {row.getVisibleCells().map(cell => {
                   const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
-                  const rowBackground = rowIndex % 2 === 0 ? palette.rowEven : palette.rowOdd;
                   return (
                     <td
                       key={cell.id}
@@ -268,7 +269,8 @@ export default function ResponsiveTable({
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

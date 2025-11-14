@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Mic, ArrowUp, Square, Plus, X, Image as ImageIcon, ChevronDown, Check, Edit2, MoreHorizontal, MoreVertical, Download, Copy as CopyIcon, Info, ThumbsUp, ThumbsDown, RefreshCw, Volume2, VolumeX, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Archive, Flag, Folder, Trash2, ChevronRight as ChevronRightIcon, Menu } from 'lucide-react';
 import Image from 'next/image';
@@ -103,6 +103,45 @@ export default function SharedConversationPage() {
   const [reportSubCategory, setReportSubCategory] = useState<string>('');
   const [reportDetails, setReportDetails] = useState<string>('');
   const threeDotsMenuRef = useRef<HTMLDivElement>(null);
+
+  const baseDocumentTitle = 'Humbl AI';
+
+  const tabLabel = useMemo(() => {
+    const conversationTitle = typeof conversation?.title === 'string' ? conversation.title.trim() : '';
+    if (conversationTitle) {
+      return `${createSnappySnippet(conversationTitle)} · Humbl`;
+    }
+
+    const lastUserMessage = [...conversationHistory]
+      .reverse()
+      .find(
+        (msg: any) =>
+          msg &&
+          msg.role === 'user' &&
+          typeof msg.content === 'string' &&
+          msg.content.trim().length > 0,
+      );
+
+    if (lastUserMessage?.content) {
+      return `${createSnappySnippet(lastUserMessage.content)} · Humbl`;
+    }
+
+    return baseDocumentTitle;
+  }, [conversation?.title, conversationHistory, baseDocumentTitle]);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.title = tabLabel;
+    }
+  }, [tabLabel]);
+
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.title = baseDocumentTitle;
+      }
+    };
+  }, [baseDocumentTitle]);
   
   const conversationScrollRef = useRef<HTMLDivElement | null>(null);
   const conversationBarRef = useRef<HTMLDivElement | null>(null);
@@ -3962,4 +4001,44 @@ export default function SharedConversationPage() {
       `}</style>
     </div>
   );
+}
+
+function createSnappySnippet(text: string) {
+  if (!text) {
+    return '';
+  }
+
+  const cleaned = text.replace(/\s+/g, ' ').trim();
+  if (!cleaned) {
+    return '';
+  }
+
+  const words = cleaned.split(' ');
+  const snippetWords: string[] = [];
+  let characterBudget = 40;
+
+  for (const word of words) {
+    if (!word) {
+      continue;
+    }
+
+    const wordLength = word.length + (snippetWords.length > 0 ? 1 : 0);
+    if (snippetWords.length >= 5 || wordLength > characterBudget) {
+      break;
+    }
+
+    snippetWords.push(word);
+    characterBudget -= wordLength;
+  }
+
+  let snippet = snippetWords.join(' ');
+  if (!snippet) {
+    snippet = cleaned.slice(0, Math.min(40, cleaned.length));
+  }
+
+  if (cleaned.length > snippet.length) {
+    snippet = `${snippet.replace(/[.,:;!?-]+$/, '')}…`;
+  }
+
+  return snippet;
 }
