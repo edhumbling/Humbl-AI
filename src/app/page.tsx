@@ -1990,7 +1990,7 @@ export default function Home() {
           <div className="flex items-center justify-between relative">
             {/* Left: Hamburger menu and New conversation */}
             <div className="flex items-center space-x-2">
-              {(isMobile || !showSidebar) && (
+              {isMobile && (
                 <button
                   onClick={() => setShowSidebar(true)}
                   className="p-2 rounded-lg transition-colors duration-300"
