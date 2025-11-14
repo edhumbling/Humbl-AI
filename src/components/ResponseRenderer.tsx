@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ResponsiveTable from './ResponsiveTable';
-import { detectTableInText, createTableColumns, createTableRows, TableData } from '../utils/tableParser';
+import { createTableColumns, createTableRows, TableData } from '../utils/tableParser';
 
 interface ResponseRendererProps {
   content: string;
@@ -14,7 +14,7 @@ interface ResponseRendererProps {
 }
 
 export default function ResponseRenderer({ content, className = '', isLoading = false, theme = 'dark' }: ResponseRendererProps) {
-  const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'table' | 'thinking', content: string | TableData, thinkingIndex?: number }>>([]);
+  const [parsedContent, setParsedContent] = useState<Array<{ type: 'text' | 'thinking'; content: string; thinkingIndex?: number }>>([]);
   const [revealedThinking, setRevealedThinking] = useState<Set<number>>(new Set());
   const [displayedContent, setDisplayedContent] = useState(content);
 
@@ -70,66 +70,49 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
 
   useEffect(() => {
     const parseContent = () => {
-      const parts: Array<{ type: 'text' | 'table' | 'thinking', content: string | TableData, thinkingIndex?: number }> = [];
-      let currentText = '';
-      let textIndex = 0;
-      let thinkingIndex = 0;
+      const parts: Array<{ type: 'text' | 'thinking'; content: string; thinkingIndex?: number }> = [];
 
-      // Extract thinking tags first (Qwen parse mode outputs <think>...</think>)
+      if (!displayedContent || displayedContent.trim().length === 0) {
+        setParsedContent(parts);
+        return;
+      }
+
       const thinkTagRegex = /<think>([\s\S]*?)<\/think>/gi;
       const thinkingBlocks: string[] = [];
-      let processedContent = displayedContent.replace(thinkTagRegex, (match, thinkingContent) => {
-        thinkingBlocks.push(thinkingContent.trim());
-        return `__THINKING_${thinkingBlocks.length - 1}__`;
+      const processedContent = displayedContent
+        .replace(/\r\n/g, '\n')
+        .replace(thinkTagRegex, (_, thinkingContent: string) => {
+          thinkingBlocks.push(thinkingContent.trim());
+          return `__THINKING_${thinkingBlocks.length - 1}__`;
+        });
+
+      const segments = processedContent.split(/(__THINKING_\d+__)/g);
+      const placeholderRegex = /^__THINKING_(\d+)__$/;
+
+      segments.forEach((segment) => {
+        if (!segment) {
+          return;
+        }
+
+        const trimmedSegment = segment.trim();
+        if (!trimmedSegment) {
+          return;
+        }
+
+        const placeholderMatch = placeholderRegex.exec(trimmedSegment);
+        if (placeholderMatch) {
+          const idx = Number(placeholderMatch[1]);
+          parts.push({
+            type: 'thinking',
+            content: thinkingBlocks[idx] || '',
+            thinkingIndex: idx,
+          });
+          return;
+        }
+
+        parts.push({ type: 'text', content: segment });
       });
 
-      // Split content by potential table boundaries and thinking placeholders
-      const lines = processedContent.split('\n');
-      
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const nextLine = lines[i + 1];
-        
-        // Check for thinking placeholder
-        const thinkingMatch = line.match(/__THINKING_(\d+)__/);
-        if (thinkingMatch) {
-          // Save current text if any
-          if (currentText.trim()) {
-            parts.push({ type: 'text', content: currentText.trim() });
-            currentText = '';
-          }
-          const idx = parseInt(thinkingMatch[1]);
-          parts.push({ type: 'thinking', content: thinkingBlocks[idx] || '', thinkingIndex: idx });
-          continue;
-        }
-        
-        // Check if this line might be the start of a table
-        if (isPotentialTableStart(line, nextLine)) {
-          // Save current text if any
-          if (currentText.trim()) {
-            parts.push({ type: 'text', content: currentText.trim() });
-            currentText = '';
-          }
-          
-          // Try to extract table from this point
-          const tableData = extractTableFromLines(lines, i);
-          if (tableData) {
-            parts.push({ type: 'table', content: tableData });
-            // Skip lines that were part of the table
-            i += getTableLineCount(tableData) - 1;
-          } else {
-            currentText += line + '\n';
-          }
-        } else {
-          currentText += line + '\n';
-        }
-      }
-      
-      // Add remaining text
-      if (currentText.trim()) {
-        parts.push({ type: 'text', content: currentText.trim() });
-      }
-      
       setParsedContent(parts);
     };
 
@@ -145,51 +128,16 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     } catch {}
   }, [displayedContent]);
 
-  const isPotentialTableStart = (line: string, nextLine?: string): boolean => {
-    // Check for markdown table pattern
-    if (line.includes('|') && line.split('|').length >= 3) return true;
-    
-    // Check for tab-separated values
-    if (line.includes('\t') && line.split('\t').length >= 2) return true;
-    
-    // Check for structured data pattern
-    if (line.includes(':') && nextLine && nextLine.includes(':')) return true;
-    
-    return false;
-  };
-
-  const extractTableFromLines = (lines: string[], startIndex: number): TableData | null => {
-    const tableLines: string[] = [];
-    
-    for (let i = startIndex; i < lines.length; i++) {
-      const line = lines[i];
-      
-      // Stop if we hit an empty line or non-table line
-      if (!line.trim() || (!line.includes('|') && !line.includes('\t') && !line.includes(':'))) {
-        break;
-      }
-      
-      tableLines.push(line);
-    }
-    
-    if (tableLines.length < 2) return null;
-    
-    return detectTableInText(tableLines.join('\n'));
-  };
-
-  const getTableLineCount = (tableData: TableData): number => {
-    return tableData.rows.length + 1; // +1 for header
-  };
-
   const renderText = (text: string) => {
     // Theme-aware color classes
-    const headingColorClass = theme === 'dark' ? 'text-white' : 'text-black';
-    const textColorClass = theme === 'dark' ? 'text-gray-300' : 'text-black';
-    const italicColorClass = theme === 'dark' ? 'text-gray-200' : 'text-black';
+    const headingColorClass = theme === 'dark' ? 'text-white' : 'text-gray-900';
+    const textColorClass = theme === 'dark' ? 'text-gray-200' : 'text-gray-900';
+    const italicColorClass = theme === 'dark' ? 'text-gray-200' : 'text-gray-700';
     const borderColorClass = theme === 'dark' ? 'border-gray-700' : 'border-gray-300';
     const bgCodeClass = theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100';
     const codeTextClass = theme === 'dark' ? 'text-gray-200' : 'text-gray-900';
-    
+    const blockquoteBgClass = theme === 'dark' ? 'bg-slate-900/60' : 'bg-slate-100';
+
     return (
       <div className={`${textColorClass} leading-relaxed text-sm sm:text-base transition-colors duration-300`}>
         <ReactMarkdown
@@ -215,7 +163,9 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
               </pre>
             ),
             blockquote: ({ children }) => (
-              <blockquote className={`border-l-4 ${borderColorClass} pl-4 my-3 italic text-gray-400`}>
+              <blockquote
+                className={`${borderColorClass} border-l-4 pl-4 my-3 py-2 ${blockquoteBgClass} italic`}
+              >
                 {children}
               </blockquote>
             ),
@@ -223,35 +173,28 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
             ol: ({ children }) => <ol className="list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400">{children}</ol>,
             li: ({ children }) => <li className="mb-1.5 leading-relaxed">{children}</li>,
             hr: () => <hr className={`${borderColorClass} border my-6`} />,
-            table: ({ children }) => (
-              <div className="my-6 overflow-x-auto rounded-lg border" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
-                <table className="min-w-full border-collapse">
-                  {children}
-                </table>
-              </div>
-            ),
-            thead: ({ children }) => <thead style={{ backgroundColor: theme === 'dark' ? 'rgba(31, 41, 55, 0.8)' : 'rgba(249, 250, 251, 1)' }}>{children}</thead>,
-            tbody: ({ children }) => <tbody>{children}</tbody>,
-            tr: ({ children }) => (
-              <tr style={{ borderBottom: `1px solid ${theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.5)'}` }}>
-                {children}
-              </tr>
-            ),
-            th: ({ children }) => (
-              <th className={`font-semibold px-4 py-3 text-left first:rounded-tl-lg last:rounded-tr-lg`} style={{ 
-                color: theme === 'dark' ? '#ffffff' : '#111827',
-                borderRight: `1px solid ${theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.5)'}`
-              }}>
-                {children}
-              </th>
-            ),
-            td: ({ children }) => (
-              <td className="px-4 py-3" style={{ 
-                borderRight: `1px solid ${theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.5)'}`
-              }}>
-                {children}
-              </td>
-            ),
+            table: ({ node, children }) => {
+              const tableData = tableNodeToTableData(node);
+
+              if (tableData) {
+                const columns = createTableColumns(tableData);
+                const rows = createTableRows(tableData);
+                return (
+                  <div className="my-6">
+                    <ResponsiveTable data={rows} columns={columns} theme={theme} />
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  className="my-6 overflow-x-auto rounded-lg border"
+                  style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                >
+                  <table className="min-w-full border-collapse">{children}</table>
+                </div>
+              );
+            },
           }}
         >
           {text}
@@ -260,21 +203,16 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     );
   };
 
-  const renderTable = (tableData: TableData) => {
-    const columns = createTableColumns(tableData);
-    const rows = createTableRows(tableData);
-
-    return (
-      <div className="my-4">
-        <ResponsiveTable data={rows} columns={columns} theme={theme} />
-      </div>
-    );
-  };
-
   const renderThinking = (thinkingContent: string, index: number) => {
     const isRevealed = revealedThinking.has(index);
+    const containerBorder = theme === 'dark' ? 'border-gray-700' : 'border-gray-200';
+    const toggleText = theme === 'dark' ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-800';
+    const toggleBg = theme === 'dark' ? 'hover:bg-gray-800/30' : 'hover:bg-slate-100';
+    const bodyText = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
+    const bodyBg = theme === 'dark' ? 'bg-gray-900/30' : 'bg-slate-100';
+
     return (
-      <div className="my-3 border border-gray-700 rounded-lg overflow-hidden">
+      <div className={`my-3 border ${containerBorder} rounded-lg overflow-hidden`}>
         <button
           onClick={() => {
             const newSet = new Set(revealedThinking);
@@ -285,13 +223,13 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
             }
             setRevealedThinking(newSet);
           }}
-          className="w-full px-3 py-2 text-left text-xs text-gray-400 hover:text-gray-300 hover:bg-gray-800/30 transition-colors flex items-center justify-between"
+          className={`w-full px-3 py-2 text-left text-xs transition-colors flex items-center justify-between ${toggleText} ${toggleBg}`}
         >
           <span>💭 Thinking process</span>
           <span>{isRevealed ? '▼' : '▶'}</span>
         </button>
         {isRevealed && (
-          <div className="px-3 py-2 text-xs text-gray-500 bg-gray-900/30 leading-relaxed whitespace-pre-wrap">
+          <div className={`px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${bodyText} ${bodyBg}`}>
             {thinkingContent}
           </div>
         )}
@@ -307,15 +245,61 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
     <div className={className}>
       {parsedContent.map((part, index) => (
         <div key={index} className="mb-4 last:mb-0">
-          {part.type === 'text' ? (
-            renderText(part.content as string)
-          ) : part.type === 'thinking' ? (
-            renderThinking(part.content as string, part.thinkingIndex ?? index)
-          ) : (
-            renderTable(part.content as TableData)
-          )}
+          {part.type === 'thinking'
+            ? renderThinking(part.content, part.thinkingIndex ?? index)
+            : renderText(part.content)}
         </div>
       ))}
     </div>
   );
+}
+
+function tableNodeToTableData(node: any): TableData | null {
+  if (!node || node.type !== 'table' || !Array.isArray(node.children) || node.children.length === 0) {
+    return null;
+  }
+
+  const [headerRow, ...bodyRows] = node.children;
+  if (!headerRow || !Array.isArray(headerRow.children)) {
+    return null;
+  }
+
+  const headers = headerRow.children
+    .map((cell: any) => extractPlainTextFromNode(cell))
+    .filter((text: string) => text.length > 0);
+
+  if (headers.length === 0) {
+    return null;
+  }
+
+  const rows = bodyRows
+    .filter((row: any) => Array.isArray(row.children))
+    .map((row: any) =>
+      row.children
+        .map((cell: any) => extractPlainTextFromNode(cell))
+        .filter((_text: string, idx: number) => idx < headers.length),
+    )
+    .filter((row: string[]) => row.length === headers.length);
+
+  return rows.length > 0 ? { headers, rows } : null;
+}
+
+function extractPlainTextFromNode(node: any): string {
+  if (!node) {
+    return '';
+  }
+
+  if (typeof node.value === 'string') {
+    return node.value.trim();
+  }
+
+  if (Array.isArray(node.children) && node.children.length > 0) {
+    return node.children
+      .map((child: any) => extractPlainTextFromNode(child))
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  return '';
 }
