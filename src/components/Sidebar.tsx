@@ -886,58 +886,64 @@ export default function Sidebar({
         {/* Logo with Close/Collapse Button */}
         <div className={`flex items-center justify-between py-4 transition-colors duration-300 ${isCollapsed ? 'px-3 justify-center' : 'px-5'}`}>
           {!isCollapsed && (
-            <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
-          )}
-          {isCollapsed && (
-            <div className="w-8 h-8 flex items-center justify-center">
-              <div className="w-6 h-6 rounded" style={{ backgroundColor: '#f1d08c' }} />
-            </div>
-          )}
-          <div className="flex items-center gap-2">
-            {!isMobile && onToggleCollapse && (
-              <button
-                onClick={onToggleCollapse}
-                className="p-1.5 rounded-lg transition-colors duration-300"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
-                }
-                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-              >
-                {isCollapsed ? (
-                  <ChevronRight size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-                ) : (
+            <>
+              <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
+              {!isMobile && onToggleCollapse && (
+                <button
+                  onClick={onToggleCollapse}
+                  className="p-1.5 rounded-lg transition-colors duration-300"
+                  style={{
+                    backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+                  }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.backgroundColor =
+                      theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+                  }
+                  title="Collapse sidebar"
+                >
                   <ChevronLeft size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-                )}
-              </button>
-            )}
-            {isMobile && (
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg transition-colors duration-300"
-                style={{
-                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor =
-                    theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
-                }
-              >
-                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-              </button>
-            )}
-          </div>
+                </button>
+              )}
+            </>
+          )}
+          {isCollapsed && !isMobile && onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-lg transition-all duration-300 hover:opacity-80"
+              title="Expand sidebar"
+            >
+              <Image 
+                src="/small favicon.png" 
+                alt="Humbl AI" 
+                width={32} 
+                height={32} 
+                className="w-8 h-8"
+              />
+            </button>
+          )}
+          {isMobile && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg transition-colors duration-300"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+              }
+            >
+              <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+            </button>
+          )}
         </div>
 
         {/* Top bar with New Conversation */}
