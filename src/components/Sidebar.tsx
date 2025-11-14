@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle, FileText, ExternalLink, Flag, Download, Zap } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle, FileText, ExternalLink, Flag, Download, Zap, ChevronLeft, Menu } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
@@ -31,6 +31,8 @@ interface SidebarProps {
   onNewConversation: () => void;
   onSelectConversation: (conversationId: string) => void;
   currentConversationId?: string;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export default function Sidebar({
@@ -43,6 +45,8 @@ export default function Sidebar({
   onNewConversation,
   onSelectConversation,
   currentConversationId,
+  isCollapsed = false,
+  onToggleCollapse,
 }: SidebarProps) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [filteredConversations, setFilteredConversations] = useState<Conversation[]>([]);
@@ -76,6 +80,17 @@ export default function Sidebar({
   const [showHelpSubmenu, setShowHelpSubmenu] = useState(false);
   const [showKeyboardShortcutsModal, setShowKeyboardShortcutsModal] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detect mobile vs desktop
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Persistent state refs (survive sidebar open/close)
   const conversationsCacheRef = useRef<Conversation[]>([]);
@@ -829,63 +844,108 @@ export default function Sidebar({
     return groups;
   };
 
+  const sidebarWidth = isCollapsed ? '64px' : '256px';
+  const isDesktopVisible = !isMobile && isOpen;
+  const showBackdrop = isMobile && isOpen && !showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal && !showAddChatsToFolderModal;
+
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-40 transition-opacity duration-300 ${
-          isOpen && !showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal && !showAddChatsToFolderModal ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        style={{
-          backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
-        }}
-        onClick={() => {
-          // Don't close sidebar if any modal is open
-          if (!showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal && !showAddChatsToFolderModal) {
-            onClose();
-          }
-        }}
-      />
+      {/* Backdrop - Only on mobile */}
+      {showBackdrop && (
+        <div
+          className="fixed inset-0 z-40 transition-opacity duration-300 opacity-100"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)',
+          }}
+          onClick={() => {
+            if (!showCreateFolderModal && !showMoveToProjectModal && !showDeleteProjectModal && !showAddChatsToFolderModal) {
+              onClose();
+            }
+          }}
+        />
+      )}
 
       {/* Sidebar */}
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-full w-2/3 sm:w-96 z-50 flex flex-col transition-transform duration-300 ease-out shadow-2xl ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`${
+          isMobile 
+            ? `fixed top-0 left-0 h-full w-2/3 sm:w-96 z-50 flex flex-col transition-transform duration-300 ease-out shadow-2xl ${
+                isOpen ? 'translate-x-0' : '-translate-x-full'
+              }`
+            : `fixed top-0 left-0 h-full z-40 flex flex-col transition-all duration-300 ease-out ${
+                isDesktopVisible ? 'translate-x-0' : '-translate-x-full'
+              }`
         }`}
         style={{
           backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
+          width: isMobile ? undefined : sidebarWidth,
         }}
       >
-        {/* Logo with Close Button */}
-        <div className="flex items-center justify-between py-4 px-5 transition-colors duration-300">
-          <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg transition-colors duration-300"
-            style={{
-              backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
-            }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor =
-                theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
-            }
-          >
-            <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
-          </button>
+        {/* Logo with Close/Collapse Button */}
+        <div className={`flex items-center justify-between py-4 transition-colors duration-300 ${isCollapsed ? 'px-3 justify-center' : 'px-5'}`}>
+          {!isCollapsed && (
+            <Image src="/applogo.png" alt="Humbl AI" width={120} height={40} className="h-8 w-auto opacity-90" />
+          )}
+          {isCollapsed && (
+            <div className="w-8 h-8 flex items-center justify-center">
+              <div className="w-6 h-6 rounded" style={{ backgroundColor: '#f1d08c' }} />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {!isMobile && onToggleCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                className="p-1.5 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+                }
+                title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                ) : (
+                  <ChevronLeft size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+                )}
+              </button>
+            )}
+            {isMobile && (
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg transition-colors duration-300"
+                style={{
+                  backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)',
+                }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)')
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor =
+                    theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)')
+                }
+              >
+                <X size={16} style={{ color: theme === 'dark' ? '#d1d5db' : '#6b7280' }} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Top bar with New Conversation */}
-        {user && (
+        {user && !isCollapsed && (
           <div className="px-5 py-3">
             <button
               onClick={() => {
                 onNewConversation();
-                onClose();
+                if (isMobile) onClose();
               }}
               className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
               style={{
@@ -900,9 +960,28 @@ export default function Sidebar({
             </button>
           </div>
         )}
+        {user && isCollapsed && (
+          <div className="px-2 py-3 flex justify-center">
+            <button
+              onClick={() => {
+                onNewConversation();
+              }}
+              className="p-2 rounded-lg transition-all duration-200 hover:scale-[1.05]"
+              style={{
+                backgroundColor: '#f1d08c',
+                color: '#000000',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
+              title="New Conversation"
+            >
+              <Pencil size={18} />
+            </button>
+          </div>
+        )}
 
         {/* Search Bar */}
-        {user && (
+        {user && !isCollapsed && (
           <div className="px-4 pb-3">
             <div className="relative">
               <Search 
@@ -924,9 +1003,36 @@ export default function Sidebar({
             </div>
           </div>
         )}
+        {user && isCollapsed && (
+          <div className="px-2 pb-3 flex justify-center">
+            <button
+              onClick={() => {
+                // Could open search modal or expand sidebar
+                if (onToggleCollapse) onToggleCollapse();
+              }}
+              className="p-2 rounded-lg transition-colors duration-300"
+              style={{
+                backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)',
+                color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.8)')
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.backgroundColor =
+                  theme === 'dark' ? 'rgba(55, 65, 81, 0.4)' : 'rgba(229, 231, 235, 0.8)')
+              }
+              title="Search"
+            >
+              <Search size={18} />
+            </button>
+          </div>
+        )}
 
         {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
+        {!isCollapsed && (
+          <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2 custom-scrollbar">
           {user ? (
             filteredConversations.length === 0 ? (
               <div
@@ -1308,7 +1414,7 @@ export default function Sidebar({
         )}
 
         {/* User Profile Section (Bottom) */}
-        {user && (
+        {user && !isCollapsed && (
           <div
             className="border-t p-4 transition-colors duration-300"
             style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
@@ -1645,6 +1751,82 @@ export default function Sidebar({
                     </button>
                   </div>
                 )}
+            </div>
+          </div>
+        )}
+        
+        {/* Collapsed User Menu */}
+        {user && isCollapsed && (
+          <div className="border-t p-2 transition-colors duration-300" style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}>
+            <div className="relative flex justify-center">
+              <button
+                data-menu-trigger="settings"
+                onClick={() => {
+                  setShowUserMenu(!showUserMenu);
+                  setShowSearchMenu(false);
+                }}
+                className="p-2 rounded-lg transition-all duration-200 hover:bg-opacity-80"
+                style={{
+                  backgroundColor: theme === 'dark' ? '#1a1a19' : '#f3f4f6',
+                }}
+                title={user.displayName || user.primaryEmail || 'User'}
+              >
+                {user.profileImageUrl ? (
+                  <Image
+                    src={user.profileImageUrl}
+                    alt={user.displayName || user.primaryEmail || 'User'}
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: '#f1d08c' }}
+                  >
+                    <User size={16} className="text-black" />
+                  </div>
+                )}
+              </button>
+              
+              {/* Account menu dropdown - positioned to the right when collapsed */}
+              {showUserMenu && (
+                <div
+                  data-menu-dropdown
+                  className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg min-w-[220px] z-50"
+                  style={{
+                    backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
+                    border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
+                    overflow: 'visible',
+                  }}
+                >
+                  {/* Account Email */}
+                  <div className="w-full flex items-center space-x-2 px-4 py-3 text-sm"
+                    style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                    <User size={16} />
+                    <span className="truncate">{user.primaryEmail}</span>
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      if (onToggleCollapse) onToggleCollapse();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center space-x-2 px-4 py-3 text-sm transition-colors duration-200"
+                    style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.backgroundColor =
+                        theme === 'dark' ? '#2a2a29' : '#f3f4f6')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = 'transparent')
+                    }
+                  >
+                    <Settings size={16} />
+                    <span>Expand sidebar for full menu</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

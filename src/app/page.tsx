@@ -351,6 +351,14 @@ export default function Home() {
   const [showInfo, setShowInfo] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [showSidebar, setShowSidebar] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sidebarCollapsed');
+      return saved === 'true';
+    }
+    return false;
+  });
+  const [isMobile, setIsMobile] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [showMessageShareModal, setShowMessageShareModal] = useState(false);
@@ -1700,11 +1708,29 @@ export default function Home() {
 
   // Detect mobile viewport for placeholder tone
   useEffect(() => {
-    const check = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 640);
+    const check = () => {
+      const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      setIsMobile(mobile);
+      // On desktop, always show sidebar by default
+      if (!mobile && !showSidebar) {
+        setShowSidebar(true);
+      }
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
-  }, []);
+  }, [showSidebar]);
+  
+  // Save collapsed state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarCollapsed', String(isSidebarCollapsed));
+    }
+  }, [isSidebarCollapsed]);
+  
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -1950,23 +1976,33 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col transition-colors duration-300" data-theme={theme} style={{ backgroundColor: theme === 'dark' ? '#151514' : '#ffffff' }}>
+    <div 
+      className="h-screen flex flex-col transition-all duration-300" 
+      data-theme={theme} 
+      style={{ 
+        backgroundColor: theme === 'dark' ? '#151514' : '#ffffff',
+        marginLeft: !isMobile && showSidebar ? (isSidebarCollapsed ? '64px' : '256px') : '0',
+        transition: 'margin-left 0.3s ease-out',
+      }}
+    >
       {/* Header Bar with New Conversation button */}
       <div className="w-full transition-colors duration-300" style={{ borderBottom: 'none' }}>
         <div className="w-full px-4 md:px-8 py-3">
           <div className="flex items-center justify-between relative">
             {/* Left: Hamburger menu and New conversation */}
             <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setShowSidebar(true)}
-                className="p-2 rounded-lg transition-colors duration-300"
-                style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
-                title="Menu"
-              >
-                <Menu size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
-              </button>
+              {(isMobile || !showSidebar) && (
+                <button
+                  onClick={() => setShowSidebar(true)}
+                  className="p-2 rounded-lg transition-colors duration-300"
+                  style={{ backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(75, 85, 99, 0.6)' : 'rgba(209, 213, 219, 0.6)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)'}
+                  title="Menu"
+                >
+                  <Menu size={18} style={{ color: theme === 'dark' ? '#e5e7eb' : '#374151' }} />
+                </button>
+              )}
               <button
                 onClick={startNewConversation}
                 className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
@@ -2965,6 +3001,8 @@ export default function Home() {
         onNewConversation={startNewConversation}
         onSelectConversation={handleSelectConversation}
         currentConversationId={currentConversationId}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={toggleSidebarCollapse}
       />
 
       {/* Onboarding */}
