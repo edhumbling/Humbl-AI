@@ -380,7 +380,6 @@ export default function Home() {
   const [imageIconDropdownOpen, setImageIconDropdownOpen] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [imageGenerationProgress, setImageGenerationProgress] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
   const [showCopied, setShowCopied] = useState(false);
   const [dailyPrompts, setDailyPrompts] = useState<string[]>([]);
   const [votesByIndex, setVotesByIndex] = useState<Record<number, 'up' | 'down' | null>>({});
