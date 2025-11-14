@@ -58,7 +58,7 @@ export default function ResponsiveTable({
   const isDark = theme === 'dark';
   const palette = {
     border: isDark ? 'rgba(100, 116, 139, 0.4)' : 'rgba(148, 163, 184, 0.5)',
-    divider: isDark ? 'rgba(148, 163, 184, 0.5)' : 'rgba(203, 213, 225, 0.8)',
+    divider: isDark ? 'rgba(148, 163, 184, 0.7)' : 'rgba(203, 213, 225, 0.9)',
     headerBg: isDark ? 'rgba(17, 24, 39, 0.92)' : '#f1f5f9',
     headerText: isDark ? '#f8fafc' : '#0f172a',
     rowEven: isDark ? 'rgba(17, 24, 39, 0.85)' : '#ffffff',
@@ -121,7 +121,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-6 py-4 text-[13px] leading-[1.6] align-top';
+    const baseStyle = 'px-8 py-5 text-[13px] leading-[1.7] align-top';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -184,7 +184,7 @@ export default function ResponsiveTable({
                   return (
                     <th
                       key={header.id}
-                      className={`px-6 py-4 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
+                      className={`px-8 py-5 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
                       style={{
                         color: palette.headerText,
                         borderBottom: `2px solid ${palette.divider}`,
@@ -223,7 +223,10 @@ export default function ResponsiveTable({
                 <React.Fragment key={row.id}>
                   <tr 
                     className="transition-colors duration-200 hover:bg-opacity-90"
-                    style={{ backgroundColor: rowBackground }}
+                    style={{ 
+                      backgroundColor: rowBackground,
+                      borderBottom: isLastRow ? 'none' : `1px solid ${palette.divider}`,
+                    }}
                   >
                     {row.getVisibleCells().map(cell => {
                       const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
@@ -247,13 +250,12 @@ export default function ResponsiveTable({
                     <tr>
                       <td 
                         colSpan={row.getVisibleCells().length} 
-                        className="h-0 p-0"
+                        className="p-0"
                         style={{
-                          borderBottom: `2px solid ${palette.divider}`,
+                          height: '16px',
+                          backgroundColor: 'transparent',
                         }}
-                      >
-                        <div className="h-6" />
-                      </td>
+                      />
                     </tr>
                   )}
                 </React.Fragment>
