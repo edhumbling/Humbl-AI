@@ -1828,11 +1828,11 @@ export default function Sidebar({
                 )}
               </button>
               
-              {/* Account menu dropdown - positioned to the right when collapsed */}
+              {/* Account menu dropdown - opens outside sidebar to the right when collapsed */}
               {showUserMenu && (
                 <div
                   data-menu-dropdown
-                  className="absolute bottom-full right-0 mb-2 rounded-lg shadow-lg min-w-[220px] z-50"
+                  className="absolute left-full bottom-0 ml-2 rounded-lg shadow-xl min-w-[220px] z-[60]"
                   style={{
                     backgroundColor: theme === 'dark' ? '#1f1f1f' : '#ffffff',
                     border: `1px solid ${theme === 'dark' ? '#3a3a39' : '#e5e7eb'}`,
