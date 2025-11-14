@@ -57,7 +57,8 @@ export default function ResponsiveTable({
 
   const isDark = theme === 'dark';
   const palette = {
-    border: isDark ? 'rgba(71, 85, 105, 0.55)' : 'rgba(148, 163, 184, 0.65)',
+    border: isDark ? 'rgba(100, 116, 139, 0.4)' : 'rgba(148, 163, 184, 0.5)',
+    divider: isDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(203, 213, 225, 0.6)',
     headerBg: isDark ? 'rgba(17, 24, 39, 0.92)' : '#f1f5f9',
     headerText: isDark ? '#f8fafc' : '#0f172a',
     rowEven: isDark ? 'rgba(17, 24, 39, 0.85)' : '#ffffff',
@@ -120,7 +121,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-7 py-4 text-[13px] leading-[1.65] align-top';
+    const baseStyle = 'px-5 py-3.5 text-[13px] leading-[1.5] align-top';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -141,7 +142,7 @@ export default function ResponsiveTable({
         colorStyle = theme === 'dark' ? 'text-gray-300' : 'text-gray-800';
     }
     
-    return `${baseStyle} ${alignment} ${colorStyle} whitespace-nowrap md:whitespace-normal`;
+    return `${baseStyle} ${alignment} ${colorStyle}`;
   };
 
   return (
@@ -172,7 +173,7 @@ export default function ResponsiveTable({
             <span className="sr-only">{copyButtonLabel}</span>
           </button>
         )}
-        <table className="w-full min-w-[720px] border-separate border-spacing-y-5 border-spacing-x-0">
+        <table className="w-full min-w-[600px] border-collapse">
           <thead>
             {table.getHeaderGroups().map(headerGroup => (
               <tr
@@ -187,9 +188,10 @@ export default function ResponsiveTable({
                   return (
                     <th
                       key={header.id}
-                      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none first:rounded-l-xl last:rounded-r-xl`}
+                      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
                       style={{
                         color: palette.headerText,
+                        borderBottom: `1px solid ${palette.border}`,
                       }}
                       onClick={header.column.getToggleSortingHandler()}
                     >
@@ -219,61 +221,48 @@ export default function ResponsiveTable({
           <tbody>
             {table.getRowModel().rows.map((row, rowIndex) => {
               const rowBackground = rowIndex % 2 === 0 ? palette.rowEven : palette.rowOdd;
-              const cells = row.getVisibleCells();
               const isLastRow = rowIndex === table.getRowModel().rows.length - 1;
 
               return (
-                <tr key={row.id} className="transition-all duration-200">
-                  <td colSpan={cells.length} className="p-0">
-                    <div
-                      className="rounded-3xl border transition-all duration-200 hover:shadow-lg"
-                      style={{
-                        borderColor: palette.border,
-                        backgroundColor: rowBackground,
-                        padding: '22px 0 24px',
-                        boxShadow: isDark
-                          ? '0 16px 36px rgba(15, 23, 42, 0.45)'
-                          : '0 16px 32px rgba(148, 163, 184, 0.25)',
-                      }}
-                    >
-                      <table className="w-full border-separate border-spacing-y-3 border-spacing-x-0">
-                        <tbody>
-                          <tr>
-                            {cells.map(cell => {
-                              const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
-                              return (
-                                <td
-                                  key={cell.id}
-                                  className={`${getCellStyle(columnMeta?.type)} first:pl-8 last:pr-8 first:rounded-l-3xl last:rounded-r-3xl`}
-                                  style={{
-                                    backgroundColor: rowBackground,
-                                    maxWidth: '360px',
-                                    wordBreak: 'break-word',
-                                    whiteSpace: 'normal',
-                                    borderBottom: `1px solid ${palette.border}`,
-                                  }}
-                                >
-                                  <span className="block">
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                  </span>
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        </tbody>
-                      </table>
-                      {!isLastRow && (
-                        <div
-                          className="mx-8 mt-5 border-t"
+                <React.Fragment key={row.id}>
+                  <tr 
+                    className="transition-colors duration-200 hover:bg-opacity-90"
+                    style={{ backgroundColor: rowBackground }}
+                  >
+                    {row.getVisibleCells().map(cell => {
+                      const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
+                      return (
+                        <td
+                          key={cell.id}
+                          className={getCellStyle(columnMeta?.type)}
                           style={{
-                            borderColor: palette.border,
-                            opacity: isDark ? 0.55 : 0.6,
+                            backgroundColor: rowBackground,
+                            maxWidth: '450px',
+                            wordBreak: 'break-word',
+                            whiteSpace: 'normal',
+                            overflowWrap: 'break-word',
+                            borderBottom: isLastRow ? 'none' : `1px solid ${palette.divider}`,
                           }}
-                        />
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                  {!isLastRow && (
+                    <tr>
+                      <td 
+                        colSpan={row.getVisibleCells().length} 
+                        className="h-0 p-0"
+                        style={{
+                          borderBottom: `1px solid ${palette.divider}`,
+                        }}
+                      >
+                        <div className="h-4" />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
