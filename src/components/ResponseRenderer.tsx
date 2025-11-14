@@ -194,7 +194,7 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
 
               return (
                 <div
-                  className="my-6 overflow-x-auto rounded-lg border"
+                  className="my-6 overflow-x-auto border"
                   style={{ borderColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.6)' : 'rgba(229, 231, 235, 0.6)' }}
                 >
                   <table className="min-w-full border-collapse">{children}</table>

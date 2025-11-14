@@ -58,18 +58,18 @@ export default function ResponsiveTable({
   const isDark = theme === 'dark';
   const palette = {
     border: isDark ? 'rgba(100, 116, 139, 0.4)' : 'rgba(148, 163, 184, 0.5)',
-    divider: isDark ? 'rgba(148, 163, 184, 0.25)' : 'rgba(203, 213, 225, 0.6)',
+    divider: isDark ? 'rgba(148, 163, 184, 0.5)' : 'rgba(203, 213, 225, 0.8)',
     headerBg: isDark ? 'rgba(17, 24, 39, 0.92)' : '#f1f5f9',
     headerText: isDark ? '#f8fafc' : '#0f172a',
     rowEven: isDark ? 'rgba(17, 24, 39, 0.85)' : '#ffffff',
     rowOdd: isDark ? 'rgba(15, 23, 42, 0.78)' : '#f8fafc',
     copyButton: isDark
-      ? 'inline-flex items-center gap-2 rounded-lg border border-slate-600/60 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-slate-700'
-      : 'inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100',
+      ? 'inline-flex items-center gap-2 border border-slate-600/60 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-slate-700'
+      : 'inline-flex items-center gap-2 border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100',
     copyIcon: isDark ? '#cbd5f5' : '#475569',
     paginationButton: isDark
-      ? 'px-3 py-1 text-xs rounded-lg border border-slate-600/60 bg-slate-800 text-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700'
-      : 'px-3 py-1 text-xs rounded-lg border border-slate-200 bg-white text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100',
+      ? 'px-3 py-1 text-xs border border-slate-600/60 bg-slate-800 text-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-700'
+      : 'px-3 py-1 text-xs border border-slate-200 bg-white text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100',
     paginationText: isDark ? 'text-slate-400' : 'text-slate-600',
   };
 
@@ -121,7 +121,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-5 py-3.5 text-[13px] leading-[1.5] align-top';
+    const baseStyle = 'px-6 py-4 text-[13px] leading-[1.6] align-top';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -165,7 +165,7 @@ export default function ResponsiveTable({
           <button
             type="button"
             onClick={handleCopyTable}
-            className={`${palette.copyButton} absolute left-3 top-3 z-10 !rounded-full !px-2.5 !py-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200`}
+            className={`${palette.copyButton} absolute left-3 top-3 z-10 !px-2.5 !py-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-all duration-200`}
             aria-label="Copy table"
             title={copyButtonLabel}
           >
@@ -188,10 +188,10 @@ export default function ResponsiveTable({
                   return (
                     <th
                       key={header.id}
-                      className={`px-5 py-3 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
+                      className={`px-6 py-4 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
                       style={{
                         color: palette.headerText,
-                        borderBottom: `1px solid ${palette.border}`,
+                        borderBottom: `2px solid ${palette.divider}`,
                       }}
                       onClick={header.column.getToggleSortingHandler()}
                     >
@@ -237,11 +237,10 @@ export default function ResponsiveTable({
                           className={getCellStyle(columnMeta?.type)}
                           style={{
                             backgroundColor: rowBackground,
-                            maxWidth: '450px',
+                            maxWidth: '500px',
                             wordBreak: 'break-word',
                             whiteSpace: 'normal',
                             overflowWrap: 'break-word',
-                            borderBottom: isLastRow ? 'none' : `1px solid ${palette.divider}`,
                           }}
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -255,10 +254,10 @@ export default function ResponsiveTable({
                         colSpan={row.getVisibleCells().length} 
                         className="h-0 p-0"
                         style={{
-                          borderBottom: `1px solid ${palette.divider}`,
+                          borderBottom: `2px solid ${palette.divider}`,
                         }}
                       >
-                        <div className="h-4" />
+                        <div className="h-6" />
                       </td>
                     </tr>
                   )}
