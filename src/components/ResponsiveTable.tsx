@@ -121,7 +121,7 @@ export default function ResponsiveTable({
 
   // Helper function to get cell styling based on column type
   const getCellStyle = (columnType?: ColumnType) => {
-    const baseStyle = 'px-8 py-5 text-[13px] leading-[1.7] align-top';
+    const baseStyle = 'px-6 py-4 text-sm align-middle';
     const alignment = columnType === 'number' || columnType === 'currency' || columnType === 'percentage' ? 'text-right' : 'text-left';
     
     let colorStyle = '';
@@ -145,6 +145,9 @@ export default function ResponsiveTable({
     return `${baseStyle} ${alignment} ${colorStyle}`;
   };
 
+  // Divider color class based on theme
+  const dividerClass = isDark ? 'divide-gray-700' : 'divide-gray-200';
+
   return (
     <div className={`${className}`}>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -154,9 +157,6 @@ export default function ResponsiveTable({
       </div>
 
       <div className="relative overflow-x-auto group">
-        <div
-          className="inline-block transition-colors duration-300"
-        >
         {sourceTable && (
           <button
             type="button"
@@ -169,29 +169,24 @@ export default function ResponsiveTable({
             <span className="sr-only">{copyButtonLabel}</span>
           </button>
         )}
-        <table className="border-collapse" style={{ width: 'max-content', minWidth: '600px' }}>
-          <thead>
+        <table 
+          className="min-w-full"
+          style={{ width: 'max-content' }}
+        >
+          <thead className={isDark ? 'bg-gray-800/50' : 'bg-gray-50'}>
             {table.getHeaderGroups().map(headerGroup => (
-              <tr
-                key={headerGroup.id}
-                className="transition-colors duration-300"
-                style={{ backgroundColor: palette.headerBg }}
-              >
+              <tr key={headerGroup.id}>
                 {headerGroup.headers.map(header => {
                   const columnMeta = header.column.columnDef.meta as { type?: ColumnType; align?: string } | undefined;
-                  const alignment = columnMeta?.align === 'right' ? 'text-right justify-end' : 'text-left justify-start';
+                  const align = columnMeta?.align === 'right' ? 'text-right' : columnMeta?.align === 'center' ? 'text-center' : 'text-left';
                   
                   return (
                     <th
                       key={header.id}
-                      className={`px-8 py-5 text-xs font-semibold uppercase tracking-wide ${alignment} align-middle select-none`}
-                      style={{
-                        color: palette.headerText,
-                        borderBottom: `2px solid ${palette.divider}`,
-                      }}
+                      className={`px-6 py-4 text-left text-xs font-medium uppercase tracking-wider ${align} ${isDark ? 'text-gray-300' : 'text-gray-700'} select-none cursor-pointer hover:opacity-80 transition-opacity`}
                       onClick={header.column.getToggleSortingHandler()}
                     >
-                      <div className={`flex items-center gap-2 ${alignment}`}>
+                      <div className={`flex items-center gap-2 ${align === 'text-right' ? 'justify-end' : align === 'text-center' ? 'justify-center' : 'justify-start'}`}>
                         <span>
                           {header.isPlaceholder
                             ? null
@@ -214,56 +209,40 @@ export default function ResponsiveTable({
               </tr>
             ))}
           </thead>
-          <tbody>
+          <tbody className={`${isDark ? 'bg-gray-900/30' : 'bg-white'} ${dividerClass} divide-y`}>
             {table.getRowModel().rows.map((row, rowIndex) => {
-              const rowBackground = rowIndex % 2 === 0 ? palette.rowEven : palette.rowOdd;
-              const isLastRow = rowIndex === table.getRowModel().rows.length - 1;
+              const rowBg = rowIndex % 2 === 0 
+                ? (isDark ? 'bg-gray-800/30' : 'bg-white')
+                : (isDark ? 'bg-gray-800/20' : 'bg-gray-50');
 
               return (
-                <React.Fragment key={row.id}>
-                  <tr 
-                    className="transition-colors duration-200 hover:bg-opacity-90"
-                    style={{ 
-                      backgroundColor: rowBackground,
-                      borderBottom: isLastRow ? 'none' : `1px solid ${palette.divider}`,
-                    }}
-                  >
-                    {row.getVisibleCells().map(cell => {
-                      const columnMeta = cell.column.columnDef.meta as { type?: ColumnType } | undefined;
-                      return (
-                        <td
-                          key={cell.id}
-                          className={getCellStyle(columnMeta?.type)}
-                          style={{
-                            backgroundColor: rowBackground,
-                            wordBreak: 'break-word',
-                            whiteSpace: 'normal',
-                            overflowWrap: 'break-word',
-                          }}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                  {!isLastRow && (
-                    <tr>
-                      <td 
-                        colSpan={row.getVisibleCells().length} 
-                        className="p-0"
+                <tr 
+                  key={row.id}
+                  className={`${rowBg} transition-colors duration-150 hover:opacity-90`}
+                >
+                  {row.getVisibleCells().map(cell => {
+                    const columnMeta = cell.column.columnDef.meta as { type?: ColumnType; align?: string } | undefined;
+                    const align = columnMeta?.align === 'right' ? 'text-right' : columnMeta?.align === 'center' ? 'text-center' : 'text-left';
+                    
+                    return (
+                      <td
+                        key={cell.id}
+                        className={`${getCellStyle(columnMeta?.type)} ${align} break-words`}
                         style={{
-                          height: '16px',
-                          backgroundColor: 'transparent',
+                          whiteSpace: 'normal',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
                         }}
-                      />
-                    </tr>
-                  )}
-                </React.Fragment>
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
+                </tr>
               );
             })}
           </tbody>
         </table>
-      </div>
       </div>
 
       {/* Pagination */}
