@@ -13,6 +13,7 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const promptShownRef = useRef(false);
+  const deferredPromptRef = useRef<any>(null);
 
   useEffect(() => {
     // Check if already installed
@@ -81,18 +82,53 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
         promptShownRef.current = true;
         localStorage.setItem('humbl_pwa_prompt_shown', 'true');
         localStorage.setItem('humbl_pwa_last_reminder', new Date().toISOString());
+        
+        // If we already have a deferred prompt, trigger auto-install immediately
+        if (deferredPromptRef.current) {
+          setTimeout(() => {
+            handleAutoInstall(deferredPromptRef.current);
+          }, 500);
+        }
       }, delay);
 
       return () => clearTimeout(timer);
     }
-  }, []);
+  }, [deferredPrompt]);
+
+  const handleAutoInstall = async (promptEvent: any) => {
+    try {
+      // Automatically show the browser's native install prompt
+      await promptEvent.prompt();
+      
+      // Wait for the user to respond
+      const { outcome } = await promptEvent.userChoice;
+      
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        setShowPrompt(false);
+        localStorage.setItem('humbl_pwa_installed', 'true');
+      } else {
+        // User declined - show our custom prompt as fallback
+        // The custom prompt is already showing, so we just keep it visible
+      }
+      
+      // Clear the deferred prompt
+      setDeferredPrompt(null);
+      deferredPromptRef.current = null;
+    } catch (error) {
+      console.error('Auto-install failed:', error);
+      // Fall back to showing custom prompt
+    }
+  };
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the default browser install prompt
       e.preventDefault();
       // Store the event for later use
-      setDeferredPrompt(e);
+      const promptEvent = e as any;
+      setDeferredPrompt(promptEvent);
+      deferredPromptRef.current = promptEvent;
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -102,7 +138,26 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
     };
   }, []);
 
+  // Auto-trigger install prompt when it becomes available and our prompt is showing
+  useEffect(() => {
+    if (showPrompt && !isInstalled && !isDismissed && deferredPromptRef.current) {
+      // Automatically trigger the browser's native install prompt
+      // This makes installation feel automatic - the native prompt appears automatically
+      const timer = setTimeout(() => {
+        handleAutoInstall(deferredPromptRef.current);
+      }, 800); // Small delay to let the custom prompt appear first
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showPrompt, isInstalled, isDismissed]);
+
   const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      // Use the stored prompt event for automatic installation
+      await handleAutoInstall(deferredPrompt);
+      return;
+    }
+
     // Check if mobile device
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -115,29 +170,11 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
       return;
     }
 
-    if (!deferredPrompt) {
-      // If no deferred prompt (mobile Android), show instructions
-      if (isMobile) {
-        alert('To install on Android:\n\n1. Tap the menu (3 dots) in your browser\n2. Select "Install app" or "Add to Home screen"\n3. Confirm installation');
-      }
-      handleDismiss();
-      return;
+    // If no deferred prompt (mobile Android), show instructions
+    if (isMobile) {
+      alert('To install on Android:\n\n1. Tap the menu (3 dots) in your browser\n2. Select "Install app" or "Add to Home screen"\n3. Confirm installation');
     }
-
-    // Show the install prompt (desktop browsers)
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === 'accepted') {
-      setIsInstalled(true);
-      setShowPrompt(false);
-      localStorage.setItem('humbl_pwa_installed', 'true');
-    }
-
-    // Clear the deferred prompt
-    setDeferredPrompt(null);
+    handleDismiss();
   };
 
   const handleDismiss = () => {
@@ -160,6 +197,17 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
   const subTextColor = isDark ? '#cbd5f5' : '#1f2937';
   const mutedTextColor = isDark ? '#94a3b8' : '#64748b';
 
+  // Detect mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
     <>
       {/* Blurred backdrop */}
@@ -175,13 +223,17 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
 
       {/* Install Prompt Card */}
       <div
-        className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[141] w-full max-w-md mx-4 pointer-events-auto"
+        className={`fixed left-1/2 transform -translate-x-1/2 z-[141] w-full pointer-events-auto ${
+          isMobile ? 'bottom-3 max-w-[calc(100%-24px)]' : 'bottom-6 max-w-md mx-4'
+        }`}
         style={{
           animation: 'slideUp 0.3s ease-out',
         }}
       >
         <div
-          className="relative rounded-3xl p-6 shadow-2xl"
+          className={`relative shadow-2xl ${
+            isMobile ? 'rounded-2xl p-4' : 'rounded-3xl p-6'
+          }`}
           style={{
             backgroundColor: bgColor,
             border: `1px solid ${borderColor}`,
@@ -191,82 +243,106 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
           {/* Close button */}
           <button
             onClick={handleDismiss}
-            className="absolute top-4 right-4 p-1.5 rounded-full transition-colors duration-150"
+            className={`absolute rounded-full transition-colors duration-150 ${
+              isMobile ? 'top-2 right-2 p-1' : 'top-4 right-4 p-1.5'
+            }`}
             style={{
               backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f1f5f9',
               color: isDark ? '#cbd5f5' : '#475569',
             }}
             aria-label="Close"
           >
-            <X size={16} />
+            <X size={isMobile ? 14 : 16} />
           </button>
 
           {/* Icon and header */}
-          <div className="flex items-start gap-4 pr-8">
+          <div className={`flex items-start gap-3 ${isMobile ? 'pr-7' : 'pr-8 gap-4'}`}>
             <div
-              className="flex h-12 w-12 items-center justify-center rounded-2xl flex-shrink-0"
+              className={`flex items-center justify-center rounded-xl flex-shrink-0 ${
+                isMobile ? 'h-9 w-9' : 'h-12 w-12 rounded-2xl'
+              }`}
               style={{ backgroundColor: `${accentColor}1a` }}
             >
-              <Download size={24} color={accentColor} />
+              <Download size={isMobile ? 18 : 24} color={accentColor} />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <Sparkles size={14} color={accentColor} />
+            <div className="flex-1 min-w-0">
+              <div className={`flex items-center gap-1.5 ${isMobile ? 'mb-0.5' : 'mb-1 gap-2'}`}>
+                <Sparkles size={isMobile ? 12 : 14} color={accentColor} />
                 <span
-                  className="text-[11px] font-semibold uppercase tracking-[0.28em]"
+                  className={`font-semibold uppercase tracking-[0.28em] ${
+                    isMobile ? 'text-[9px]' : 'text-[11px]'
+                  }`}
                   style={{ color: accentColor }}
                 >
                   Install App
                 </span>
               </div>
-              <h3 className="text-lg font-semibold leading-snug mt-2" style={{ color: textColor }}>
-                Install Humbl AI for a better experience
+              <h3
+                className={`font-semibold leading-snug ${
+                  isMobile ? 'text-sm mt-1' : 'text-lg mt-2'
+                }`}
+                style={{ color: textColor }}
+              >
+                {isMobile ? 'Install Humbl AI' : 'Install Humbl AI for a better experience'}
               </h3>
-              <p className="text-sm leading-relaxed mt-2" style={{ color: subTextColor }}>
-                Get faster access, work offline, and enjoy a native app-like experience right from your home screen.
-              </p>
+              {!isMobile && (
+                <p className="text-sm leading-relaxed mt-2" style={{ color: subTextColor }}>
+                  Get faster access, work offline, and enjoy a native app-like experience right from your home screen.
+                </p>
+              )}
+              {isMobile && (
+                <p className="text-xs leading-relaxed mt-1" style={{ color: mutedTextColor }}>
+                  Quick access from your home screen
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Benefits list */}
-          <ul className="mt-4 space-y-2">
-            {[
-              'Faster loading and smoother performance',
-              'Works offline for your saved conversations',
-              'Quick access from your home screen',
-            ].map((benefit, index) => (
-              <li key={index} className="flex items-center gap-2 text-sm" style={{ color: mutedTextColor }}>
-                <div
-                  className="h-1.5 w-1.5 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: accentColor }}
-                />
-                {benefit}
-              </li>
-            ))}
-          </ul>
+          {/* Benefits list - Desktop only */}
+          {!isMobile && (
+            <ul className="mt-4 space-y-2">
+              {[
+                'Faster loading and smoother performance',
+                'Works offline for your saved conversations',
+                'Quick access from your home screen',
+              ].map((benefit, index) => (
+                <li key={index} className="flex items-center gap-2 text-sm" style={{ color: mutedTextColor }}>
+                  <div
+                    className="h-1.5 w-1.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: accentColor }}
+                  />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
+          )}
 
           {/* Action buttons */}
-          <div className="mt-6 flex flex-col gap-3">
+          <div className={`flex flex-col gap-2 ${isMobile ? 'mt-3' : 'mt-6 gap-3'}`}>
             <button
               onClick={handleInstallClick}
-              className="w-full px-5 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
+              className={`w-full rounded-xl font-semibold flex items-center justify-center gap-2 transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98] ${
+                isMobile ? 'px-4 py-2.5 text-xs' : 'px-5 py-3 text-sm'
+              }`}
               style={{
                 backgroundColor: accentColor,
                 color: '#0b1727',
               }}
             >
-              <Download size={18} />
+              <Download size={isMobile ? 14 : 18} />
               <span>Install Now</span>
             </button>
             <button
               onClick={handleDismiss}
-              className="w-full px-5 py-2 rounded-xl text-sm font-medium transition-colors duration-150"
+              className={`w-full rounded-xl font-medium transition-colors duration-150 ${
+                isMobile ? 'px-4 py-2 text-xs' : 'px-5 py-2 text-sm'
+              }`}
               style={{
                 backgroundColor: isDark ? 'rgba(30, 41, 59, 0.6)' : '#f1f5f9',
                 color: isDark ? '#cbd5f5' : '#475569',
               }}
             >
-              Maybe later
+              {isMobile ? 'Later' : 'Maybe later'}
             </button>
           </div>
         </div>
