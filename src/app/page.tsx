@@ -3133,6 +3133,7 @@ export default function Home() {
                   border: '1px solid #f1d08c',
                   borderBottomLeftRadius: !conversationStarted && showSuggestions && suggestions.length > 0 ? '0' : undefined,
                   borderBottomRightRadius: !conversationStarted && showSuggestions && suggestions.length > 0 ? '0' : undefined,
+                  borderBottom: !conversationStarted && showSuggestions && suggestions.length > 0 ? 'none' : undefined,
                 }}
               >
                 {/* Full-bar waveform background */}
@@ -3519,12 +3520,13 @@ export default function Home() {
                 style={{ 
                   border: '1px solid #f1d08c',
                   borderTop: 'none',
+                  marginTop: '-1px',
                 }}
               >
                 {suggestions.map((s, i) => (
                       <button
                     key={i}
-                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors duration-300 flex items-center gap-2 ${theme === 'dark' ? 'border-t border-gray-800/60' : 'border-t border-gray-200/60'} ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-black') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-black hover:bg-gray-100')}`}
+                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors duration-300 flex items-center gap-2 ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-black') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-black hover:bg-gray-100')}`}
                     onMouseDown={(e) => { 
                       e.preventDefault(); 
                       suggestionSelectedRef.current = true;
