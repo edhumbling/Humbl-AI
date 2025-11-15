@@ -7,6 +7,7 @@ import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
 import Onboarding from '../components/Onboarding';
+import PWAInstallPrompt from '../components/PWAInstallPrompt';
 import { useConversation } from '@/contexts/ConversationContext';
 import { useUser } from '@stackframe/stack';
 import { createSnappySnippet, BASE_DOCUMENT_TITLE } from '@/utils/tabTitle';
@@ -3031,6 +3032,10 @@ export default function Home() {
         />
       )}
 
+      {/* PWA Install Prompt - Only show when onboarding is not active */}
+      {!showOnboarding && (
+        <PWAInstallPrompt theme={theme} />
+      )}
 
       {/* Header - Only show when conversation hasn't started */}
       {!conversationStarted && (

@@ -23,6 +23,13 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
     apple: '/favicon.ico',
   },
+  manifest: '/manifest.json',
+  themeColor: '#f1d08c',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Humbl AI',
+  },
 };
 
 export default function RootLayout({
