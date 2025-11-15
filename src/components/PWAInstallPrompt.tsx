@@ -21,30 +21,66 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
       return;
     }
 
-    // Check if user has dismissed the prompt before
+    // Check if user has dismissed the prompt recently (within last 7 days)
     const dismissed = localStorage.getItem('humbl_pwa_dismissed');
-    if (dismissed === 'true') {
-      setIsDismissed(true);
-      return;
+    if (dismissed) {
+      const dismissedDate = new Date(dismissed);
+      const daysSinceDismissed = (Date.now() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
+      // If dismissed less than 7 days ago, don't show again
+      if (daysSinceDismissed < 7) {
+        setIsDismissed(true);
+        return;
+      }
+      // If dismissed more than 7 days ago, show again (remind existing users)
     }
 
-    // Check if this is a first-time user (hasn't completed onboarding or used the app)
+    // Check if this is a first-time user or existing user
     const onboardingCompleted = localStorage.getItem('humbl_onboarding_completed');
     const pwaPromptShown = localStorage.getItem('humbl_pwa_prompt_shown');
+    const lastReminderDate = localStorage.getItem('humbl_pwa_last_reminder');
     
-    // Only show to first-time users who haven't seen the prompt before
-    // Show if: onboarding not completed OR (onboarding completed but prompt never shown)
-    // Also check if we're on a platform that supports PWA installation
+    // Check if we're on a platform that supports PWA installation
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const supportsPWA = 'serviceWorker' in navigator && ('PushManager' in window || isMobile);
     
-    if (supportsPWA && !pwaPromptShown && !promptShownRef.current) {
-      // Wait a bit after page load before showing (longer if onboarding was just completed)
-      const delay = onboardingCompleted ? 5000 : 3000;
+    if (!supportsPWA || promptShownRef.current) {
+      return;
+    }
+
+    // For first-time users: show after 3-5 seconds
+    // For existing users: show after 10 seconds, but only if last reminder was more than 7 days ago
+    let shouldShow = false;
+    let delay = 3000;
+
+    if (!onboardingCompleted) {
+      // First-time user - show quickly
+      if (!pwaPromptShown) {
+        shouldShow = true;
+        delay = 3000;
+      }
+    } else {
+      // Existing user - show reminder
+      if (!lastReminderDate) {
+        // Never shown to existing user before
+        shouldShow = true;
+        delay = 10000; // Wait 10 seconds for existing users
+      } else {
+        // Check if last reminder was more than 7 days ago
+        const lastReminder = new Date(lastReminderDate);
+        const daysSinceLastReminder = (Date.now() - lastReminder.getTime()) / (1000 * 60 * 60 * 24);
+        if (daysSinceLastReminder >= 7) {
+          shouldShow = true;
+          delay = 10000; // Wait 10 seconds for reminders
+        }
+      }
+    }
+    
+    if (shouldShow) {
       const timer = setTimeout(() => {
         setShowPrompt(true);
         promptShownRef.current = true;
         localStorage.setItem('humbl_pwa_prompt_shown', 'true');
+        localStorage.setItem('humbl_pwa_last_reminder', new Date().toISOString());
       }, delay);
 
       return () => clearTimeout(timer);
@@ -107,7 +143,8 @@ export default function PWAInstallPrompt({ theme }: PWAInstallPromptProps) {
   const handleDismiss = () => {
     setShowPrompt(false);
     setIsDismissed(true);
-    localStorage.setItem('humbl_pwa_dismissed', 'true');
+    // Store dismissal with timestamp so we can remind again after 7 days
+    localStorage.setItem('humbl_pwa_dismissed', new Date().toISOString());
   };
 
   // Don't show if already installed, dismissed, or no prompt available
