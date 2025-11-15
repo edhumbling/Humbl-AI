@@ -3131,9 +3131,11 @@ export default function Home() {
                 style={{ 
                   backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', 
                   border: '1px solid #f1d08c',
-                  borderBottomLeftRadius: !conversationStarted && showSuggestions && suggestions.length > 0 ? '0' : undefined,
-                  borderBottomRightRadius: !conversationStarted && showSuggestions && suggestions.length > 0 ? '0' : undefined,
-                  borderBottom: !conversationStarted && showSuggestions && suggestions.length > 0 ? 'none' : undefined,
+                  ...(!conversationStarted && showSuggestions && suggestions.length > 0 ? {
+                    borderBottomLeftRadius: '0',
+                    borderBottomRightRadius: '0',
+                    borderBottom: 'none',
+                  } : {}),
                 }}
               >
                 {/* Full-bar waveform background */}
