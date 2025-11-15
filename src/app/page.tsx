@@ -3123,7 +3123,11 @@ export default function Home() {
             <div className="relative">
               <div
                 data-tour="composer"
-                className="relative overflow-visible flex flex-col rounded-2xl px-4 pt-4 pb-12 shadow-lg transition-colors duration-300"
+                className={`relative overflow-visible flex flex-col px-4 pt-4 shadow-lg transition-all duration-300 ${
+                  !conversationStarted && showSuggestions && suggestions.length > 0 
+                    ? 'rounded-t-2xl pb-12' 
+                    : 'rounded-2xl pb-12'
+                }`}
                 style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}
               >
                 {/* Full-bar waveform background */}
@@ -3241,13 +3245,13 @@ export default function Home() {
                 />
                 </div>
 
-                {/* Suggestions dropdown (desktop top bar) */}
+                {/* Suggestions dropdown - integrated within container */}
                 {!conversationStarted && showSuggestions && suggestions.length > 0 && (
-                  <div className={`absolute left-3 right-3 top-full mt-0 rounded-b-2xl backdrop-blur-sm z-20 max-h-64 overflow-auto humbl-suggest transition-colors duration-300 ${theme === 'dark' ? 'bg-[#1f1f1f]/95' : 'bg-white/95'}`}>
+                  <div className={`mt-2 rounded-b-2xl overflow-y-auto z-20 max-h-64 humbl-suggest transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-transparent'}`}>
                     {suggestions.map((s, i) => (
                           <button
                         key={i}
-                        className={`w-full text-left px-3 py-2 text-sm transition-colors duration-300 ${theme === 'dark' ? 'border-t border-gray-800/60' : 'border-t border-gray-200/60'} ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-black') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-black hover:bg-gray-100')}`}
+                        className={`w-full text-left px-3 py-2.5 text-sm transition-colors duration-300 flex items-center gap-2 ${theme === 'dark' ? 'border-t border-gray-800/60' : 'border-t border-gray-200/60'} ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-black') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-black hover:bg-gray-100')}`}
                         onMouseDown={(e) => { 
                           e.preventDefault(); 
                           suggestionSelectedRef.current = true;
@@ -3259,7 +3263,13 @@ export default function Home() {
                           setTimeout(() => { suggestionSelectedRef.current = false; }, 300);
                         }}
                       >
-                        {s}
+                        <svg className="w-4 h-4 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <span className="flex-1">{s}</span>
+                        <svg className="w-4 h-4 flex-shrink-0 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
                           </button>
                       ))}
                   </div>
