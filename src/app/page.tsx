@@ -3553,7 +3553,6 @@ export default function Home() {
             <p className="text-center mt-2 text-xs text-gray-500/60">
               AI can make mistakes, kindly fact check if possible.
             </p>
-          </div>
         </div>
       )}
 
