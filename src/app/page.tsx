@@ -3128,7 +3128,12 @@ export default function Home() {
                     ? 'rounded-t-2xl pb-12' 
                     : 'rounded-2xl pb-12'
                 }`}
-                style={{ backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', border: '1px solid #f1d08c' }}
+                style={{ 
+                  backgroundColor: theme === 'dark' ? '#1f1f1f' : '#f9fafb', 
+                  border: '1px solid #f1d08c',
+                  borderBottomLeftRadius: !conversationStarted && showSuggestions && suggestions.length > 0 ? '0' : undefined,
+                  borderBottomRightRadius: !conversationStarted && showSuggestions && suggestions.length > 0 ? '0' : undefined,
+                }}
               >
                 {/* Full-bar waveform background */}
                 {isRecording && (
@@ -3244,36 +3249,6 @@ export default function Home() {
                   }}
                 />
                 </div>
-
-                {/* Suggestions dropdown - integrated within container */}
-                {!conversationStarted && showSuggestions && suggestions.length > 0 && (
-                  <div className={`mt-2 rounded-b-2xl overflow-y-auto z-20 max-h-64 humbl-suggest transition-colors duration-300 ${theme === 'dark' ? 'bg-transparent' : 'bg-transparent'}`}>
-                    {suggestions.map((s, i) => (
-                          <button
-                        key={i}
-                        className={`w-full text-left px-3 py-2.5 text-sm transition-colors duration-300 flex items-center gap-2 ${theme === 'dark' ? 'border-t border-gray-800/60' : 'border-t border-gray-200/60'} ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-black') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-black hover:bg-gray-100')}`}
-                        onMouseDown={(e) => { 
-                          e.preventDefault(); 
-                          suggestionSelectedRef.current = true;
-                          setSearchQuery(s); 
-                          setShowSuggestions(false); 
-                          setActiveSuggestionIndex(-1); 
-                          setSuggestions([]);
-                          // Reset flag after a short delay to allow new typing to fetch suggestions
-                          setTimeout(() => { suggestionSelectedRef.current = false; }, 300);
-                        }}
-                      >
-                        <svg className="w-4 h-4 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <span className="flex-1">{s}</span>
-                        <svg className="w-4 h-4 flex-shrink-0 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                          </button>
-                      ))}
-                  </div>
-                )}
 
                 {/* Transcribing indicator */}
                 {(!isRecording && isTranscribing) && (
@@ -3535,6 +3510,43 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+            </div>
+            
+            {/* Suggestions dropdown - positioned below container, integrated visually */}
+            {!conversationStarted && showSuggestions && suggestions.length > 0 && (
+              <div 
+                className={`absolute left-0 right-0 top-full rounded-b-2xl overflow-y-auto z-20 max-h-64 humbl-suggest transition-colors duration-300 ${theme === 'dark' ? 'bg-[#1f1f1f]' : 'bg-[#f9fafb]'}`}
+                style={{ 
+                  border: '1px solid #f1d08c',
+                  borderTop: 'none',
+                }}
+              >
+                {suggestions.map((s, i) => (
+                      <button
+                    key={i}
+                    className={`w-full text-left px-3 py-2.5 text-sm transition-colors duration-300 flex items-center gap-2 ${theme === 'dark' ? 'border-t border-gray-800/60' : 'border-t border-gray-200/60'} ${i === activeSuggestionIndex ? (theme === 'dark' ? 'bg-[#2a2a29] text-white' : 'bg-gray-100 text-black') : (theme === 'dark' ? 'text-gray-300 hover:bg-[#2a2a29]' : 'text-black hover:bg-gray-100')}`}
+                    onMouseDown={(e) => { 
+                      e.preventDefault(); 
+                      suggestionSelectedRef.current = true;
+                      setSearchQuery(s); 
+                      setShowSuggestions(false); 
+                      setActiveSuggestionIndex(-1); 
+                      setSuggestions([]);
+                      // Reset flag after a short delay to allow new typing to fetch suggestions
+                      setTimeout(() => { suggestionSelectedRef.current = false; }, 300);
+                    }}
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <span className="flex-1">{s}</span>
+                    <svg className="w-4 h-4 flex-shrink-0 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                      </button>
+                  ))}
+              </div>
+            )}
             </div>
             </div>
             {/* Disclaimer */}
