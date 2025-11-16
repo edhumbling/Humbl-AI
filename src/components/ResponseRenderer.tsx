@@ -175,7 +175,7 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
             hr: () => <hr className={`${borderColorClass} border my-6`} />,
             a: ({ href, children }) => {
               const linkColorClass = theme === 'dark' 
-                ? `${textColorClass} hover:opacity-80` 
+                ? 'text-cyan-400 hover:text-cyan-300' 
                 : 'text-blue-600 hover:text-blue-700';
               return (
                 <a
