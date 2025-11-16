@@ -173,6 +173,21 @@ export default function ResponseRenderer({ content, className = '', isLoading = 
             ol: ({ children }) => <ol className="list-decimal space-y-1.5 my-4 ml-6 marker:text-gray-400">{children}</ol>,
             li: ({ children }) => <li className="mb-1.5 leading-relaxed">{children}</li>,
             hr: () => <hr className={`${borderColorClass} border my-6`} />,
+            a: ({ href, children }) => {
+              const linkColorClass = theme === 'dark' 
+                ? `${textColorClass} hover:opacity-80` 
+                : 'text-blue-600 hover:text-blue-700';
+              return (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${linkColorClass} underline transition-colors duration-200`}
+                >
+                  {children}
+                </a>
+              );
+            },
             table: ({ node, children }) => {
               const tableData = tableNodeToTableData(node);
 
