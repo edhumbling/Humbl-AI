@@ -2153,12 +2153,13 @@ export default function Home() {
               </div>
             ) : !user ? (
               <div className="flex items-center space-x-2">
-                <Shield 
-                  size={24} 
-                  style={{ fill: '#333', color: '#333' }} 
-                  className="opacity-70"
-                  title="Temporary conversation mode - conversations are not saved"
-                />
+                <span title="Temporary conversation mode - conversations are not saved">
+                  <Shield 
+                    size={24} 
+                    style={{ fill: '#333', color: '#333' }} 
+                    className="opacity-70"
+                  />
+                </span>
                 <button
                   onClick={() => router.push('/handler/login')}
                   className="px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105"

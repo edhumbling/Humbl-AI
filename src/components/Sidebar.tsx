@@ -1346,12 +1346,13 @@ export default function Sidebar({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
                 >
-                  <Shield 
-                    size={20} 
-                    style={{ fill: '#333', color: '#333' }} 
-                    className="opacity-70 flex-shrink-0"
-                    title="Temporary conversation mode - conversations are not saved"
-                  />
+                  <span title="Temporary conversation mode - conversations are not saved" className="flex-shrink-0">
+                    <Shield 
+                      size={20} 
+                      style={{ fill: '#333', color: '#333' }} 
+                      className="opacity-70"
+                    />
+                  </span>
                   <LogIn size={20} className="text-black" />
                   <span className="text-base font-medium text-black">
                     Login
