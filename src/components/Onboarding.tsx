@@ -344,7 +344,6 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
           width={viewport.width}
           height={viewport.height}
           viewBox={`0 0 ${viewport.width} ${viewport.height}`}
-          style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
         >
           <defs>
             <mask id="humbl-tour-mask">
