@@ -240,7 +240,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
       return { top: centeredTop, left: centeredLeft, width };
     }
 
-    const padding = 24;
+    const padding = viewport.width < 640 ? 16 : 24;
     let top: number;
     let left: number;
 
@@ -334,7 +334,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
   const bodyColor = theme === 'dark' ? '#cbd5f5' : '#1f2937';
   const subTextColor = theme === 'dark' ? '#94a3b8' : '#64748b';
 
-  const calloutWidth = calloutStyle?.width || Math.min(360, viewport.width ? viewport.width - 32 : 320);
+  const calloutWidth = calloutStyle?.width || Math.min(viewport.width && viewport.width < 640 ? viewport.width - 24 : 360, viewport.width ? viewport.width - 32 : 320);
 
   return (
     <div className="fixed inset-0 z-[150] pointer-events-none">
@@ -344,6 +344,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
           width={viewport.width}
           height={viewport.height}
           viewBox={`0 0 ${viewport.width} ${viewport.height}`}
+          style={{ backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
         >
           <defs>
             <mask id="humbl-tour-mask">
@@ -401,30 +402,31 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
         </svg>
       )}
 
-      <div className="absolute top-6 right-6 z-[153] flex items-center gap-3 pointer-events-auto">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-[153] flex items-center gap-2 sm:gap-3 pointer-events-auto">
         <button
           type="button"
           onClick={handleComplete}
-          className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] rounded-full transition-colors duration-150"
+          className="px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs font-semibold uppercase tracking-[0.22em] rounded-full transition-all duration-150 active:scale-95"
           style={{
             backgroundColor: 'transparent',
             color: theme === 'dark' ? '#e2e8f0' : '#1f2937',
             border: `1px solid ${theme === 'dark' ? 'rgba(148, 163, 184, 0.4)' : 'rgba(15, 23, 42, 0.14)'}`,
           }}
         >
-          Skip tour
+          <span className="hidden sm:inline">Skip tour</span>
+          <span className="sm:hidden">Skip</span>
         </button>
         <button
           type="button"
           aria-label="Close onboarding"
           onClick={handleComplete}
-          className="h-10 w-10 flex items-center justify-center rounded-full transition-colors duration-150"
+          className="h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-full transition-all duration-150 active:scale-95"
           style={{
             backgroundColor: theme === 'dark' ? 'rgba(30, 41, 59, 0.85)' : '#f1f5f9',
             color: theme === 'dark' ? '#cbd5f5' : '#475569',
           }}
         >
-          <X size={18} />
+          <X size={17} />
         </button>
       </div>
 
@@ -440,21 +442,21 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
           }}
         >
           <div
-            className="relative rounded-3xl p-6 shadow-2xl"
+            className="relative rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl transition-all duration-300"
             style={{
               backgroundColor: calloutBg,
               border: `1px solid ${calloutBorder}`,
-              boxShadow: `0 28px 80px ${theme === 'dark' ? 'rgba(2, 6, 23, 0.55)' : 'rgba(15, 23, 42, 0.25)'}`,
+              boxShadow: `0 20px 60px ${theme === 'dark' ? 'rgba(2, 6, 23, 0.55)' : 'rgba(15, 23, 42, 0.25)'}, 0 0 0 1px ${current.accent}15`,
             }}
           >
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: current.accent }}>
-              <Sparkles size={14} />
+            <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.28em]" style={{ color: current.accent }}>
+              <Sparkles size={13} />
               <span>Guided tour</span>
             </div>
-            <h2 className="mt-3 text-xl font-semibold leading-snug" style={{ color: titleColor }}>
+            <h2 className="mt-2 sm:mt-3 text-lg sm:text-xl font-semibold leading-snug" style={{ color: titleColor }}>
               {current.title}
             </h2>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: bodyColor }}>
+            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-relaxed" style={{ color: bodyColor }}>
               {current.description}
             </p>
             {targetMissing && (
@@ -467,29 +469,29 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
               className="mt-5 flex flex-col gap-4 border-t pt-4"
               style={{ borderColor: theme === 'dark' ? 'rgba(148, 163, 184, 0.12)' : 'rgba(148, 163, 184, 0.24)' }}
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-2 sm:gap-3 flex-wrap">
                 <button
                   type="button"
                   onClick={handlePrevious}
                   disabled={currentStep === 0}
-                  className="px-3 py-2 rounded-xl text-sm font-semibold transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="px-3 py-2 sm:px-3 sm:py-2 rounded-xl text-sm font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
                   style={{
                     backgroundColor: theme === 'dark' ? 'rgba(30, 41, 59, 0.85)' : '#e2e8f0',
                     color: theme === 'dark' ? '#f8fafc' : '#1f2937',
                   }}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <ArrowLeft size={16} />
-                    <span>Back</span>
+                    <span className="hidden sm:inline">Back</span>
                   </div>
                 </button>
 
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-1 sm:gap-1.5">
                     {steps.map((step, index) => (
                       <span
                         key={step.id}
-                        className="h-2 w-2 rounded-full transition-colors duration-200"
+                        className="h-2 w-2 sm:h-2 sm:w-2 rounded-full transition-all duration-200"
                         style={{
                           backgroundColor:
                             index === currentStep
@@ -497,11 +499,12 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
                               : theme === 'dark'
                               ? 'rgba(148, 163, 184, 0.35)'
                               : 'rgba(148, 163, 184, 0.45)',
+                          transform: index === currentStep ? 'scale(1.2)' : 'scale(1)',
                         }}
                       />
                     ))}
                   </div>
-                  <span className="text-xs font-medium" style={{ color: subTextColor }}>
+                  <span className="text-xs font-medium whitespace-nowrap" style={{ color: subTextColor }}>
                     Step {currentStep + 1} of {steps.length}
                   </span>
                 </div>
@@ -509,7 +512,7 @@ export default function Onboarding({ theme, onClose }: OnboardingProps) {
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-transform duration-150 hover:scale-[1.02]"
+                  className="px-4 py-2 sm:px-4 sm:py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 active:scale-95"
                   style={{
                     backgroundColor: current.accent,
                     color: '#0b1727',
