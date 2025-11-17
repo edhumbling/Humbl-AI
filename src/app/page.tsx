@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Folder, Archive, Flag, Trash2, GitBranch } from 'lucide-react';
+import { Mic, Send, Copy as CopyIcon, ThumbsUp, ThumbsDown, Plus, Info, X, ArrowUp, Square, RefreshCw, Check, Volume2, VolumeX, ChevronDown, Image as ImageIcon, Download, Edit2, MoreVertical, Sun, Moon, Menu, Share2, ChevronLeft, ChevronRight, Maximize2, Minimize2, Globe, Lightbulb, Folder, Archive, Flag, Trash2, GitBranch, Shield } from 'lucide-react';
 import Image from 'next/image';
 import ResponseRenderer from '../components/ResponseRenderer';
 import Sidebar from '../components/Sidebar';
@@ -2153,6 +2153,12 @@ export default function Home() {
               </div>
             ) : !user ? (
               <div className="flex items-center space-x-2">
+                <Shield 
+                  size={24} 
+                  style={{ fill: '#333', color: '#333' }} 
+                  className="opacity-70"
+                  title="Temporary conversation mode - conversations are not saved"
+                />
                 <button
                   onClick={() => router.push('/handler/login')}
                   className="px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle, FileText, ExternalLink, Flag, Download, Zap, ChevronLeft, Menu } from 'lucide-react';
+import { X, Plus, MessageSquare, MoreVertical, Pencil, Trash2, LogOut, LogIn, UserPlus, User, Settings, Search, Folder, ChevronDown, ChevronRight, FolderPlus, Check, Sun, Moon, Info, Archive, Hexagon, RefreshCw, HelpCircle, FileText, ExternalLink, Flag, Download, Zap, ChevronLeft, Menu, Shield } from 'lucide-react';
 import Image from 'next/image';
 import FolderList from './FolderList';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
@@ -1346,6 +1346,12 @@ export default function Sidebar({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e8c377')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#f1d08c')}
                 >
+                  <Shield 
+                    size={20} 
+                    style={{ fill: '#333', color: '#333' }} 
+                    className="opacity-70 flex-shrink-0"
+                    title="Temporary conversation mode - conversations are not saved"
+                  />
                   <LogIn size={20} className="text-black" />
                   <span className="text-base font-medium text-black">
                     Login
