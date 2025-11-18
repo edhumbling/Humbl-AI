@@ -157,8 +157,11 @@ export async function POST(request: NextRequest) {
       doc.on('error', reject);
     });
 
+    // Convert Buffer to Uint8Array for NextResponse
+    const pdfArray = new Uint8Array(pdfBuffer);
+
     // Return PDF as response
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(pdfArray, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
