@@ -1366,7 +1366,7 @@ export default function Home() {
       const userMessage = conversationHistory[messageIndex - 1];
       if (userMessage && userMessage.type === 'user') {
         const query = userMessage.content.toLowerCase();
-        const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format'];
+        const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format', 'download pdf'];
         return pdfKeywords.some(keyword => query.includes(keyword));
       }
     }
@@ -1381,11 +1381,30 @@ export default function Home() {
 
   const handleDownloadPDF = async (messageIndices?: number[]) => {
     try {
-      const messagesToExport = messageIndices 
-        ? messageIndices.map(idx => conversationHistory[idx]).filter(Boolean)
-        : conversationHistory;
+      // Get messages to export
+      let messagesToExport;
+      if (messageIndices && messageIndices.length > 0) {
+        messagesToExport = messageIndices
+          .map(idx => conversationHistory[idx])
+          .filter(Boolean)
+          .map(msg => ({
+            type: msg.type,
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }));
+      } else {
+        // Export all AI messages from the conversation
+        messagesToExport = conversationHistory
+          .filter(msg => msg.type === 'ai')
+          .map(msg => ({
+            type: msg.type,
+            content: msg.content,
+            timestamp: msg.timestamp,
+          }));
+      }
 
       if (messagesToExport.length === 0) {
+        console.error('No messages to export');
         return;
       }
 
@@ -1395,25 +1414,34 @@ export default function Home() {
         body: JSON.stringify({
           messages: messagesToExport,
           title: currentConversationTitle || 'Conversation Export',
-          selectedIndices: messageIndices,
+          includeUserMessages: false, // Only export AI responses
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate PDF');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to generate PDF' }));
+        throw new Error(errorData.error || 'Failed to generate PDF');
       }
 
+      // Get the PDF blob
       const blob = await response.blob();
+      
+      // Create download link
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${currentConversationTitle || 'conversation'}.pdf`;
+      a.download = `${(currentConversationTitle || 'conversation').replace(/[^a-z0-9]/gi, '_')}.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
     } catch (error) {
       console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
     }
   };
 
@@ -4027,10 +4055,10 @@ export default function Home() {
                       ? conversationHistory.slice().reverse().find(msg => msg.type === 'user')
                       : null;
                     const userQuery = lastUserMessage?.content.toLowerCase() || '';
-                    const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format'];
+                    const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format', 'download pdf'];
                     const requestedPDF = pdfKeywords.some(keyword => userQuery.includes(keyword)) || 
-                                       streamingResponse.toLowerCase().includes('pdf') && 
-                                       (streamingResponse.toLowerCase().includes('download') || streamingResponse.toLowerCase().includes('here'));
+                                       (streamingResponse.toLowerCase().includes('pdf') && 
+                                       (streamingResponse.toLowerCase().includes('download') || streamingResponse.toLowerCase().includes('here')));
                     
                     return requestedPDF ? (
                       <div className="mt-3">
@@ -4048,24 +4076,29 @@ export default function Home() {
                                 body: JSON.stringify({
                                   messages: [tempMessage],
                                   title: currentConversationTitle || 'Response Export',
+                                  includeUserMessages: false,
                                 }),
                               });
 
                               if (!response.ok) {
-                                throw new Error('Failed to generate PDF');
+                                const errorData = await response.json().catch(() => ({ error: 'Failed to generate PDF' }));
+                                throw new Error(errorData.error || 'Failed to generate PDF');
                               }
 
                               const blob = await response.blob();
                               const url = window.URL.createObjectURL(blob);
                               const a = document.createElement('a');
                               a.href = url;
-                              a.download = `${currentConversationTitle || 'response'}.pdf`;
+                              a.download = `${(currentConversationTitle || 'response').replace(/[^a-z0-9]/gi, '_')}.pdf`;
                               document.body.appendChild(a);
                               a.click();
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
+                              setTimeout(() => {
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                              }, 100);
                             } catch (error) {
                               console.error('Error downloading PDF:', error);
+                              alert('Failed to download PDF. Please try again.');
                             }
                           }}
                           className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors"
