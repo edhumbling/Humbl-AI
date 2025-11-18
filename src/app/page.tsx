@@ -1359,6 +1359,64 @@ export default function Home() {
     }
   };
 
+  // Check if user requested PDF generation
+  const userRequestedPDF = (messageIndex: number): boolean => {
+    // Check the user message that prompted this AI response
+    if (messageIndex > 0) {
+      const userMessage = conversationHistory[messageIndex - 1];
+      if (userMessage && userMessage.type === 'user') {
+        const query = userMessage.content.toLowerCase();
+        const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format'];
+        return pdfKeywords.some(keyword => query.includes(keyword));
+      }
+    }
+    // Also check if AI response mentions PDF generation
+    const aiMessage = conversationHistory[messageIndex];
+    if (aiMessage && aiMessage.type === 'ai') {
+      const content = aiMessage.content.toLowerCase();
+      return content.includes('pdf') && (content.includes('download') || content.includes('here') || content.includes('available'));
+    }
+    return false;
+  };
+
+  const handleDownloadPDF = async (messageIndices?: number[]) => {
+    try {
+      const messagesToExport = messageIndices 
+        ? messageIndices.map(idx => conversationHistory[idx]).filter(Boolean)
+        : conversationHistory;
+
+      if (messagesToExport.length === 0) {
+        return;
+      }
+
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messagesToExport,
+          title: currentConversationTitle || 'Conversation Export',
+          selectedIndices: messageIndices,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentConversationTitle || 'conversation'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+    }
+  };
+
   const handleTTS = async (text: string, messageId: string) => {
     // If this audio is already playing, stop it
     if (playingAudioId === messageId && audioRef.current) {
@@ -3658,6 +3716,18 @@ export default function Home() {
                           ) : (
                             message.content && <ResponseRenderer key={`${index}-${message.currentRetryIndex ?? 0}`} content={getDisplayedContent(message)} theme={theme} />
                           )}
+                          {/* PDF Download Link for AI messages - Only show when user requested it */}
+                          {message.type === 'ai' && !(streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index) && userRequestedPDF(index) && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => handleDownloadPDF([index])}
+                                className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors"
+                                style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb' }}
+                              >
+                                Download as PDF
+                              </button>
+                            </div>
+                          )}
                         </>
                       )}
                       {/* Action buttons for AI responses - Only show when not streaming a retry for this message */}
@@ -3950,6 +4020,62 @@ export default function Home() {
                       <span className="text-sm animate-pulse">Generating...</span>
                     </div>
                   )}
+                  {/* PDF Download Link for streaming response - Only show when user requested it */}
+                  {!isLoading && streamingResponse && (() => {
+                    // Check if the last user message requested PDF
+                    const lastUserMessage = conversationHistory.length > 0 
+                      ? conversationHistory.slice().reverse().find(msg => msg.type === 'user')
+                      : null;
+                    const userQuery = lastUserMessage?.content.toLowerCase() || '';
+                    const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format'];
+                    const requestedPDF = pdfKeywords.some(keyword => userQuery.includes(keyword)) || 
+                                       streamingResponse.toLowerCase().includes('pdf') && 
+                                       (streamingResponse.toLowerCase().includes('download') || streamingResponse.toLowerCase().includes('here'));
+                    
+                    return requestedPDF ? (
+                      <div className="mt-3">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const tempMessage = {
+                                type: 'ai' as const,
+                                content: streamingResponse,
+                                timestamp: new Date().toISOString(),
+                              };
+                              const response = await fetch('/api/generate-pdf', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  messages: [tempMessage],
+                                  title: currentConversationTitle || 'Response Export',
+                                }),
+                              });
+
+                              if (!response.ok) {
+                                throw new Error('Failed to generate PDF');
+                              }
+
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${currentConversationTitle || 'response'}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            } catch (error) {
+                              console.error('Error downloading PDF:', error);
+                            }
+                          }}
+                          className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors"
+                          style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb' }}
+                        >
+                          Download as PDF
+                        </button>
+                      </div>
+                    ) : null;
+                  })()}
                   {/* Action buttons for streaming response */}
                   {!isLoading && (
                   <div className="flex items-center gap-1.5 sm:gap-2 mt-2 sm:mt-3">
