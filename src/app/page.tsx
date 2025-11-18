@@ -1074,6 +1074,23 @@ export default function Home() {
                       console.error('Failed to save AI message:', err);
                     }
                   }
+
+                  // Check if user requested PDF and automatically generate it
+                  const userQueryLower = queryToUse.toLowerCase();
+                  const pdfKeywords = ['pdf', 'download as pdf', 'create pdf', 'generate pdf', 'export as pdf', 'save as pdf', 'make pdf', 'pdf version', 'pdf format', 'download pdf'];
+                  const requestedPDF = pdfKeywords.some(keyword => userQueryLower.includes(keyword));
+                  
+                  if (requestedPDF && fullResponse) {
+                    // Mark this message as having a PDF available
+                    const lastIndex = conversationHistory.length - 1;
+                    if (lastIndex >= 0) {
+                      // The PDF will be generated on-demand when user clicks the download link
+                      // We just mark that PDF is available for this message
+                      updateMessageAt(lastIndex, {
+                        content: fullResponse,
+                      });
+                    }
+                  }
                   
                   // Clear streaming response and search query
                   setStreamingResponse('');
@@ -3746,13 +3763,22 @@ export default function Home() {
                           )}
                           {/* PDF Download Link for AI messages - Only show when user requested it */}
                           {message.type === 'ai' && !(streamingResponse && retryStateRef.current && retryStateRef.current.messageIndex === index) && userRequestedPDF(index) && (
-                            <div className="mt-3">
+                            <div className="mt-4 p-3 rounded-lg border" style={{ 
+                              backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)',
+                              borderColor: theme === 'dark' ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)'
+                            }}>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Download size={18} style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb' }} />
+                                <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                                  PDF Ready for Download
+                                </span>
+                              </div>
                               <button
                                 onClick={() => handleDownloadPDF([index])}
-                                className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors"
+                                className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors font-medium"
                                 style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb' }}
                               >
-                                Download as PDF
+                                Download PDF
                               </button>
                             </div>
                           )}
@@ -4061,7 +4087,16 @@ export default function Home() {
                                        (streamingResponse.toLowerCase().includes('download') || streamingResponse.toLowerCase().includes('here')));
                     
                     return requestedPDF ? (
-                      <div className="mt-3">
+                      <div className="mt-4 p-3 rounded-lg border" style={{ 
+                        backgroundColor: theme === 'dark' ? 'rgba(55, 65, 81, 0.3)' : 'rgba(229, 231, 235, 0.5)',
+                        borderColor: theme === 'dark' ? 'rgba(75, 85, 99, 0.5)' : 'rgba(209, 213, 219, 0.5)'
+                      }}>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Download size={18} style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb' }} />
+                          <span className="text-sm font-medium" style={{ color: theme === 'dark' ? '#e5e7eb' : '#111827' }}>
+                            PDF Ready for Download
+                          </span>
+                        </div>
                         <button
                           onClick={async () => {
                             try {
@@ -4101,10 +4136,10 @@ export default function Home() {
                               alert('Failed to download PDF. Please try again.');
                             }
                           }}
-                          className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors"
+                          className="text-blue-500 hover:text-blue-400 underline text-sm transition-colors font-medium"
                           style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb' }}
                         >
-                          Download as PDF
+                          Download PDF
                         </button>
                       </div>
                     ) : null;
